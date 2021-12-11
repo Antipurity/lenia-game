@@ -14,61 +14,65 @@ uniform sampler2D iChannel0;
 
 // modified from https://www.shadertoy.com/view/7ls3z7
 
-// TODO: Extract all these to uniforms, specified in JS. (From a JSON description of the level.)
-const float R = 5.;       // space resolution = kernel radius
-const float T = 5.;       // time resolution = number of divisions per unit time
-const float dt = 1./T;     // time step
-const vec3 mu = vec3(0.4, .2, .4);     // growth center // TODO: First two worlds.
-const vec3 sigma = vec3(.08, .04, .1); // growth width // TODO: First two worlds.
-// const vec3 mu = vec3(0.12, 0.6, .2);     // growth center // TODO: Fountains.
-// const vec3 sigma = vec3(.08, .2, .05); // growth width // TODO: Fountains.
-const vec3 rho = vec3(1.2, .5, .5);     // kernel center
-const vec3 omega = vec3(.1, .14, .14);  // kernel width
-const mat3 mixing = mat3(
-    /* Fountains of power (really needs something that forces the player to move, preferably to another side):
-        0.5, -0.577,  -6.0,
-        0.5,    2.0,  -1.0,
-       -2.0,   -1.0,  0.63/**/
-    /* Eye of the storm (puzzle: have to realize the need to stand in spinny wave corners):
-        1.,-5., .5,
-        .1, 1.,-1.1,
-    -5., .5, 1./**/
-    /* Self-eating waves (suitable for battles):*/
-        .6, -10.,  .75,
-       -1., 2.02,  -1.,
-       -8.,   .8,   1./**/
-);
-const vec2 offset       = vec2(0., -9.); // wind
-const vec2 kernelOffset = vec2(0., -9.); // wind for the kernel center (originally from a bugged wind implementation; looked too cool to fix)
+// TODO: Extract all these to levels.
+// const vec3 mu = vec3(0.4, .2, .4);     // growth center // TODO: First two worlds.
+// const vec3 sigma = vec3(.08, .04, .1); // growth width // TODO: First two worlds.
+// // const vec3 mu = vec3(0.12, 0.6, .2);     // growth center // TODO: Fountains.
+// // const vec3 sigma = vec3(.08, .2, .05); // growth width // TODO: Fountains.
+// const mat3 mixing = mat3(
+//     /* Fountains of power (really needs something that forces the player to move, preferably to another side):
+//         0.5, -0.577,  -6.0,
+//         0.5,    2.0,  -1.0,
+//        -2.0,   -1.0,  0.63/**/
+//     /* Eye of the storm (puzzle: have to realize the need to stand in spinny wave corners):*/
+//         1.,-5., .5,
+//         .1, 1.,-1.1,
+//        -5., .5, 1./**/
+//     /* Self-eating waves (suitable for battles):
+//         .6, -10.,  .75,
+//        -1., 2.02,  -1.,
+//        -8.,   .8,   1./**/
+// );
+
+uniform float iSlowdown;
+uniform mat3 iMixing;
+uniform vec3 iKernelCenter;
+uniform vec3 iKernelWidth;
+uniform vec3 iGrowthCenter;
+uniform vec3 iGrowthWidth;
+uniform vec2 iOffset;
+uniform vec2 iKernelOffset;
+
+const int R = 5; // GLSL can only loop with constant bounds.
 
 vec3 bell(vec3 x, vec3 m, vec3 s) {
-    return exp(-(x-m)*(x-m)/s/s/2.);  // bell-shaped curve
+    return exp(-(x-m)*(x-m)/(s*s*2.));  // bell-shaped curve
 }
 
 vec3 lenia(in sampler2D prev, in mat3 channels, in vec2 fragCoord) {
     vec3 sum = vec3(0.);
     vec3 total = vec3(0.);
-    for (int y=-int(R); y<=int(R); y++)
-    for (int x=-int(R); x<=int(R); x++)
+    for (int y=-R; y<=R; y++)
+    for (int x=-R; x<=R; x++)
     {
         vec2 xy = vec2(x,y);
-        vec3 r = vec3(length(xy - kernelOffset) / R);
-        vec2 txy = mod((fragCoord + xy - offset) / iResolution.xy, 1.);
+        vec3 r = vec3(length(xy - iKernelOffset) / float(R));
+        vec2 txy = mod((fragCoord + xy - iOffset) / iResolution.xy, 1.);
         vec3 val = texture2D(prev, txy).rgb * channels;
-        vec3 weight = bell(r, rho, omega);
+        vec3 weight = bell(r, iKernelCenter, iKernelWidth);
         sum += val * weight;
         total += weight;
     }
     vec3 avg = sum / total;
 
     vec3 val = texture2D(prev, fragCoord / iResolution.xy).rgb;
-    vec3 growth = bell(avg, mu, sigma) * 2. - 1.;
-    return clamp(val + dt * growth, 0., 1.);
+    vec3 growth = bell(avg, iGrowthCenter, iGrowthWidth) * 2. - 1.;
+    return clamp(val + growth / iSlowdown, 0., 1.);
 }
 
 void main(void) {
     vec2 coord = gl_FragCoord.xy; // 0…1
-    vec3 rgb = lenia(iChannel0, mixing, coord);
+    vec3 rgb = lenia(iChannel0, iMixing, coord);
 
     // TODO: How to move this actor system to, uh, uniform arrays or textures or something? And, be some linear equation from numbers like "time" and "colorNearby" (health) and "colorGrad" (collision) and "distToMouse" (player control) and "distToTargetN" (2 CPU-specified indices) and speed and health and score and emittances and 1 to movement of position and health-change and score-change and emittances.
     if (iMouse.z > 0.) {
@@ -91,23 +95,35 @@ void main(void) {
 
 
 
-// TODO: Separate levels. Into JSON files!
-//   You are next.
-//   (With a Markdown description, and "is this the main-menu/hub, meaning that we don't need time+score and need level-select buttons"; lenia: width&height, simulation params, the color matrix, all actor behavior matrices & initial state and "is this yours" and target-selecting JS, and "how much score to win this level, and what levels would this level unlock, by path".)
-//   TODO: Load levels with `fetch` and `JSON.parse`.
-//   TODO: Have a directory for levels, with the loaded-by-default being `levels/initial.json`.
+// TODO: Document the uniforms. In `levels/README.md`.
+//   iKernelOffset: wind for the kernel center (originally from a bugged wind implementation; looked too cool to fix).
+
 
 
 // TODO: An actor system.
 //   TODO: Expose several numeric variables to actors, and make each actor's behavior (dx, dy, dhealth, dscore, and emittances) just a matrix multiplication.
 //   TODO: A vertex shader should emit a square of possible-emittance for each actor. The world is like a special fullscreen actor.
 //   TODO: Each frame, download health and score and position from GPU.
-// TODO: An actor-health system, communicating GPU->CPU to know which ones to kill (and update GPU data when that happens).
+//   TODO: In the level, the object `actors`, where each actor is named:
+//     TODO: x: 0..1.
+//     TODO: y: 0..1.
+//     TODO: health. When ≤0, it's not updated anymore.
+//     TODO: displayHealth, true/false.
+//     TODO: maxEmitRadius: 50.
+//     TODO: emit: "glow"/"circle"
+//     TODO: smoothEmit, true/false.
+//     TODO: Per-output-variable behavior matrix.
+//       (Outputs: dx, dy, dhealth (actor's; when <=0, it's not updated anymore), dscore, dummy0, dummy1, emitR, emitG, emitB. If not specified, the row is 0s.)
+//       (Inputs: TODO:)
+//     TODO: ...How do we do target-selecting JS (given all of an actor's state), exactly?...
+// TODO: An actor-health system, communicating GPU->CPU to know which ones to kill (and update GPU data when that happens --- ...or just ignore it GPU-side), and display it in DOM.
 // TODO: An actor-target system, making JS decide the index of the target.
+// TODO: ...Do we want DOM-side labels on agents?... (Usable for text boxes, even: STORY. And for the main menu's label.)
 
-// TODO: Display in-level time and score, and healthbars for each of "your" agents.
+// TODO: When score exceeds `level.winScore`, switch to winning state (...what, is the level's JS responsible for it, or what?), then after a time, unlock all levels in `level.winUnlocks` (notifying how many are new) and go to main menu.
+// TODO: Display in-level time and score (out of `level.winScore`), and healthbars for each of "your" agents.
 // TODO: The main menu, with "start" (first level) and "continue" (using the save file from localStorage, with at least the unlocked levels; select the level, with a hierarchical view).
-//   TODO: And "settings", which at least prompts whether to make this level the default.
+//   TODO: And "settings", which at least prompts whether to make this level the main-menu default. (Or maybe on visit.)
 
 // TODO: ...With an actor system, and a player-health system (and/or an actor health system, to kill enemies), come up with concrete levels.
 // Levels, the meat of the game, allowing dynamic discoveries of whole different worlds of complexity.
@@ -185,17 +201,11 @@ uniform vec4 iDisplay;
 uniform vec4 iResolution;
 uniform sampler2D iChannel0;
 
-// TODO: Make this a uniform, specified in the level.
-const mat4 colorTransform = mat4(
-    1., 0., 0., 0.,
-    0., 1., 0., 0.,
-    0., 0., 1., 0.,
-    0., 0., 0., 1.
-);
+uniform mat4 iColorMatrix;
 
 void main() {
     // STRETCH
-    gl_FragColor = texture2D(iChannel0, (gl_FragCoord.xy) / iDisplay.xy) * colorTransform;
+    gl_FragColor = texture2D(iChannel0, (gl_FragCoord.xy) / iDisplay.xy) * iColorMatrix;
 }`
 
 
@@ -222,7 +232,10 @@ function loop(canvas) {
         canvas.gl = canvas.getContext('webgl', {alpha:false, desynchronized:true})
     const gl = canvas.gl
     canvas.width = canvas.height = 0
-    const physicsW = 512, physicsH = 512 // TODO: Put these into the level state.
+
+    let level = null
+    loadLevel('levels/initial.json').then(r => level = r).catch(error)
+
     const glState = {
         leniaPhysics: null,
         display: null,
@@ -239,14 +252,24 @@ function loop(canvas) {
     function setup() {
         const s = glState
         s.leniaPhysics = initShaders(gl, leniaSource.split('====='), [
+            // Simulation parameters.
+            'iSlowdown',
+            'iMixing',
+            'iKernelCenter', 'iKernelWidth',
+            'iGrowthCenter', 'iGrowthWidth',
+            'iOffset', 'iKernelOffset',
+            // Simulation state.
             'iTime',
             'iResolution',
+            // Debugging.
             'iMouse',
+            // Lenia state.
             'iChannel0',
         ], [
             'vertexPos',
         ])
         s.display = initShaders(gl, displaySource.split('====='), [
+            'iColorMatrix',
             'iDisplay',
             'iResolution',
             'iChannel0',
@@ -254,22 +277,34 @@ function loop(canvas) {
             'vertexPos',
         ])
         s.posBuffer = initBuffer(gl, [-1,1, 1,1, -1,-1, 1,-1], 2)
-        s.prevLeniaFrame = initTexture(gl, physicsW, physicsH)
-        s.nextLeniaFrame = initTexture(gl, physicsW, physicsH)
+        s.prevLeniaFrame = s.nextLeniaFrame = null
         gl.clearColor(0,0,0,1)
     }
     function draw() {
         requestAnimationFrame(draw)
         maybeResize(canvas, canvas)
         gl.clear(gl.COLOR_BUFFER_BIT)
-        const s = glState, p1 = s.leniaPhysics, p2 = s.display, rect = s.posBuffer
+        if (!level) return
+        const s = glState, p1 = s.leniaPhysics, p2 = s.display, rect = s.posBuffer, L = level
+        if (!s.prevLeniaFrame) {
+            s.prevLeniaFrame = initTexture(gl, level.width, level.height)
+            s.nextLeniaFrame = initTexture(gl, level.width, level.height)
+        }
         if (p1 !== null) {
             const u = p1.uniform, a = p1.attrib
             gl.useProgram(p1.program)
             // Fill in the uniforms.
             gl.uniform1f(u.iTime, performance.now())
-            gl.uniform4f(u.iResolution, physicsW, physicsH, 0, 0)
-            gl.uniform4f(u.iMouse, mouse.x * physicsW, (1 - mouse.y) * physicsH, mouse.main, mouse.aux)
+            gl.uniform4f(u.iResolution, level.width, level.height, 0, 0)
+            gl.uniform4f(u.iMouse, mouse.x * level.width, (1 - mouse.y) * level.height, mouse.main, mouse.aux)
+            gl.uniform1f(u.iSlowdown, L.iSlowdown)
+            gl.uniformMatrix3fv(u.iMixing, false, L.iMixing)
+            gl.uniform3fv(u.iKernelCenter, L.iKernelCenter)
+            gl.uniform3fv(u.iKernelWidth, L.iKernelWidth)
+            gl.uniform3fv(u.iGrowthCenter, L.iGrowthCenter)
+            gl.uniform3fv(u.iGrowthWidth, L.iGrowthWidth)
+            gl.uniform2fv(u.iOffset, L.iOffset)
+            gl.uniform2fv(u.iKernelOffset, L.iKernelOffset)
 
             // Compute the next frame.
             s.prevLeniaFrame.useRead(gl, 0, u.iChannel0)
@@ -283,9 +318,10 @@ function loop(canvas) {
         if (p2 !== null) { // Draw the physics.
             const u = p2.uniform, a = p2.attrib
             gl.useProgram(p2.program)
-            gl.uniform4f(u.iResolution, physicsW, physicsH, 0, 0)
+            gl.uniform4f(u.iResolution, level.width, level.height, 0, 0)
             gl.uniform4f(u.iDisplay, gl.drawingBufferWidth, gl.drawingBufferHeight, 0, 0)
             s.nextLeniaFrame.useRead(gl, 0, u.iChannel0)
+            gl.uniformMatrix4fv(u.iColorMatrix, false, L.iColorMatrix)
             rect.draw(gl, a.vertexPos)
         }
 
@@ -408,3 +444,8 @@ function initTexture(gl, width, height) {
 }
 
 function error(...msg) { console.error(...msg) }
+
+function loadLevel(url) {
+    // Returns a promise of a level's object.
+    return fetch(url, {mode:'cors'}).then(response => response.json())
+}
