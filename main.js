@@ -12,54 +12,34 @@ uniform sampler2D iChannel0;
 
 
 
-// Noise simplex 2D by iq - https://www.shadertoy.com/view/Msf3WH
-
-vec2 hash( vec2 p ) {
-	p = vec2( dot(p,vec2(127.1,311.7)), dot(p,vec2(269.5,183.3)) );
-	return -1.0 + 2.0*fract(sin(p)*43758.5453123);
-}
-
-float noise( in vec2 p ) {
-    const float K1 = 0.366025404; // (sqrt(3)-1)/2;
-    const float K2 = 0.211324865; // (3-sqrt(3))/6;
-
-	vec2  i = floor( p + (p.x+p.y)*K1 );
-    vec2  a = p - i + (i.x+i.y)*K2;
-    float m = step(a.y,a.x); 
-    vec2  o = vec2(m,1.0-m);
-    vec2  b = a - o + K2;
-	vec2  c = a - 1.0 + 2.0*K2;
-    vec3  h = max( 0.5-vec3(dot(a,a), dot(b,b), dot(c,c) ), 0.0 );
-	vec3  n = h*h*h*h*vec3( dot(a,hash(i+0.0)), dot(b,hash(i+o)), dot(c,hash(i+1.0)));
-    return dot( n, vec3(70.0) );
-}
-
-
-
 // modified from https://www.shadertoy.com/view/7ls3z7
 
 // TODO: Extract all these to uniforms, specified in JS. (From a JSON description of the level.)
 const float R = 5.;       // space resolution = kernel radius
 const float T = 5.;       // time resolution = number of divisions per unit time
 const float dt = 1./T;     // time step
-const vec3 mu = vec3(0.4, 0.6, .2);     // growth center // TODO: First two worlds: vec3(0.4, .2, .4)
-const vec3 sigma = vec3(.08, .2, .05); // growth width // TODO: First two worlds: vec3(.08, .04, .1)
+// const vec3 mu = vec3(0.4, .2, .4);     // growth center // TODO: First two worlds.
+// const vec3 sigma = vec3(.08, .04, .1); // growth width // TODO: First two worlds.
+const vec3 mu = vec3(0.12, 0.6, .2);     // growth center // TODO: Fountains.
+const vec3 sigma = vec3(.08, .2, .05); // growth width // TODO: Fountains.
 const vec3 rho = vec3(1.2, .5, .5);     // kernel center
 const vec3 omega = vec3(.1, .14, .14);  // kernel width
 const mat3 mixing = mat3(
     /* Fountains of power (really needs something that forces the player to move, preferably to another side):*/
-        1.0,     .0,   0.3,
-         .0,    2.0,  -1.0,
-        0.0,   -1.0,  0.63/**/
+        0.5, -0.577,  -6.0,
+        0.5,    2.0,  -1.0,
+       -2.0,   -1.0,  0.63/**/
     /* Eye of the storm (puzzle: have to realize the need to stand in spinny wave corners):
         1.,-5., .5,
         .1, 1.,-1.1,
     -5., .5, 1./**/
     /* Self-eating waves (suitable for battles):
-        .6,-10., .75,
-    -1., 2.,-1.,
-    -8., .8, 1./**/
+        .6, -10.,  .75,
+       -1., 2.02,  -1.,
+       -8.,   .8,   1./**/
 );
+const vec2 offset       = vec2(0., -9.); // wind
+const vec2 kernelOffset = vec2(0., -9.); // wind for the kernel center (originally from a bugged wind implementation; looked too cool to fix)
 
 vec3 bell(vec3 x, vec3 m, vec3 s) {
     return exp(-(x-m)*(x-m)/s/s/2.);  // bell-shaped curve
@@ -68,13 +48,12 @@ vec3 bell(vec3 x, vec3 m, vec3 s) {
 vec3 lenia(in sampler2D prev, in mat3 channels, in vec2 fragCoord) {
     vec3 sum = vec3(0.);
     vec3 total = vec3(0.);
-    for (int y0=-int(R); y0<=int(R); y0++)
-    for (int x0=-int(R); x0<=int(R); x0++)
+    for (int y=-int(R); y<=int(R); y++)
+    for (int x=-int(R); x<=int(R); x++)
     {
-        int y = y0 - 9;
-        int x = x0 + 0; // TODO: Extract x/y shifts into uniforms. Different for each color. (Could even do stuff like "point an actor's emissions towards the player".) (...Probably no need for per-pixel offsets, right? Yeah, I don't think so.)
-        vec3 r = vec3(sqrt(float(x*x + y*y)) / R);
-        vec2 txy = mod((fragCoord + vec2(x,y)) / iResolution.xy, 1.);
+        vec2 xy = vec2(x,y);
+        vec3 r = vec3(length(xy - kernelOffset) / R);
+        vec2 txy = mod((fragCoord + xy - offset) / iResolution.xy, 1.);
         vec3 val = texture2D(prev, txy).rgb * channels;
         vec3 weight = bell(r, rho, omega);
         sum += val * weight;
@@ -91,8 +70,7 @@ void main(void) {
     vec2 coord = gl_FragCoord.xy; // 0…1
     vec3 rgb = lenia(iChannel0, mixing, coord);
 
-    // TODO: How to move this actor system to, uh, uniform arrays or textures or something? And, be some linear equation from numbers like "time" and "colorNearby" (health) and "colorGrad" (collision) and "distToMouse" (player control) and "distToTarget" (CPU-specified index) to movement...
-    // TODO: And, how to have more diverse actors? Like, do shapes matter? A bit, in some special circumstances... But I think just a linear equation will suffice, right?
+    // TODO: How to move this actor system to, uh, uniform arrays or textures or something? And, be some linear equation from numbers like "time" and "colorNearby" (health) and "colorGrad" (collision) and "distToMouse" (player control) and "distToTargetN" (2 CPU-specified indices) and speed and health and score and emittances and 1 to movement of position and health-change and score-change and emittances.
     if (iMouse.z > 0.) {
         float d = length((coord.xy - iMouse.xy) / iResolution.xy);
         float maxD = 50., perc = 1. - d / maxD*iResolution.x;
@@ -110,25 +88,45 @@ void main(void) {
 
     gl_FragColor = vec4(rgb, 1.);
 }`
-// TODO: Research how we can apply velocity to the whole level, in a way that actually looks natural, not like shit.
-//   (Might be useful for open-world adventures, with actors preserved but colors discarded, because it's quite boring otherwise. ...Also really good for animations.)
 
 
 
 // TODO: Separate levels. Into JSON files!
-//   (With simulation params, all actor descriptions (including "what hurts it and by how much") & possibly code for each actor group.)
-// TODO: Document interesting actor behaviors in levels. (They would be the meat of the game, allowing dynamic discoveries of whole different worlds.)
+//   (With width&height, simulation params, the color matrix, all actor behavior matrices & initial state and "is this yours" and target-selecting JS, and "how much score to win this level, and what levels would this level unlock", and path like "tundra/1", and "is this the main-menu/hub, meaning that we don't need time+score and need level-select buttons".)
+//   TODO: Load levels with `fetch` and `JSON.parse`.
+//   TODO: Have a directory for levels, with the loaded-by-default being `levels/main.json`.
+
+
+// TODO: An actor system.
+//   TODO: Expose several numeric variables to actors, and make each actor's behavior (dx, dy, dhealth, dscore, and emittances) just a matrix multiplication.
+//   TODO: A vertex shader should emit a square of possible-emittance for each actor. The world is like a special fullscreen actor.
+//   TODO: Each frame, download health and score and position from GPU.
+// TODO: An actor-health system, communicating GPU->CPU to know which ones to kill (and update GPU data when that happens).
+// TODO: An actor-target system, making JS decide the index of the target.
+
+// TODO: Display in-level time and score, and healthbars for each of "your" agents.
+// TODO: The main menu, with "start" (first level) and "continue" (using the save file from localStorage, with at least the unlocked levels; select the level, with a hierarchical view).
+//   TODO: And "settings", which at least prompts whether to make this level the default.
+
+// TODO: ...With an actor system, and a player-health system (and/or an actor health system, to kill enemies), come up with concrete levels.
+// Levels, the meat of the game, allowing dynamic discoveries of whole different worlds of complexity.
 //   Eye of the storm, 512×512 (blue must hurt, green can slowly heal cause it's close to blue OR red can heal cause it's far from blue, and in eyes) (actor radius 50 here):
 //     `rgb.rgb += vec3(.0, .2, .0)`, moving linearly in a direction for 1 second:
 //       Creates actual spiral-eyes, without too much complexity. Perfect.
 //     `rgb.rgb += vec3(.0, .2, .0)`, blinking with times 5s on, 1s off:
 //       A big wave. Each period, the wave changes color. Eventually, everything descends into chaos.
 //     (Nothing else seems to have interesting behavior.)
-//     With `dx=+2, dy=0`:
-//       `rgb.rgb += vec3(.0, .0, .2)`: a really cool animation. Not a level though.
-//       (Unplayable, because the storm has no safe spaces.)
-//     With `dx=+1, dy=0`:
-//       `rgb.rgb += vec3(.0, .0, .2)`: an even more cool animation. Could be good for the title screen.
+//     `offset=(0,-2)`: dripping shifting platforms: red space, blue supports, green grass.
+//     `offset=(0,3)`: eternal bullet-hell, with diagonal blue bullets in a sea of red, and green explosions.
+//     `offset=(0,4)`: green becomes a self-regenerating eternal wave; if the player can burst blue for a bit, it burns away the green.
+//     `offset=kernelOffset=(0,-2)`:
+//       Blue: a really cool animation. Could be good for the title screen.
+//       Green+blue: violently-shifting platforms, too hard to climb, but cool visually.
+//     `offset=kernelOffset=(0,-3)`:
+//       Blue: blue gliders with red wings, fighting for the right to become a platform.
+//       Green: first a green field with blue sparkles, then slowly-shifting screen-wide platforms, too hard to climb.
+//     `offset=kernelOffset=(0,-4)`:
+//       Blue: glacial blue gliders held up by red flames, which sometimes flare up and destroy other gliders; gliders sometimes split off.
 //   Self-eating waves, 1024×1024:
 //     `rgb.rgb += vec3(.0, .2, .0)` green circles, of radii such as 10/50/100/500:
 //       Init:
@@ -153,25 +151,26 @@ void main(void) {
 //         When staying, the blue slowly ignites into intense red, and the ignited material's movement leaves a trail, but can't keep up if the actor moves too fast.
 //           (When ` * perc`, there's no ignition.)
 //         A battery for greenery.
-//     `dx=0, dy=+1`, with `blue * perc`: a very complex animation, with blue mushroom tops always rising up whenever the red goes away from the actor.
-//     `dx=0, dy=+2`, with `blue * perc`: blue releases much more rapidly, and the red in its wake looks like blood dripping down.
+//     offset=kernelOffset=(0,-1), with `blue * perc`: a very complex animation, with blue mushroom tops always rising up whenever the red goes away from the actor.
+//     offset=kernelOffset=(0,-2), with `blue * perc`: blue releases much more rapidly, and the red in its wake looks like blood dripping down.
 //       (Platformer, anyone?)
-//     `dx=0, dy=+5`, with `green`: levitating, blood-dripping caves with slight cave-ins.
+//     offset=kernelOffset=(0,-5), with `green`: levitating, blood-dripping caves with slight cave-ins.
 //       (With actors doing some collision detection to stay out of terrain, and taking damage if impossible, getting to the top can be a challenging task.)
 //       `red * perc` functions as a cave-in aura.
+//     `offset=(0,-1)`, blue: a colony has come to kill you; weave through the little things.
+//     `offset=(0,-2)`, green: self-replicating gliders are death, green grass that can be on top of them is life, in a platformer that depends on either the player sometimes injecting green or some actors doing so. If greenery is unneeded, blue actors can act as wipers.
+//     `offset=(0,-4)`, green+blue: title-screen material, with full-screen waves, green held up by blue.
+//     `offset=(0,-5)`, green: green-triangle churn, and blue-bullet hell.
+//     `offset=(0,-6)`:
+//       Blue, constant: a being. For a cutscene, maybe?
+//       Blue+green: a trapped green being.
+//       Green: the great green being.
 //   Fountains of power:
 //     `dx=0, dy=-9`, with `blue * perc` and `mu=.2, sigma=.05`: builds indistinct Sierpinski triangles, until they reach the actor and destroy their own source, and start again.
 //       (Could be the great barrier to cross.)
 //       (A small actor radius makes the triangle much more distinct.)
-//       `dy=-8`: makes the arms big enough to cross the screen multiple times before the middle is reached and everything restarts.
-//       `mu=.6, sigma=.2`: makes puffs that slowly dissipate, but the actor stays long enough to make top and bottom connect, the whole world is taken over.
-
-
-// TODO: An actor system.
-//   TODO: Expose several numeric variables to actors, and make each actor's behavior just a matrix multiplication.
-// TODO: An actor-health system, communicating GPU->CPU to know which ones to kill (and update GPU data when that happens).
-// TODO: An actor-target system, making JS decide the index of the target.
-// TODO: ...With an actor system, and a player-health system (and/or an actor health system, to kill enemies), come up with concrete levels.
+//       `mu=.6, sigma=.2`: makes puffs that slowly dissipate, but if the actor stays long enough to make top and bottom connect, the whole world is taken over.
+//     `offset=kernelOffset=(0,-11)`: the barrier's building has visible sparks, and multiple layers, and looks cool.
 
 
 const displaySource = `
@@ -181,19 +180,28 @@ void main(void) { gl_Position = vec4(vertexPos, 0., 1.); }
 =====
 
 precision highp float;
+uniform vec4 iDisplay;
 uniform vec4 iResolution;
 uniform sampler2D iChannel0;
+
+// TODO: Make this a uniform, specified in the level.
+const mat4 colorTransform = mat4(
+    1., 0., 0., 0.,
+    0., 1., 0., 0.,
+    0., 0., 1., 0.,
+    0., 0., 0., 1.
+);
+
 void main() {
     // STRETCH
-    gl_FragColor = texture2D(iChannel0, gl_FragCoord.xy / iResolution.xy);
+    gl_FragColor = texture2D(iChannel0, (gl_FragCoord.xy) / iDisplay.xy) * colorTransform;
 }`
 
 
 
 const mouse = { x:0, y:0, main:false, aux:false, update(evt) {
-    const dpr = (self.devicePixelRatio || 1) | 0
-    mouse.x = (evt.clientX + (evt.movementX || 0)) / innerWidth * dpr
-    mouse.y = (evt.clientY + (evt.movementY || 0)) / innerHeight * dpr
+    mouse.x = (evt.clientX + (evt.movementX || 0)) / innerWidth
+    mouse.y = (evt.clientY + (evt.movementY || 0)) / innerHeight
     mouse.main = evt.buttons & 1
     mouse.aux = evt.buttons & 2
 } }
@@ -213,7 +221,7 @@ function loop(canvas) {
         canvas.gl = canvas.getContext('webgl', {alpha:false, desynchronized:true})
     const gl = canvas.gl
     canvas.width = canvas.height = 0
-    const physicsW = 512, physicsH = 512 // TODO:
+    const physicsW = 512, physicsH = 512 // TODO: Put these into the level state.
     const glState = {
         leniaPhysics: null,
         display: null,
@@ -238,6 +246,7 @@ function loop(canvas) {
             'vertexPos',
         ])
         s.display = initShaders(gl, displaySource.split('====='), [
+            'iDisplay',
             'iResolution',
             'iChannel0',
         ], [
@@ -273,7 +282,8 @@ function loop(canvas) {
         if (p2 !== null) { // Draw the physics.
             const u = p2.uniform, a = p2.attrib
             gl.useProgram(p2.program)
-            gl.uniform4f(u.iResolution, gl.drawingBufferWidth, gl.drawingBufferHeight, 0, 0)
+            gl.uniform4f(u.iResolution, physicsW, physicsH, 0, 0)
+            gl.uniform4f(u.iDisplay, gl.drawingBufferWidth, gl.drawingBufferHeight, 0, 0)
             s.nextLeniaFrame.useRead(gl, 0, u.iChannel0)
             rect.draw(gl, a.vertexPos)
         }
