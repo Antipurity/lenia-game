@@ -95,11 +95,6 @@ void main(void) {
 
 
 
-// TODO: Document the uniforms. In `levels/README.md`.
-//   iKernelOffset: wind for the kernel center (originally from a bugged wind implementation; looked too cool to fix).
-
-
-
 // TODO: An actor system.
 //   TODO: Expose several numeric variables to actors, and make each actor's behavior (dx, dy, dhealth, dscore, and emittances) just a matrix multiplication.
 //   TODO: A vertex shader should emit a square of possible-emittance for each actor. The world is like a special fullscreen actor.
