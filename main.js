@@ -75,6 +75,7 @@ void main(void) {
     vec3 rgb = lenia(iChannel0, iMixing, coord);
 
     // TODO: How to move this actor system to, uh, uniform arrays or textures or something? And, be some linear equation from numbers like "time" and "colorNearby" (health) and "colorGrad" (collision) and "distToMouse" (player control) and "distToTargetN" (2 CPU-specified indices) and speed and health and score and emittances and 1 to movement of position and health-change and score-change and emittances.
+    // TODO: ...Is it possible to make actors be able to shoot other actors...
     if (iMouse.z > 0.) {
         float d = length((coord.xy - iMouse.xy) / iResolution.xy);
         float maxD = 50., perc = 1. - d / maxD*iResolution.x;
