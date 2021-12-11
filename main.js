@@ -18,14 +18,14 @@ uniform sampler2D iChannel0;
 const float R = 5.;       // space resolution = kernel radius
 const float T = 5.;       // time resolution = number of divisions per unit time
 const float dt = 1./T;     // time step
-// const vec3 mu = vec3(0.4, .2, .4);     // growth center // TODO: First two worlds.
-// const vec3 sigma = vec3(.08, .04, .1); // growth width // TODO: First two worlds.
-const vec3 mu = vec3(0.12, 0.6, .2);     // growth center // TODO: Fountains.
-const vec3 sigma = vec3(.08, .2, .05); // growth width // TODO: Fountains.
+const vec3 mu = vec3(0.4, .2, .4);     // growth center // TODO: First two worlds.
+const vec3 sigma = vec3(.08, .04, .1); // growth width // TODO: First two worlds.
+// const vec3 mu = vec3(0.12, 0.6, .2);     // growth center // TODO: Fountains.
+// const vec3 sigma = vec3(.08, .2, .05); // growth width // TODO: Fountains.
 const vec3 rho = vec3(1.2, .5, .5);     // kernel center
 const vec3 omega = vec3(.1, .14, .14);  // kernel width
 const mat3 mixing = mat3(
-    /* Fountains of power (really needs something that forces the player to move, preferably to another side):*/
+    /* Fountains of power (really needs something that forces the player to move, preferably to another side):
         0.5, -0.577,  -6.0,
         0.5,    2.0,  -1.0,
        -2.0,   -1.0,  0.63/**/
@@ -33,7 +33,7 @@ const mat3 mixing = mat3(
         1.,-5., .5,
         .1, 1.,-1.1,
     -5., .5, 1./**/
-    /* Self-eating waves (suitable for battles):
+    /* Self-eating waves (suitable for battles):*/
         .6, -10.,  .75,
        -1., 2.02,  -1.,
        -8.,   .8,   1./**/
@@ -92,9 +92,10 @@ void main(void) {
 
 
 // TODO: Separate levels. Into JSON files!
-//   (With width&height, simulation params, the color matrix, all actor behavior matrices & initial state and "is this yours" and target-selecting JS, and "how much score to win this level, and what levels would this level unlock", and path like "tundra/1", and "is this the main-menu/hub, meaning that we don't need time+score and need level-select buttons".)
+//   You are next.
+//   (With a Markdown description, and "is this the main-menu/hub, meaning that we don't need time+score and need level-select buttons"; lenia: width&height, simulation params, the color matrix, all actor behavior matrices & initial state and "is this yours" and target-selecting JS, and "how much score to win this level, and what levels would this level unlock, by path".)
 //   TODO: Load levels with `fetch` and `JSON.parse`.
-//   TODO: Have a directory for levels, with the loaded-by-default being `levels/main.json`.
+//   TODO: Have a directory for levels, with the loaded-by-default being `levels/initial.json`.
 
 
 // TODO: An actor system.
