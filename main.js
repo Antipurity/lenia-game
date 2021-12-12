@@ -12,7 +12,6 @@ uniform vec4 iMouse;
 
 uniform sampler2D leniaGrid;
 uniform sampler2D leniaKernel;
-uniform float kernelSize;
 
 
 
@@ -60,7 +59,7 @@ vec3 lenia(in sampler2D prev, in mat3 channels, in vec2 fragCoord) {
         vec2 xy = vec2(x,y);
         vec2 txy = mod((fragCoord + xy - iOffset) / iResolution.xy, 1.);
         vec3 val = texture2D(prev, txy).rgb * channels;
-        vec3 weight = texture2D(leniaKernel, (xy + float(R)) * ${1 / (2*R)} * kernelSize).rgb;
+        vec3 weight = texture2D(leniaKernel, (xy + float(R)) * ${1 / (2*R)}).rgb;
         sum += val * weight;
         total += weight;
     }
@@ -108,30 +107,39 @@ uniform vec4 iDisplay;
 uniform vec4 iResolution;
 uniform sampler2D leniaGrid;
 uniform sampler2D leniaKernel;
-uniform float kernelSize;
 
 uniform mat4 iColorMatrix;
 
 void main() {
     // STRETCH
     gl_FragColor = texture2D(leniaGrid, gl_FragCoord.xy / iDisplay.xy) * iColorMatrix;
-    // gl_FragColor = texture2D(leniaKernel, gl_FragCoord.xy / iDisplay.xy * kernelSize) * iColorMatrix; // Visualize the kernel.
+    // gl_FragColor = texture2D(leniaKernel, gl_FragCoord.xy / iDisplay.xy) * iColorMatrix; // Visualize the kernel.
 }`
+
+
+
+const actorSource = `
+// TODO: x/y/dx/dy as an attribute.
+// TODO: health/score/dummy1/dummy2 as an attribute.
+// TODO: The main function.
+
+=====
+
+`
 
 
 
 // TODO: An actor system.
 //   TODO: Actor shaders:
-//     TODO: The vertex shader (called via `gl.drawArraysIntanced(gl.TRIANGLE_STRIP, 0, 4, actors)` and `gl.vertexAttribDivisor`) should compute behavior (captured in transform feedback, then fed back: x,y,dx,dy,health,dscore, in two vec4 attributes), and emit a square of possible-emittance for each actor.
+//     TODO: The vertex shader should compute behavior (captured in transform feedback, then fed back: x,y,dx,dy,health,dscore, in two vec4 attributes), and emit a square of possible-emittance for each actor.
+//       TODO: Compute behavior, as matrix multiplications.
+//         TODO: Put matrix rows into textures. (Kinda a pain to always do power-of-two, though...)
+//         (Outputs: dx, dy, dhealth, dscore; emitR, emitG, emitB. If not specified, the row is 0s, meaning that the output is always 0.)
+//         (Inputs: 1, x, y, dx, dy, health, score, r, g, b, rx,ry, gx,gy, bx,by, sin(time*pi*1), sin(time*pi*2), sin(time*pi*4), TODO:. Eventually, distToTargetX/distToTargetY, distToMouseX/distToMouseY.)
+//       TODO: Set gl_PointSize to the max emittance and gl_Position to vec2(x+dx, y+dy), and in the fragment shader, add emittance if the radius is OK.
 //       TODO: Read close-to-actor colors from the Lenia-state texture, to later give them as inputs to behavior.
-//     TODO:
-//       ...Wait, how does WebGL bind a buffer to a transform feedback object... Ah: automatically. Of course. Objects are a red herring I guess.
-//         ...Why do transform feedback objects even exist if they don't seem to be required for anything? gl.TRANSFORM_FEEDBACK_BUFFER may be all we need.
-//           Can't we just `gl.copyBufferSubData(gl.TRANSFORM_FEEDBACK_BUFFER, gl.ARRAY_BUFFER or a separately-bound gl.COPY_WRITE_BUFFER, 0, 0, byteSize)`?
-//             This way, we wouldn't even need VAOs, or even separate buffers, right?
-//               ...No, wait, looks like we do need a separate buffer...
-//         ...Looks like it might need vertex array objects for that? Why so complicated... No, I think we just need to gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, location, buf) --- ...what's the `location`, though? Is it TF-buffer-index, or the attribute location? WHY SO AMBIGUOUS
-//           Actually, the location may be for multiple buffers, meaning that we can actually capture more than 1 output.
+//   TODO: Each frame, after physics, draw the actor shaders, via `gl.drawArraysIntanced(gl.POINTS, 0, 1, actors)` with 1 point and `gl.vertexAttribDivisor`.
+//     TODO: Swap 2 pairs of buffers each frame, one for reading, another for writing.
 //   TODO: Each frame, download x/y and health and dscore from GPU. Add dscore to score, and *maybe* execute "onDied" JS if health<=0 now.
 //   TODO: In the level, the object `actors`, where each actor is named:
 //     TODO: x, y, dx, dy: 0..1.
@@ -141,7 +149,7 @@ void main() {
 //     TODO: emit: "glow"/"circle"
 //     TODO: Per-output-variable behavior matrix. Outputs = matmul(outputs, behavior).
 //       (Outputs: dx, dy, dhealth, dscore; emitR, emitG, emitB. If not specified, the row is 0s, meaning that the output is always 0.)
-//       (Inputs: 1, x, y, dx, dy, health, score, r, g, b, rx,ry, gx,gy, bx,by, sin(time*pi*1), sin(time*pi*2), sin(time*pi*4), TODO:. Eventually, distToTargetX/distToTargetY, distToMouseX/distToMouseY)
+//       (Inputs: 1, x, y, dx, dy, health, score, r, g, b, rx,ry, gx,gy, bx,by, sin(time*pi*1), sin(time*pi*2), sin(time*pi*4), TODO:. Eventually, distToTargetX/distToTargetY, distToMouseX/distToMouseY.)
 //         We don't need previous speed here, right? We don't preserve it anyway. ...And why don't we? We can't have acceleration without speed.
 //         TODO: Actually preserve dx & dy, and give those as inputs, to allow acceleration. (Need to be able to bind buffers with interleaved data, to read 2 vec4 attributes from 1 buffer, which is written-to.)
 //           ...Actually, wait, might be able to write to multiple buffers, with the index?...
@@ -276,7 +284,6 @@ function loop(canvas) {
             // Lenia state.
             'leniaGrid',
             'leniaKernel',
-            'kernelSize',
             // Debugging.
             'iMouse',
         ], attribs:[
@@ -288,7 +295,6 @@ function loop(canvas) {
             'iResolution',
             'leniaGrid',
             'leniaKernel',
-            'kernelSize',
         ], attribs:[
             'vertexPos',
         ]})
@@ -339,7 +345,6 @@ function loop(canvas) {
             // Compute the next frame.
             s.prevLeniaFrame.read(gl, 0, u.leniaGrid)
             s.leniaKernel.read(gl, 1, u.leniaKernel)
-            gl.uniform1f(u.kernelSize, s.leniaKernel.kernelSize)
             s.nextLeniaFrame.write(gl)
 
             // Draw the fullscreen rectangle.
@@ -354,7 +359,6 @@ function loop(canvas) {
             gl.uniform4f(u.iDisplay, gl.drawingBufferWidth, gl.drawingBufferHeight, 0, 0)
             s.nextLeniaFrame.read(gl, 0, u.leniaGrid)
             s.leniaKernel.read(gl, 1, u.leniaKernel)
-            gl.uniform1f(u.kernelSize, s.leniaKernel.kernelSize)
             gl.uniformMatrix4fv(u.iColorMatrix, false, L.iColorMatrix)
             rect.draw(gl, a.vertexPos)
         }
@@ -513,17 +517,15 @@ function leniaKernel(gl, R, mus, sigmas, offsets, data=null, totals=[0,0,0,1]) {
                 }
             }
     }
-    const sz2 = Math.pow(2, Math.ceil(Math.log2(sz))) // WebGL1 textures only work as powers-of-two.
-    const data2 = new Uint8Array(sz2*sz2 * 4) // Normalized, so that max is 1.
+    const data2 = new Uint8Array(sz*sz * 4) // Normalized, so that max is 1.
     for (let y = -R; y <= R; ++y)
         for (let x = -R; x <= R; ++x) {
-            const index = (y+R) * sz + (x+R), index2 = (y+R) * sz2 + (x+R)
+            const index = (y+R) * sz + (x+R)
             for (let c=0; c < 4; ++c) {
-                data2[4*index2 + c] = c < colors ? Math.round(data[4*index + c] / totals[c] * 255) : 255
+                data2[4*index + c] = c < colors ? Math.round(data[4*index + c] / totals[c] * 255) : 255
             }
         }
-    const r = initTexture(gl, sz2, sz2, data2)
-    r.kernelSize = sz / sz2
+    const r = initTexture(gl, sz, sz, data2)
     return r
     function bell(x, m, s) { return Math.exp(-(x-m)*(x-m)/(s*s*2.)) }
 }
