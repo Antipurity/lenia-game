@@ -1,3 +1,4 @@
+const R = 5
 const leniaSource = `
 attribute vec2 vertexPos;
 void main(void) { gl_Position = vec4(vertexPos, 0., 1.); }
@@ -8,7 +9,10 @@ precision highp float;
 uniform float iTime;
 uniform vec4 iResolution;
 uniform vec4 iMouse;
-uniform sampler2D iChannel0;
+
+uniform sampler2D leniaGrid;
+uniform sampler2D leniaKernel;
+uniform float kernelSize;
 
 
 
@@ -43,7 +47,7 @@ uniform vec3 iGrowthWidth;
 uniform vec2 iOffset;
 uniform vec2 iKernelOffset;
 
-const int R = 5; // GLSL can only loop with constant bounds.
+const int R = ${R}; // GLSL can only loop with constant bounds.
 
 vec3 bell(vec3 x, vec3 m, vec3 s) {
     return exp(-(x-m)*(x-m)/(s*s*2.));  // bell-shaped curve
@@ -54,12 +58,11 @@ vec3 lenia(in sampler2D prev, in mat3 channels, in vec2 fragCoord) {
     vec3 total = vec3(0.);
     for (int y=-R; y<=R; y++)
     for (int x=-R; x<=R; x++)
-    {
+    { // Convolution with a pre-computed kernel.
         vec2 xy = vec2(x,y);
-        vec3 r = vec3(length(xy - iKernelOffset) / float(R));
         vec2 txy = mod((fragCoord + xy - iOffset) / iResolution.xy, 1.);
         vec3 val = texture2D(prev, txy).rgb * channels;
-        vec3 weight = bell(r, iKernelCenter, iKernelWidth);
+        vec3 weight = texture2D(leniaKernel, (xy + float(R)) * ${1 / (2*R)} * kernelSize).rgb;
         sum += val * weight;
         total += weight;
     }
@@ -72,7 +75,7 @@ vec3 lenia(in sampler2D prev, in mat3 channels, in vec2 fragCoord) {
 
 void main(void) {
     vec2 coord = gl_FragCoord.xy; // 0…1
-    vec3 rgb = lenia(iChannel0, iMixing, coord);
+    vec3 rgb = lenia(leniaGrid, iMixing, coord);
 
     // TODO: How to move this actor system to, uh, uniform arrays or textures or something? And, be some linear equation from numbers like "time" and "colorNearby" (health) and "colorGrad" (collision) and "distToMouse" (player control) and "distToTargetN" (2 CPU-specified indices) and speed and health and score and emittances and 1 to movement of position and health-change and score-change and emittances.
     // TODO: ...Is it possible to make actors be able to shoot other actors...
@@ -195,13 +198,16 @@ void main(void) { gl_Position = vec4(vertexPos, 0., 1.); }
 precision highp float;
 uniform vec4 iDisplay;
 uniform vec4 iResolution;
-uniform sampler2D iChannel0;
+uniform sampler2D leniaGrid;
+uniform sampler2D leniaKernel;
+uniform float kernelSize;
 
 uniform mat4 iColorMatrix;
 
 void main() {
     // STRETCH
-    gl_FragColor = texture2D(iChannel0, (gl_FragCoord.xy) / iDisplay.xy) * iColorMatrix;
+    gl_FragColor = texture2D(leniaGrid, gl_FragCoord.xy / iDisplay.xy) * iColorMatrix;
+    // gl_FragColor = texture2D(leniaKernel, gl_FragCoord.xy / iDisplay.xy * kernelSize) * iColorMatrix; // Visualize the kernel.
 }`
 
 
@@ -238,6 +244,7 @@ function loop(canvas) {
         posBuffer: null,
         prevLeniaFrame: null,
         nextLeniaFrame: null,
+        leniaKernel: null,
     }
 
     canvas.addEventListener('webglcontextlost', evt => evt.preventDefault()) // Allow restoring.
@@ -257,10 +264,12 @@ function loop(canvas) {
             // Simulation state.
             'iTime',
             'iResolution',
+            // Lenia state.
+            'leniaGrid',
+            'leniaKernel',
+            'kernelSize',
             // Debugging.
             'iMouse',
-            // Lenia state.
-            'iChannel0',
         ], [
             'vertexPos',
         ])
@@ -268,7 +277,9 @@ function loop(canvas) {
             'iColorMatrix',
             'iDisplay',
             'iResolution',
-            'iChannel0',
+            'leniaGrid',
+            'leniaKernel',
+            'kernelSize',
         ], [
             'vertexPos',
         ])
@@ -283,16 +294,17 @@ function loop(canvas) {
         if (!level) return
         const s = glState, p1 = s.leniaPhysics, p2 = s.display, rect = s.posBuffer, L = level
         if (!s.prevLeniaFrame) {
-            s.prevLeniaFrame = initTexture(gl, level.width, level.height)
-            s.nextLeniaFrame = initTexture(gl, level.width, level.height)
+            s.prevLeniaFrame = initTexture(gl, L.width, L.height)
+            s.nextLeniaFrame = initTexture(gl, L.width, L.height)
+            s.leniaKernel = leniaKernel(gl, R, L.iKernelCenter, L.iKernelWidth, L.iKernelOffset)
         }
         if (p1 !== null) {
             const u = p1.uniform, a = p1.attrib
             gl.useProgram(p1.program)
             // Fill in the uniforms.
             gl.uniform1f(u.iTime, performance.now())
-            gl.uniform4f(u.iResolution, level.width, level.height, 0, 0)
-            gl.uniform4f(u.iMouse, mouse.x * level.width, (1 - mouse.y) * level.height, mouse.main, mouse.aux)
+            gl.uniform4f(u.iResolution, L.width, L.height, 0, 0)
+            gl.uniform4f(u.iMouse, mouse.x * L.width, (1 - mouse.y) * L.height, mouse.main, mouse.aux)
             gl.uniform1f(u.iSlowdown, L.iSlowdown)
             gl.uniformMatrix3fv(u.iMixing, false, L.iMixing)
             gl.uniform3fv(u.iKernelCenter, L.iKernelCenter)
@@ -303,7 +315,9 @@ function loop(canvas) {
             gl.uniform2fv(u.iKernelOffset, L.iKernelOffset)
 
             // Compute the next frame.
-            s.prevLeniaFrame.useRead(gl, 0, u.iChannel0)
+            s.prevLeniaFrame.useRead(gl, 0, u.leniaGrid)
+            s.leniaKernel.useRead(gl, 1, u.leniaKernel)
+            gl.uniform1f(u.kernelSize, s.leniaKernel.kernelSize)
             s.nextLeniaFrame.useWrite(gl)
 
             // Draw the fullscreen rectangle.
@@ -311,12 +325,14 @@ function loop(canvas) {
 
             s.nextLeniaFrame.resetWrite(gl)
         }
-        if (p2 !== null) { // Draw the physics.
+        if (p2 !== null) { // Draw what happened.
             const u = p2.uniform, a = p2.attrib
             gl.useProgram(p2.program)
-            gl.uniform4f(u.iResolution, level.width, level.height, 0, 0)
+            gl.uniform4f(u.iResolution, L.width, L.height, 0, 0)
             gl.uniform4f(u.iDisplay, gl.drawingBufferWidth, gl.drawingBufferHeight, 0, 0)
-            s.nextLeniaFrame.useRead(gl, 0, u.iChannel0)
+            s.nextLeniaFrame.useRead(gl, 0, u.leniaGrid)
+            s.leniaKernel.useRead(gl, 1, u.leniaKernel)
+            gl.uniform1f(u.kernelSize, s.leniaKernel.kernelSize)
             gl.uniformMatrix4fv(u.iColorMatrix, false, L.iColorMatrix)
             rect.draw(gl, a.vertexPos)
         }
@@ -403,7 +419,7 @@ function initBuffer(gl, f32, numbersPerValue = 1, usageHint = gl.STATIC_DRAW) {
     }
 }
 
-function initTexture(gl, width, height) {
+function initTexture(gl, width, height, pixels = null) {
     // A 2D array of RGBA values `r`.
     //   Read with `r.useRead(gl, 0, gl.getUniformLocation(program, 'textureName'))` in JS,
     //     `uniform sampler2D textureName;  void main(void) { texture2D(textureName, vec2(0., 0.)) }` in GLSL.
@@ -412,24 +428,25 @@ function initTexture(gl, width, height) {
     //     Reset with `gl.bindFramebuffer(gl.FRAMEBUFFER, null), gl.viewport(0,0, gl.canvas.width, gl.canvas.height)`.
     const tex = gl.createTexture()
     gl.bindTexture(gl.TEXTURE_2D, tex)
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null)
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, pixels)
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
 
-    const fb = gl.createFramebuffer()
-    gl.bindFramebuffer(gl.FRAMEBUFFER, fb)
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0)
     return { // Who needs JS classes when you have *objects*? What are we aiming for anyway, *efficiency* or something?
         read: tex,
-        write: fb,
+        write: null,
         _width: width,
         _height: height,
+        _cache: Object.create(null),
         useRead(gl, i, uniformLocation) {
-            gl.activeTexture(i === this._i ? this._o : (this._i = i, this._o = gl['TEXTURE'+i]))
+            gl.activeTexture(this._cache[i] || (this._cache[i] = gl['TEXTURE'+i]))
             gl.bindTexture(gl.TEXTURE_2D, this.read)
             gl.uniform1i(uniformLocation, i)
         },
         useWrite(gl) {
-            gl.bindFramebuffer(gl.FRAMEBUFFER, this.write)
+            if (!this.write) {
+                gl.bindFramebuffer(gl.FRAMEBUFFER, this.write = gl.createFramebuffer())
+                gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0)
+            } else gl.bindFramebuffer(gl.FRAMEBUFFER, this.write)
             gl.viewport(0,0, this._width, this._height)
         },
         resetWrite(gl) {
@@ -444,4 +461,35 @@ function error(...msg) { console.error(...msg) }
 function loadLevel(url) {
     // Returns a promise of a level's object.
     return fetch(url, {mode:'cors'}).then(response => response.json())
+}
+
+function leniaKernel(gl, R, mus, sigmas, offsets) {
+    // Pre-computes a Lenia kernel, with 3 colors.
+    // The `result` can be given to `initTexture(gl, 2*R+1, 2*R+1, pixels)`.
+    const sz = 2*R+1, colors = 3, data = new Float32Array(sz*sz * 4) // Pre-normalization.
+    const [dx, dy] = offsets
+    const totals = [0,0,0,1]
+    for (let y = -R; y <= R; ++y)
+        for (let x = -R; x <= R; ++x) {
+            const r = Math.hypot(x - dx, y - dy) / R // 0..sqrt(2), usually.
+            for (let c=0; c < colors; ++c) {
+                const weight = bell(r, mus[c], sigmas[c])
+                const index = (y+R) * sz + (x+R)
+                data[4*index + c] = weight
+                totals[c] = Math.max(totals[c], weight)
+            }
+        }
+    const sz2 = Math.pow(2, Math.ceil(Math.log2(sz))) // WebGL1 textures only work as powers-of-two.
+    const data2 = new Uint8Array(sz2*sz2 * 4) // Normalized, so that max is 1.
+    for (let y = -R; y <= R; ++y)
+        for (let x = -R; x <= R; ++x) {
+            const index = (y+R) * sz + (x+R), index2 = (y+R) * sz2 + (x+R)
+            for (let c=0; c < 4; ++c) {
+                data2[4*index2 + c] = c < colors ? Math.round(data[4*index + c] / totals[c] * 255) : 255
+            }
+        }
+    const r = initTexture(gl, sz2, sz2, data2)
+    r.kernelSize = sz / sz2
+    return r
+    function bell(x, m, s) { return Math.exp(-(x-m)*(x-m)/(s*s*2.)) }
 }

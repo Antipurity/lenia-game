@@ -38,7 +38,9 @@ Each level specifies, in JSON, all metadata and all simulation parameters and al
 
 ---
 
-`iKernelCenter: vec3`, `iKernelWidth: vec3`: how the contribution of each neighboring pixel is transformed, via a bell-shaped curve (nothing if too little, nothing if too much, only just right). Specified per-color.
+`iKernelCenter: vec3`, `iKernelWidth: vec3`: how the distance to each neighboring pixel is transformed into its weight, via a bell-shaped curve (nothing if too little or too much, has to be just right). Specified per-color.
+
+(Providing a user-defined image as a kernel is currently impossible, though the code supports it, so adding it is easy if needed.)
 
 ---
 
@@ -48,6 +50,6 @@ Each level specifies, in JSON, all metadata and all simulation parameters and al
 
 `iOffset: vec2`: wind; use `[0,0]` for stability. What if you want an open-world map, after all?
 
-`iKernelOffset: vec2`: this originates from a buggy wind implementation, and alters the calculation of the distance from a neighbor. Many things look more visually interesting with this.
+`iKernelOffset: vec2`: this originates from a buggy wind implementation, and alters the calculation of the distance to a neighbor. Many things look more visually interesting with this.
 
 ---
