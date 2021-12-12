@@ -18,7 +18,7 @@ uniform float kernelSize;
 
 // modified from https://www.shadertoy.com/view/7ls3z7
 
-// TODO: Extract all these to levels.
+// TODO: Extract all these to levels. (Kinda need that actor system, so that we could actually see what those levels look like.)
 // const vec3 mu = vec3(0.4, .2, .4);     // growth center // TODO: First two worlds.
 // const vec3 sigma = vec3(.08, .04, .1); // growth width // TODO: First two worlds.
 // // const vec3 mu = vec3(0.12, 0.6, .2);     // growth center // TODO: Fountains.
@@ -76,7 +76,7 @@ void main(void) {
     vec3 rgb = lenia(leniaGrid, iMixing, coord);
 
     // TODO: How to move this actor system to, uh, uniform arrays or textures or something? And, be some linear equation from numbers like "time" and "colorNearby" (health) and "colorGrad" (collision) and "distToMouse" (player control) and "distToTargetN" (2 CPU-specified indices) and speed and health and score and emittances and 1 to movement of position and health-change and score-change and emittances.
-    // TODO: ...Is it possible to make actors be able to shoot other actors...
+    // TODO: ...Is it possible to make actors be able to shoot other actors... Teleport a hidden actor to a position, maybe?
     if (iMouse.z > 0.) {
         float d = length((coord.xy - iMouse.xy) / iResolution.xy);
         float maxD = 50., perc = 1. - d / maxD*iResolution.x;
@@ -97,21 +97,54 @@ void main(void) {
 
 
 
+const displaySource = `
+attribute vec2 vertexPos;
+void main(void) { gl_Position = vec4(vertexPos, 0., 1.); }
+
+=====
+
+precision highp float;
+uniform vec4 iDisplay;
+uniform vec4 iResolution;
+uniform sampler2D leniaGrid;
+uniform sampler2D leniaKernel;
+uniform float kernelSize;
+
+uniform mat4 iColorMatrix;
+
+void main() {
+    // STRETCH
+    gl_FragColor = texture2D(leniaGrid, gl_FragCoord.xy / iDisplay.xy) * iColorMatrix;
+    // gl_FragColor = texture2D(leniaKernel, gl_FragCoord.xy / iDisplay.xy * kernelSize) * iColorMatrix; // Visualize the kernel.
+}`
+
+
+
 // TODO: An actor system.
-//   TODO: Expose several numeric variables to actors, and make each actor's behavior (dx, dy, dhealth, dscore, and emittances) just a matrix multiplication.
-//   TODO: A vertex shader should emit a square of possible-emittance for each actor. The world is like a special fullscreen actor.
-//   TODO: Each frame, download health and score and position from GPU.
+//   TODO: Actor shaders:
+//     TODO: The vertex shader (called via `gl.drawArraysIntanced(gl.TRIANGLE_STRIP, 0, 4, actors)` and `gl.vertexAttribDivisor`) should compute behavior (captured in transform feedback, then fed back: x,y,dx,dy,health,dscore, in two vec4 attributes), and emit a square of possible-emittance for each actor.
+//       TODO: Read close-to-actor colors from the Lenia-state texture, to later give them as inputs to behavior.
+//     TODO:
+//       ...Wait, how does WebGL bind a buffer to a transform feedback object... Ah: automatically. Of course. Objects are a red herring I guess.
+//         ...Why do transform feedback objects even exist if they don't seem to be required for anything? gl.TRANSFORM_FEEDBACK_BUFFER may be all we need.
+//           Can't we just `gl.copyBufferSubData(gl.TRANSFORM_FEEDBACK_BUFFER, gl.ARRAY_BUFFER or a separately-bound gl.COPY_WRITE_BUFFER, 0, 0, byteSize)`?
+//             This way, we wouldn't even need VAOs, or even separate buffers, right?
+//               ...No, wait, looks like we do need a separate buffer...
+//         ...Looks like it might need vertex array objects for that? Why so complicated... No, I think we just need to gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, location, buf) --- ...what's the `location`, though? Is it TF-buffer-index, or the attribute location? WHY SO AMBIGUOUS
+//           Actually, the location may be for multiple buffers, meaning that we can actually capture more than 1 output.
+//   TODO: Each frame, download x/y and health and dscore from GPU. Add dscore to score, and *maybe* execute "onDied" JS if health<=0 now.
 //   TODO: In the level, the object `actors`, where each actor is named:
-//     TODO: x: 0..1.
-//     TODO: y: 0..1.
+//     TODO: x, y, dx, dy: 0..1.
 //     TODO: health. When ≤0, it's not updated anymore.
 //     TODO: displayHealth, true/false.
 //     TODO: maxEmitRadius: 50.
 //     TODO: emit: "glow"/"circle"
-//     TODO: smoothEmit, true/false.
-//     TODO: Per-output-variable behavior matrix.
-//       (Outputs: dx, dy, dhealth (actor's; when <=0, it's not updated anymore), dscore, dummy0, dummy1, emitR, emitG, emitB. If not specified, the row is 0s.)
-//       (Inputs: TODO:)
+//     TODO: Per-output-variable behavior matrix. Outputs = matmul(outputs, behavior).
+//       (Outputs: dx, dy, dhealth, dscore; emitR, emitG, emitB. If not specified, the row is 0s, meaning that the output is always 0.)
+//       (Inputs: 1, x, y, dx, dy, health, score, r, g, b, rx,ry, gx,gy, bx,by, sin(time*pi*1), sin(time*pi*2), sin(time*pi*4), TODO:. Eventually, distToTargetX/distToTargetY, distToMouseX/distToMouseY)
+//         We don't need previous speed here, right? We don't preserve it anyway. ...And why don't we? We can't have acceleration without speed.
+//         TODO: Actually preserve dx & dy, and give those as inputs, to allow acceleration. (Need to be able to bind buffers with interleaved data, to read 2 vec4 attributes from 1 buffer, which is written-to.)
+//           ...Actually, wait, might be able to write to multiple buffers, with the index?...
 //     TODO: ...How do we do target-selecting JS (given all of an actor's state), exactly?...
 // TODO: An actor-health system, communicating GPU->CPU to know which ones to kill (and update GPU data when that happens --- ...or just ignore it GPU-side), and display it in DOM.
 // TODO: An actor-target system, making JS decide the index of the target.
@@ -121,6 +154,7 @@ void main(void) {
 // TODO: Display in-level time and score (out of `level.winScore`), and healthbars for each of "your" agents.
 // TODO: The main menu, with "start" (first level) and "continue" (using the save file from localStorage, with at least the unlocked levels; select the level, with a hierarchical view).
 //   TODO: And "settings", which at least prompts whether to make this level the main-menu default. (Or maybe on visit.)
+
 
 // TODO: ...With an actor system, and a player-health system (and/or an actor health system, to kill enemies), come up with concrete levels.
 // Levels, the meat of the game, allowing dynamic discoveries of whole different worlds of complexity.
@@ -187,28 +221,6 @@ void main(void) {
 //     `offset=kernelOffset=(0,-11)`: the barrier's building has visible sparks, and multiple layers, and looks cool.
 
 
-const displaySource = `
-attribute vec2 vertexPos;
-void main(void) { gl_Position = vec4(vertexPos, 0., 1.); }
-
-=====
-
-precision highp float;
-uniform vec4 iDisplay;
-uniform vec4 iResolution;
-uniform sampler2D leniaGrid;
-uniform sampler2D leniaKernel;
-uniform float kernelSize;
-
-uniform mat4 iColorMatrix;
-
-void main() {
-    // STRETCH
-    gl_FragColor = texture2D(leniaGrid, gl_FragCoord.xy / iDisplay.xy) * iColorMatrix;
-    // gl_FragColor = texture2D(leniaKernel, gl_FragCoord.xy / iDisplay.xy * kernelSize) * iColorMatrix; // Visualize the kernel.
-}`
-
-
 
 const mouse = { x:0, y:0, main:false, aux:false, update(evt) {
     mouse.x = (evt.clientX + (evt.movementX || 0)) / innerWidth
@@ -229,7 +241,7 @@ loop(document.getElementById('main'))
 function loop(canvas) {
     // The main drawing loop.
     if (!canvas.gl)
-        canvas.gl = canvas.getContext('webgl', {alpha:false, desynchronized:true})
+        canvas.gl = canvas.getContext('webgl2', {alpha:false, desynchronized:true})
     const gl = canvas.gl
     canvas.width = canvas.height = 0
 
@@ -325,10 +337,10 @@ function loop(canvas) {
             gl.uniform2fv(u.iKernelOffset, L.iKernelOffset)
 
             // Compute the next frame.
-            s.prevLeniaFrame.useRead(gl, 0, u.leniaGrid)
-            s.leniaKernel.useRead(gl, 1, u.leniaKernel)
+            s.prevLeniaFrame.read(gl, 0, u.leniaGrid)
+            s.leniaKernel.read(gl, 1, u.leniaKernel)
             gl.uniform1f(u.kernelSize, s.leniaKernel.kernelSize)
-            s.nextLeniaFrame.useWrite(gl)
+            s.nextLeniaFrame.write(gl)
 
             // Draw the fullscreen rectangle.
             rect.draw(gl, a.vertexPos)
@@ -340,8 +352,8 @@ function loop(canvas) {
             gl.useProgram(p2.program)
             gl.uniform4f(u.iResolution, L.width, L.height, 0, 0)
             gl.uniform4f(u.iDisplay, gl.drawingBufferWidth, gl.drawingBufferHeight, 0, 0)
-            s.nextLeniaFrame.useRead(gl, 0, u.leniaGrid)
-            s.leniaKernel.useRead(gl, 1, u.leniaKernel)
+            s.nextLeniaFrame.read(gl, 0, u.leniaGrid)
+            s.leniaKernel.read(gl, 1, u.leniaKernel)
             gl.uniform1f(u.kernelSize, s.leniaKernel.kernelSize)
             gl.uniformMatrix4fv(u.iColorMatrix, false, L.iColorMatrix)
             rect.draw(gl, a.vertexPos)
@@ -407,8 +419,9 @@ function initShaders(gl, [vsSource, fsSource], uniformNames=null, attribNames=nu
 
 function initBuffer(gl, f32, numbersPerValue = 1, usageHint = gl.STATIC_DRAW) {
     // An array of f32 values, `r`.
-    //   Read with `r.use(gl, gl.getAttribLocation(program, 'attrib'))` as a vertex attribute.
+    //   Read with `r.read(gl, gl.getAttribLocation(program, 'attrib'))` as a vertex attribute.
     //   Draw this list of vertices with `r.draw(gl, gl.getAttribLocation(program, 'attrib'))`.
+    //   Write with `r.write(gl, 0)` then `r.resetWrite(gl)` as transform-feedback of a vertex shader.
     if (!(f32 instanceof Float32Array)) f32 = Float32Array.from(f32)
     const buf = gl.createBuffer()
     gl.bindBuffer(gl.ARRAY_BUFFER, buf)
@@ -417,23 +430,30 @@ function initBuffer(gl, f32, numbersPerValue = 1, usageHint = gl.STATIC_DRAW) {
         buf,
         length: f32.length,
         numbersPerValue,
-        use(gl, attribLocation) {
+        read(gl, attribLocation) {
             gl.bindBuffer(gl.ARRAY_BUFFER, this.buf)
             gl.vertexAttribPointer(attribLocation, this.numbersPerValue, gl.FLOAT, false, 0, 0)
             gl.enableVertexAttribArray(attribLocation)
         },
         draw(gl, attribLocation) {
-            this.use(gl, attribLocation)
+            this.read(gl, attribLocation)
             gl.drawArrays(gl.TRIANGLE_STRIP, 0, this.length / this.numbersPerValue | 0)
+        },
+        write(gl, index = 0) {
+            gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, index, this.buf)
+            gl.beginTransformFeedback(gl.POINTS)
+        },
+        resetWrite(gl) {
+            gl.endTransformFeedback()
         },
     }
 }
 
 function initTexture(gl, width, height, pixels = null) {
     // A 2D array of RGBA values `r`.
-    //   Read with `r.useRead(gl, 0, gl.getUniformLocation(program, 'textureName'))` in JS,
+    //   Read with `r.read(gl, 0, gl.getUniformLocation(program, 'textureName'))` in JS,
     //     `uniform sampler2D textureName;  void main(void) { texture2D(textureName, vec2(0., 0.)) }` in GLSL.
-    //   Write with `r.useWrite(gl)`, then finally `r.resetWrite(gl)`.
+    //   Write with `r.write(gl)`, then finally `r.resetWrite(gl)`.
     //     (Can only write to 1 texture at a time.)
     //     Reset with `gl.bindFramebuffer(gl.FRAMEBUFFER, null), gl.viewport(0,0, gl.canvas.width, gl.canvas.height)`.
     const tex = gl.createTexture()
@@ -442,21 +462,21 @@ function initTexture(gl, width, height, pixels = null) {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
 
     return { // Who needs JS classes when you have *objects*? What are we aiming for anyway, *efficiency* or something?
-        read: tex,
-        write: null,
+        R: tex,
+        W: null,
         _width: width,
         _height: height,
         _cache: Object.create(null),
-        useRead(gl, i, uniformLocation) {
+        read(gl, i, uniformLocation) {
             gl.activeTexture(this._cache[i] || (this._cache[i] = gl['TEXTURE'+i]))
-            gl.bindTexture(gl.TEXTURE_2D, this.read)
+            gl.bindTexture(gl.TEXTURE_2D, this.R)
             gl.uniform1i(uniformLocation, i)
         },
-        useWrite(gl) {
-            if (!this.write) {
-                gl.bindFramebuffer(gl.FRAMEBUFFER, this.write = gl.createFramebuffer())
+        write(gl) {
+            if (!this.W) {
+                gl.bindFramebuffer(gl.FRAMEBUFFER, this.W = gl.createFramebuffer())
                 gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0)
-            } else gl.bindFramebuffer(gl.FRAMEBUFFER, this.write)
+            } else gl.bindFramebuffer(gl.FRAMEBUFFER, this.W)
             gl.viewport(0,0, this._width, this._height)
         },
         resetWrite(gl) {
