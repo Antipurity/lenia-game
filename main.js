@@ -133,6 +133,12 @@ varying vec4 outExtraState; // health/score/dummy1/dummy2
 varying vec3 emittance;
 
 void main() {
+    // TODO: Compute behavior, as matrix multiplications.
+    //   TODO: Put matrix rows into textures.
+    //   (Outputs: dx, dy, dhealth, dscore; emitR, emitG, emitB. If not specified, the row is 0s, meaning that the output is always 0.)
+    //   (Inputs: 1, x, y, dx, dy, health, score, dummy1, dummy2, r, g, b, rx,ry, gx,gy, bx,by, sin(time*pi*1), sin(time*pi*2), sin(time*pi*4), TODO:. Eventually, distToTargetX/distToTargetY, distToMouseX/distToMouseY.)
+    // TODO: Set gl_PointSize to emitRadius and gl_Position to vec2(x+dx, y+dy), and in the fragment shader, add emittance if the radius is OK.
+    // TODO: Read close-to-actor colors from the Lenia-state texture, to later give them as inputs to behavior.
     outPosSpeed = vec4(posSpeed.xy + posSpeed.zw, posSpeed.zw);
     outExtraState = vec4(0., 0., 0., 0.);
     emittance = vec3(.0, .0, .2);
@@ -159,16 +165,7 @@ void main() {
 
 
 // TODO: An actor system.
-//   TODO: On actor-shader init, specify `{transformFeedback:['outPosSpeed', 'outExtraState']}`
-//   TODO: Actor shaders:
-//     TODO: The vertex shader should compute behavior (captured in transform feedback, then fed back: x,y,dx,dy,health,dscore, in two vec4 attributes), and emit a square of possible-emittance for each actor.
-//       TODO: Compute behavior, as matrix multiplications.
-//         TODO: Put matrix rows into textures. (Kinda a pain to always do power-of-two, though...)
-//         (Outputs: dx, dy, dhealth, dscore; emitR, emitG, emitB. If not specified, the row is 0s, meaning that the output is always 0.)
-//         (Inputs: 1, x, y, dx, dy, health, score, dummy1, dummy2, r, g, b, rx,ry, gx,gy, bx,by, sin(time*pi*1), sin(time*pi*2), sin(time*pi*4), TODO:. Eventually, distToTargetX/distToTargetY, distToMouseX/distToMouseY.)
-//       TODO: Set gl_PointSize to the max emittance and gl_Position to vec2(x+dx, y+dy), and in the fragment shader, add emittance if the radius is OK.
-//       TODO: Read close-to-actor colors from the Lenia-state texture, to later give them as inputs to behavior.
-//   TODO: Each frame, after physics, draw the actor shaders, via `gl.drawArraysInstanced(gl.POINTS, 0, 1, actors)` with 1 point and `gl.vertexAttribDivisor`.
+//   TODO: Each frame, after physics, draw the actor shaders, via `.draw(gl, attLoc, gl.POINTS)`ing one of the attributes.
 //     TODO: Swap 2 pairs of buffers each frame, one for reading, another for writing.
 //   TODO: Each frame, download x/y and health and dscore from GPU. Add dscore to score, and *maybe* execute "onDied" JS if health<=0 now.
 //   TODO: In the level, the object `actors`, where each actor is named:
@@ -287,11 +284,14 @@ function loop(canvas) {
     loadLevel('levels/initial.json').then(r => level = r).catch(error)
 
     const glState = {
+        // Shader programs.
         leniaPhysics: null,
+        actors: null,
         display: null,
+        // Buffers.
         posBuffer: null,
-        prevLeniaFrame: null,
-        nextLeniaFrame: null,
+        // Textures.
+        leniaFrames: null, // {prev, next}
         leniaKernel: null,
     }
 
@@ -319,6 +319,17 @@ function loop(canvas) {
         ], attribs:[
             'vertexPos',
         ] })
+        s.actors = initShaders(gl, displaySource.split('====='), { uniforms:[
+            'iResolution',
+            'leniaGrid',
+        ], attribs:[
+            'posSpeed',
+            'extraState',
+            'emitRadius',
+        ], transformFeedback:[
+            'outPosSpeed',
+            'outExtraState',
+        ] })
         s.display = initShaders(gl, displaySource.split('====='), { uniforms:[
             'iColorMatrix',
             'iDisplay',
@@ -329,36 +340,38 @@ function loop(canvas) {
             'vertexPos',
         ]})
         s.posBuffer = initBuffer(gl, [-1,1, 1,1, -1,-1, 1,-1], 2)
-        s.prevLeniaFrame = s.nextLeniaFrame = null
+        s.leniaFrames = null
         gl.clearColor(0,0,0,1)
+    }
+    function initTextures(s, L) {
+        // This is separated from `setup` and called in `draw` after init, because it depends on the level `L`.
+        s.leniaFrames = { prev: initTexture(gl, L.width, L.height), next: initTexture(gl, L.width, L.height) }
+        if (L.kernel.center)
+            s.leniaKernel = leniaKernel(gl, R, L.kernel.center, L.kernel.width, L.iKernelOffset)
+        else {
+            // Collage .r/.g/.b into one array.
+            const sz = 2*R+1, pixels = new Float32Array(4 * sz * sz)
+            const rgb = [L.kernel.r || [], L.kernel.g || [], L.kernel.b || []]
+            const totals = [0,0,0,1]
+            for (let y = -R; y <= R; ++y)
+                for (let x = -R; x <= R; ++x) {
+                    const index = (y+R) * sz + (x+R)
+                    for (let c=0; c < 3; ++c)
+                        pixels[4*index + c] = rgb[c][index] || 0,
+                        totals[c] = Math.max(totals[c], rgb[c][index] || 0)
+                }
+            s.leniaKernel = leniaKernel(gl, R, null, null, null, pixels, totals)
+        }
     }
     function draw() {
         requestAnimationFrame(draw)
         maybeResize(canvas, canvas)
         gl.clear(gl.COLOR_BUFFER_BIT)
         if (!level) return
-        const s = glState, p1 = s.leniaPhysics, p2 = s.display, rect = s.posBuffer, L = level
-        if (!s.prevLeniaFrame) {
-            s.prevLeniaFrame = initTexture(gl, L.width, L.height)
-            s.nextLeniaFrame = initTexture(gl, L.width, L.height)
-            if (L.kernel.center)
-                s.leniaKernel = leniaKernel(gl, R, L.kernel.center, L.kernel.width, L.iKernelOffset)
-            else {
-                // Collage .r/.g/.b into one array.
-                const sz = 2*R+1, pixels = new Float32Array(4 * sz * sz)
-                const rgb = [L.kernel.r || [], L.kernel.g || [], L.kernel.b || []]
-                const totals = [0,0,0,1]
-                for (let y = -R; y <= R; ++y)
-                    for (let x = -R; x <= R; ++x) {
-                        const index = (y+R) * sz + (x+R)
-                        for (let c=0; c < 3; ++c)
-                            pixels[4*index + c] = rgb[c][index] || 0,
-                            totals[c] = Math.max(totals[c], rgb[c][index] || 0)
-                    }
-                s.leniaKernel = leniaKernel(gl, R, null, null, null, pixels, totals)
-            }
-        }
-        if (p1 !== null) {
+        const s = glState, p1 = s.leniaPhysics, p2 = s.actors, p3 = s.display, rect = s.posBuffer, L = level
+        if (!s.leniaFrames)
+            initTextures(s, L)
+        if (p1 !== null) { // Lenia.
             const u = p1.uniform, a = p1.attrib
             gl.useProgram(p1.program)
             // Fill in the uniforms.
@@ -373,30 +386,36 @@ function loop(canvas) {
             gl.uniform2fv(u.iKernelOffset, L.iKernelOffset)
 
             // Compute the next frame.
-            s.prevLeniaFrame.read(gl, 0, u.leniaGrid)
+            s.leniaFrames.prev.read(gl, 0, u.leniaGrid)
             s.leniaKernel.read(gl, 1, u.leniaKernel)
-            s.nextLeniaFrame.write(gl)
+            s.leniaFrames.next.write(gl)
 
             // Draw the fullscreen rectangle.
             rect.draw(gl, a.vertexPos)
 
-            s.nextLeniaFrame.resetWrite(gl)
+            s.leniaFrames.next.resetWrite(gl)
         }
-        if (p2 !== null) { // Draw what happened.
-            const u = p2.uniform, a = p2.attrib
-            gl.useProgram(p2.program)
+        if (p2 !== null) {
+            // TODO: Each frame, after physics, draw the actor shaders, via `.draw(gl, attLoc, gl.POINTS)`ing one of the attributes.
+            //   TODO: Swap 2 pairs of buffers each frame, one for reading, another for writing.
+            //   TODO: ...What do we specify, exactly?
+        }
+        if (p3 !== null) { // Display what happened.
+            const u = p3.uniform, a = p3.attrib
+            gl.useProgram(p3.program)
             gl.uniform4f(u.iResolution, L.width, L.height, 0, 0)
             gl.uniform4f(u.iDisplay, gl.drawingBufferWidth, gl.drawingBufferHeight, 0, 0)
-            s.nextLeniaFrame.read(gl, 0, u.leniaGrid)
+            s.leniaFrames.next.read(gl, 0, u.leniaGrid)
             s.leniaKernel.read(gl, 1, u.leniaKernel)
             gl.uniformMatrix4fv(u.iColorMatrix, false, L.iColorMatrix)
             rect.draw(gl, a.vertexPos)
         }
 
         // Commit.
-        ;[s.prevLeniaFrame, s.nextLeniaFrame] = [s.nextLeniaFrame, s.prevLeniaFrame]
+        swap(s.leniaFrames)
         gl.flush()
     }
+    function swap(a) { [a.prev, a.next] = [a.next, a.prev] }
 }
 
 
@@ -471,9 +490,9 @@ function initBuffer(gl, f32, numbersPerValue = 1, usageHint = gl.STATIC_DRAW) {
             gl.vertexAttribPointer(attribLocation, this.numbersPerValue, gl.FLOAT, false, 0, 0)
             gl.enableVertexAttribArray(attribLocation)
         },
-        draw(gl, attribLocation) {
+        draw(gl, attribLocation, mode = gl.TRIANGLE_STRIP) {
             this.read(gl, attribLocation)
-            gl.drawArrays(gl.TRIANGLE_STRIP, 0, this.length / this.numbersPerValue | 0)
+            gl.drawArrays(mode, 0, this.length / this.numbersPerValue | 0)
         },
         write(gl, index = 0) {
             gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, index, this.buf)
