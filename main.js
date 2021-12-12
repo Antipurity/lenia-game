@@ -264,7 +264,7 @@ function loop(canvas) {
     draw()
     function setup() {
         const s = glState
-        s.leniaPhysics = initShaders(gl, leniaSource.split('====='), [
+        s.leniaPhysics = initShaders(gl, leniaSource.split('====='), { uniforms:[
             // Simulation parameters.
             'iSlowdown',
             'iMixing',
@@ -279,19 +279,19 @@ function loop(canvas) {
             'kernelSize',
             // Debugging.
             'iMouse',
-        ], [
+        ], attribs:[
             'vertexPos',
-        ])
-        s.display = initShaders(gl, displaySource.split('====='), [
+        ] })
+        s.display = initShaders(gl, displaySource.split('====='), { uniforms:[
             'iColorMatrix',
             'iDisplay',
             'iResolution',
             'leniaGrid',
             'leniaKernel',
             'kernelSize',
-        ], [
+        ], attribs:[
             'vertexPos',
-        ])
+        ]})
         s.posBuffer = initBuffer(gl, [-1,1, 1,1, -1,-1, 1,-1], 2)
         s.prevLeniaFrame = s.nextLeniaFrame = null
         gl.clearColor(0,0,0,1)
@@ -380,7 +380,7 @@ function maybeResize(canvas, sizeToElem) {
     return false
 }
 
-function initShaders(gl, [vsSource, fsSource], uniformNames=null, attribNames=null) {
+function initShaders(gl, [vsSource, fsSource], {uniforms, attribs, transformFeedback}) {
     // Compiles vertex+fragment shaders in a WebGL context.
     const vs = initShader(gl, gl.VERTEX_SHADER, vsSource)
     const fs = initShader(gl, gl.FRAGMENT_SHADER, fsSource)
@@ -396,12 +396,14 @@ function initShaders(gl, [vsSource, fsSource], uniformNames=null, attribNames=nu
         return null
     }
     const r = { program, uniform:Object.create(null), attrib:Object.create(null) }
-    if (uniformNames)
-        for (let u of uniformNames)
+    if (uniforms)
+        for (let u of uniforms)
             r.uniform[u] = gl.getUniformLocation(program, u) // -1 if not found.
-    if (attribNames)
-        for (let u of attribNames)
+    if (attribs)
+        for (let u of attribs)
             r.attrib[u] = gl.getAttribLocation(program, u) // -1 if not found.
+    if (transformFeedback)
+        gl.transformFeedbackVaryings(program, transformFeedback, gl.SEPARATE_ATTRIBS)
     return r
 
     function initShader(gl, type, source) {
