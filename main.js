@@ -1,7 +1,7 @@
 const R = 5
 const leniaSource = `
 attribute vec2 vertexPos;
-void main(void) { gl_Position = vec4(vertexPos, 0., 1.); }
+void main() { gl_Position = vec4(vertexPos, 0., 1.); }
 
 =====
 
@@ -70,7 +70,7 @@ vec3 lenia(in sampler2D prev, in mat3 channels, in vec2 fragCoord) {
     return clamp(val + growth / iSlowdown, 0., 1.);
 }
 
-void main(void) {
+void main() {
     vec2 coord = gl_FragCoord.xy; // 0…1
     vec3 rgb = lenia(leniaGrid, iMixing, coord);
 
@@ -98,7 +98,7 @@ void main(void) {
 
 const displaySource = `
 attribute vec2 vertexPos;
-void main(void) { gl_Position = vec4(vertexPos, 0., 1.); }
+void main() { gl_Position = vec4(vertexPos, 0., 1.); }
 
 =====
 
@@ -119,37 +119,67 @@ void main() {
 
 
 const actorSource = `
-// TODO: x/y/dx/dy as an attribute.
-// TODO: health/score/dummy1/dummy2 as an attribute.
-// TODO: The main function.
+precision highp float;
+
+uniform vec4 iResolution;
+uniform sampler2D leniaGrid;
+
+attribute vec4 posSpeed; // x/y/dx/dy
+attribute vec4 extraState; // health/score/dummy1/dummy2
+attribute float emitRadius;
+
+varying vec4 outPosSpeed; // x/y/dx/dy
+varying vec4 outExtraState; // health/score/dummy1/dummy2
+varying vec3 emittance;
+
+void main() {
+    outPosSpeed = vec4(posSpeed.xy + posSpeed.zw, posSpeed.zw);
+    outExtraState = vec4(0., 0., 0., 0.);
+    emittance = vec3(.0, .0, .2);
+
+    gl_Position = vec4(outPosSpeed.xy, 0., 1.);
+    gl_PointSize = emitRadius;
+}
 
 =====
 
+precision highp float;
+
+uniform vec4 iResolution;
+uniform sampler2D leniaGrid;
+
+varying vec3 emittance;
+
+void main() {
+    gl_FragColor = texture2D(leniaGrid, gl_FragCoord.xy / iResolution.xy) + vec4(emittance, 1.);
+    // TODO: If smooth-emit, weigh emittance by the distance to the center.
+}
 `
 
 
 
 // TODO: An actor system.
+//   TODO: On actor-shader init, specify `{transformFeedback:['outPosSpeed', 'outExtraState']}`
 //   TODO: Actor shaders:
 //     TODO: The vertex shader should compute behavior (captured in transform feedback, then fed back: x,y,dx,dy,health,dscore, in two vec4 attributes), and emit a square of possible-emittance for each actor.
 //       TODO: Compute behavior, as matrix multiplications.
 //         TODO: Put matrix rows into textures. (Kinda a pain to always do power-of-two, though...)
 //         (Outputs: dx, dy, dhealth, dscore; emitR, emitG, emitB. If not specified, the row is 0s, meaning that the output is always 0.)
-//         (Inputs: 1, x, y, dx, dy, health, score, r, g, b, rx,ry, gx,gy, bx,by, sin(time*pi*1), sin(time*pi*2), sin(time*pi*4), TODO:. Eventually, distToTargetX/distToTargetY, distToMouseX/distToMouseY.)
+//         (Inputs: 1, x, y, dx, dy, health, score, dummy1, dummy2, r, g, b, rx,ry, gx,gy, bx,by, sin(time*pi*1), sin(time*pi*2), sin(time*pi*4), TODO:. Eventually, distToTargetX/distToTargetY, distToMouseX/distToMouseY.)
 //       TODO: Set gl_PointSize to the max emittance and gl_Position to vec2(x+dx, y+dy), and in the fragment shader, add emittance if the radius is OK.
 //       TODO: Read close-to-actor colors from the Lenia-state texture, to later give them as inputs to behavior.
-//   TODO: Each frame, after physics, draw the actor shaders, via `gl.drawArraysIntanced(gl.POINTS, 0, 1, actors)` with 1 point and `gl.vertexAttribDivisor`.
+//   TODO: Each frame, after physics, draw the actor shaders, via `gl.drawArraysInstanced(gl.POINTS, 0, 1, actors)` with 1 point and `gl.vertexAttribDivisor`.
 //     TODO: Swap 2 pairs of buffers each frame, one for reading, another for writing.
 //   TODO: Each frame, download x/y and health and dscore from GPU. Add dscore to score, and *maybe* execute "onDied" JS if health<=0 now.
 //   TODO: In the level, the object `actors`, where each actor is named:
 //     TODO: x, y, dx, dy: 0..1.
 //     TODO: health. When ≤0, it's not updated anymore.
 //     TODO: displayHealth, true/false.
-//     TODO: maxEmitRadius: 50.
+//     TODO: emitRadius: 50.
 //     TODO: emit: "glow"/"circle"
 //     TODO: Per-output-variable behavior matrix. Outputs = matmul(outputs, behavior).
 //       (Outputs: dx, dy, dhealth, dscore; emitR, emitG, emitB. If not specified, the row is 0s, meaning that the output is always 0.)
-//       (Inputs: 1, x, y, dx, dy, health, score, r, g, b, rx,ry, gx,gy, bx,by, sin(time*pi*1), sin(time*pi*2), sin(time*pi*4), TODO:. Eventually, distToTargetX/distToTargetY, distToMouseX/distToMouseY.)
+//       (Inputs: 1, x, y, dx, dy, health, score, dummy1, dummy2, r, g, b, rx,ry, gx,gy, bx,by, sin(time*pi*1), sin(time*pi*2), sin(time*pi*4), TODO:. Eventually, distToTargetX/distToTargetY, distToMouseX/distToMouseY.)
 //         We don't need previous speed here, right? We don't preserve it anyway. ...And why don't we? We can't have acceleration without speed.
 //         TODO: Actually preserve dx & dy, and give those as inputs, to allow acceleration. (Need to be able to bind buffers with interleaved data, to read 2 vec4 attributes from 1 buffer, which is written-to.)
 //           ...Actually, wait, might be able to write to multiple buffers, with the index?...
