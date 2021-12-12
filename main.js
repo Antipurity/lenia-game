@@ -121,7 +121,7 @@ void main() {
 const actorSource = `
 precision highp float;
 
-// TODO: Also iTime.
+uniform vec4 iTime;
 uniform vec4 iResolution;
 uniform sampler2D leniaGrid;
 
@@ -172,12 +172,12 @@ void main() {
 
 // TODO: An actor system.
 //   TODO: Each frame, download x/y/dx/dy and health and dscore from GPU. Add dscore to score, and *maybe* execute "onDied" JS if health<=0 now.
-//   TODO: In the level, the object `actors`, where each actor is named:
-//     TODO: pos: [x, y, dx, dy], all 0..1.
-//       TODO: If >4 numbers, instantiate many agents, each sharing behavior in the behavior store.
-//     TODO: emitRadius: 50.
+//   TODO: In the level, the object `actors`, where each actor is named (an array technically gives its items names too, so it's fine):
+//     TODO: If `pos` has >4 numbers, instantiate many agents, each sharing behavior in the behavior store.
 //     TODO: health. When ≤0, it's not updated anymore.
 //     TODO: displayHealth, true/false.
+//     TODO: emit, [r,g,b].
+//       (Everything specified as an "output" should be able to be specified as a row of the behavior matrix. dx,dy, health, dscore, emit.)
 //     TODO: Per-output-variable behavior matrix. Outputs = matmul(outputs, behavior).
 //       (Outputs: dx, dy, dhealth, dscore; emitR, emitG, emitB. If not specified, the row is 0s, meaning that the output is always 0.)
 //       (Inputs: 1, x, y, dx, dy, health, score, dummy1, dummy2, r,rx,ry, g,gx,gy, b,bx,by, sin(time*pi*1), sin(time*pi*2), sin(time*pi*4), TODO:. Eventually, distToTargetX/distToTargetY, distToMouseX/distToMouseY.)
@@ -376,14 +376,18 @@ function loop(canvas) {
 
         // Load actors.
         const actors = L.actors
-        function RANDOM_ARRAY(len, offset=.5, radius=.5) { // TODO: Load this data from the level, don't just decide it randomly.
-            const r = new Float32Array(len)
-            for (let i=0; i < len; ++i) r[i] = (Math.random()*2-1) * radius + offset
-            return r
+        const pos = new Float32Array(actors.length*4)
+        const extra = new Float32Array(actors.length*4)
+        const radii = new Float32Array(actors.length)
+        for (let i = 0; i < actors.length; ++i) {
+            for (let c=0; c<4; ++c)
+                pos[i*4+c] = actors[i].pos[c]
+            extra[i*4+0] = 1 // 1 health for everyone.
+            radii[i] = actors[i].radius || 10
         }
-        s.posSpeed = twice(() => initBuffer(gl, RANDOM_ARRAY(actors.length * 4, 0, .001), 4))
-        s.extraState = twice(() => initBuffer(gl, RANDOM_ARRAY(actors.length * 4), 4))
-        s.emitRadius = initBuffer(gl, RANDOM_ARRAY(actors.length, 30, 30), 1)
+        s.posSpeed = twice(() => initBuffer(gl, pos, 4))
+        s.extraState = twice(() => initBuffer(gl, extra, 4))
+        s.emitRadius = initBuffer(gl, radii, 1)
         function twice(f) { return { prev:f(), next:f() } }
     }
     function draw() {
@@ -415,7 +419,6 @@ function loop(canvas) {
 
             // Draw the fullscreen rectangle.
             rect.draw(gl, a.vertexPos)
-            // gl.clear(gl.COLOR_BUFFER_BIT) // TODO:
 
             s.leniaFrames.next.copyTo(gl, s.leniaFrames.extra)
             s.leniaFrames.next.resetWrite(gl)
