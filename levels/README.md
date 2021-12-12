@@ -1,5 +1,7 @@
 Each level specifies, in JSON, all metadata and all simulation parameters and all entities.
 
+Making a new level is best done by copying a pre-existing level and changing its simulation parameters.
+
 ## Metadata
 
 `description: string`: Markdown, displayed in level-select.
@@ -38,9 +40,33 @@ Each level specifies, in JSON, all metadata and all simulation parameters and al
 
 ---
 
-`iKernelCenter: vec3`, `iKernelWidth: vec3`: how the distance to each neighboring pixel is transformed into its weight, via a bell-shaped curve (nothing if too little or too much, has to be just right). Specified per-color.
+`kernel: object`: defines per-color 11×11 convolution kernels.
 
-(Providing a user-defined image as a kernel is currently impossible, though the code supports it, so adding it is easy if needed.)
+There are two options:
+
+- `{ center:[r,g,b], width:[r,g,b] }`: creates Lenia kernels, which define how the distance to each neighboring pixel is transformed into its weight, via a bell-shaped curve (nothing if too little or too much, has to be just right).
+
+- `{ r:mat11, g:mat11, b:mat11 }`: the raw values of neighbor contributions. Use this if you want non-wave behavior, blocky shapes, or funky textures.
+
+For example:
+
+```json
+{
+    "g": [
+        0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,1,0,0,0,0,0,
+        0,0,0,0,1,1,0,0,0,0,1,
+        0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,1
+      ]
+}
+```
 
 ---
 

@@ -40,8 +40,6 @@ uniform float kernelSize;
 
 uniform float iSlowdown;
 uniform mat3 iMixing;
-uniform vec3 iKernelCenter;
-uniform vec3 iKernelWidth;
 uniform vec3 iGrowthCenter;
 uniform vec3 iGrowthWidth;
 uniform vec2 iOffset;
@@ -258,7 +256,6 @@ function loop(canvas) {
             // Simulation parameters.
             'iSlowdown',
             'iMixing',
-            'iKernelCenter', 'iKernelWidth',
             'iGrowthCenter', 'iGrowthWidth',
             'iOffset', 'iKernelOffset',
             // Simulation state.
@@ -296,7 +293,22 @@ function loop(canvas) {
         if (!s.prevLeniaFrame) {
             s.prevLeniaFrame = initTexture(gl, L.width, L.height)
             s.nextLeniaFrame = initTexture(gl, L.width, L.height)
-            s.leniaKernel = leniaKernel(gl, R, L.iKernelCenter, L.iKernelWidth, L.iKernelOffset)
+            if (L.kernel.center)
+                s.leniaKernel = leniaKernel(gl, R, L.kernel.center, L.kernel.width, L.iKernelOffset)
+            else {
+                // Collage .r/.g/.b into one array.
+                const sz = 2*R+1, pixels = new Float32Array(4 * sz * sz)
+                const rgb = [L.kernel.r || [], L.kernel.g || [], L.kernel.b || []]
+                const totals = [0,0,0,1]
+                for (let y = -R; y <= R; ++y)
+                    for (let x = -R; x <= R; ++x) {
+                        const index = (y+R) * sz + (x+R)
+                        for (let c=0; c < 3; ++c)
+                            pixels[4*index + c] = rgb[c][index] || 0,
+                            totals[c] = Math.max(totals[c], rgb[c][index] || 0)
+                    }
+                s.leniaKernel = leniaKernel(gl, R, null, null, null, pixels, totals)
+            }
         }
         if (p1 !== null) {
             const u = p1.uniform, a = p1.attrib
@@ -307,8 +319,6 @@ function loop(canvas) {
             gl.uniform4f(u.iMouse, mouse.x * L.width, (1 - mouse.y) * L.height, mouse.main, mouse.aux)
             gl.uniform1f(u.iSlowdown, L.iSlowdown)
             gl.uniformMatrix3fv(u.iMixing, false, L.iMixing)
-            gl.uniform3fv(u.iKernelCenter, L.iKernelCenter)
-            gl.uniform3fv(u.iKernelWidth, L.iKernelWidth)
             gl.uniform3fv(u.iGrowthCenter, L.iGrowthCenter)
             gl.uniform3fv(u.iGrowthWidth, L.iGrowthWidth)
             gl.uniform2fv(u.iOffset, L.iOffset)
@@ -463,22 +473,24 @@ function loadLevel(url) {
     return fetch(url, {mode:'cors'}).then(response => response.json())
 }
 
-function leniaKernel(gl, R, mus, sigmas, offsets) {
+function leniaKernel(gl, R, mus, sigmas, offsets, data=null, totals=[0,0,0,1]) {
     // Pre-computes a Lenia kernel, with 3 colors.
     // The `result` can be given to `initTexture(gl, 2*R+1, 2*R+1, pixels)`.
-    const sz = 2*R+1, colors = 3, data = new Float32Array(sz*sz * 4) // Pre-normalization.
-    const [dx, dy] = offsets
-    const totals = [0,0,0,1]
-    for (let y = -R; y <= R; ++y)
-        for (let x = -R; x <= R; ++x) {
-            const r = Math.hypot(x - dx, y - dy) / R // 0..sqrt(2), usually.
-            for (let c=0; c < colors; ++c) {
-                const weight = bell(r, mus[c], sigmas[c])
-                const index = (y+R) * sz + (x+R)
-                data[4*index + c] = weight
-                totals[c] = Math.max(totals[c], weight)
+    const sz = 2*R+1, colors = 3
+    if (!data) {
+        data = new Float32Array(sz*sz * 4) // Pre-normalization.
+        const [dx, dy] = offsets
+        for (let y = -R; y <= R; ++y)
+            for (let x = -R; x <= R; ++x) {
+                const r = Math.hypot(x - dx, y - dy) / R // 0..sqrt(2), usually.
+                for (let c=0; c < colors; ++c) {
+                    const weight = bell(r, mus[c], sigmas[c])
+                    const index = (y+R) * sz + (x+R)
+                    data[4*index + c] = weight
+                    totals[c] = Math.max(totals[c], weight)
+                }
             }
-        }
+    }
     const sz2 = Math.pow(2, Math.ceil(Math.log2(sz))) // WebGL1 textures only work as powers-of-two.
     const data2 = new Uint8Array(sz2*sz2 * 4) // Normalized, so that max is 1.
     for (let y = -R; y <= R; ++y)
