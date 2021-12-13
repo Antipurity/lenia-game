@@ -92,6 +92,7 @@ TODO: What are the props?
   health=1
   radius=10
   emit=red|green|blue
+  like
 
 TODO: What are the 4 behavior outputs?
 TODO: What are the per-output inputs? (If we have a number instead of an object, then it's B1.)

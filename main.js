@@ -159,7 +159,7 @@ void main() {
     nearDX /= float(${R * (2*R+1)});
     nearDY /= float(${R * (2*R+1)});
 
-    // TODO: How to provide the actual target x/y? Another attribute? (At least we still have space for 2.)
+    // TODO: How to provide the actual target x/y? Another attribute? (At least we still have space for 1.)
     vec2 targetPos = vec2(.5, .5);
 
     vec2 mouseVec = iMouse.xy / iResolution.xy;
@@ -216,6 +216,7 @@ void main() {
 //     TODO: ...How do we do target-selecting JS (given all of an actor's state), exactly?... Each frame, call up to 1000 targeters, and update in-buffer if updated?
 //     TODO: Document actors.
 //   TODO: Each frame, download x/y/dx/dy and health and dscore from GPU. Add dscore to score, and *maybe* execute "onDied" JS if health<=0 now.
+//   TODO: Each frame, download some from GPU, and position actor's DOM to match the coordinates.
 // TODO: An actor-health system, communicating GPU->CPU to know which ones to kill (and update GPU data when that happens --- ...or just ignore it GPU-side), and display it in DOM.
 // TODO: An actor-target system, making JS decide the index of the target.
 // TODO: ...Do we want DOM-side labels on agents?... (Usable for text boxes, even: STORY. And for the main menu's label.)
@@ -430,20 +431,22 @@ function loop(canvas) {
         const extra = b() // health/dscore/emitRadius/dummy
         const B = { B1:b(), Bspeed:b(), Bmouse:b(), Btarget:b(), Bhealth:b(), Br:b(), Bdr:b(), Bg:b(), Bdg:b(), Bb:b(), Bdb:b(), Btime:b(), BtimeFrequency:b() }
         B.keys = Object.keys(B)
-        const Boutputs = ['speed', 'emittance', 'dhealth', 'dscore']
+        const Boutputs = ['speed', 'emittance', 'dhealth', 'dscore'], empty = Object.create(null)
         let i = 0
         for (let aK of Object.keys(actors)) {
-            const a = actors[aK]
+            const a = actors[aK], a2 = a.like != null && actors[a.like] || empty
             for (let c=0; c<4; ++c)
-                pos[i*4+c] = a.pos[c] || 0
-            extra[i*4+0] = a.health || 1
-            extra[i*4+2] = a.radius || 10
-            extra[i*4+3] = a.emit==='blue' ? 2 : a.emit==='green' ? 1 : 0
+                pos[i*4+c] = a.pos && a.pos[c] || a2.pos && a2.pos[c] || 0
+            extra[i*4+0] = a.health || a2.health || 1
+            extra[i*4+2] = a.radius || a2.radius || 10
+            const color = a.emit || a2.emit
+            extra[i*4+3] = color==='blue' ? 2 : color==='green' ? 1 : 0
             for (let Bout = 0; Bout < Boutputs.length; ++Bout) {
                 const kOut = Boutputs[Bout]
-                if (a[kOut])
+                const props = a[kOut] || a2[kOut], props2 = a2[kOut]
+                if (props)
                     for (let kIn of B.keys)
-                        B[kIn][i * Boutputs.length + Bout] = a[kOut][kIn] || (kIn === 'B1' && typeof a[kOut] == 'number' && a[kOut]) || 0
+                        B[kIn][i * Boutputs.length + Bout] = props[kIn] || props2 && props2[kIn] || (kIn === 'B1' && typeof props == 'number' && props) || 0
             }
             ++i
         }
