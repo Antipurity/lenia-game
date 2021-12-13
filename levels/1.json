@@ -1,0 +1,34 @@
+{
+    "description": "Weave a red string.\n\nRed's iGrowthWidth=0.0793 is the strongest weave that doesn't weave the world when crossing itself, meaning that it can be upgraded from 0.077 in a cutscene.\n\nEnlist the help of green worms, which should destroy the blue emitter.\n\n(Kinda one-trick pony so far.)",
+    "isMenu": true,
+
+    "winScore": null,
+    "winUnlocks": [],
+
+    "iColorMatrix": [
+        1, 0, 0, 0,
+      0.6, 1, 0, 0,
+      0.1, 0, 1, 0,
+        0, 0, 0, 1
+    ],
+
+    "width": 512, "height": 512,
+    "iSlowdown": 5,
+    "iMixing": [
+     1.07, 0.0,    0,
+       -1, 2.5,  0.0,
+       -2,-1.0,  1.3
+    ],
+    "kernel":{
+      "center": [0.5, 0.5, 0.5],
+      "width": [0.1, 0.14, 0.14]
+    },
+    "iGrowthCenter": [0.5, 1.65, 0.4], "iGrowthWidth": [0.077, 0.4, 0.045],
+    "iOffset": [0,0], "iKernelOffset": [0,0],
+
+    "actors": [
+      {"pos":[0.5, 0.5], "radius":6, "emit":"red", "emittance":1, "speed":{"Bmouse":0.01, "Bdg": -0.01, "Bdb":-0.03, "Bspeed":0.7}, "gravity":[0, -0.00000]},
+      {"pos":[0.5, 0.8], "radius":30, "emit":"blue", "emittance":{"B1":0.5, "Btime":0.5, "BtimeFrequency":0.5}},
+      {"pos":[0.5, 0.2], "radius":6, "emit":"green", "emittance":1, "speed":{"Bmouse":0.0001, "Bdr": -0.003, "Bdg": -0.003, "Bdb":0.008}}
+    ]
+}

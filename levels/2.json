@@ -1,0 +1,33 @@
+{
+    "description": "The eye of the storm. Find it if you want to survive. (Could benefit from the player's actor being highlighted much better. And from actual health. And being winnable. And having a story. But otherwise, looking good.)",
+    "isMenu": true,
+
+    "winScore": null,
+    "winUnlocks": [],
+
+    "iColorMatrix": [
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1, 0,
+        0, 0, 0, 1
+    ],
+
+    "width": 512, "height": 512,
+    "iSlowdown": 5,
+    "iMixing": [
+          1,  -5,  0.4,
+        0.0,   1, -1.1,
+       -1.2, 0.57,    1
+    ],
+    "kernel":{
+      "center": [0.5, 0.5, 0.5],
+      "width": [0.1, 0.14, 0.14]
+    },
+    "iGrowthCenter": [0.4, 0.2, 0.4], "iGrowthWidth": [0.08, 0.04, 0.1],
+    "iOffset": [0,0], "iKernelOffset": [0,0],
+
+    "actors": [
+      {"pos":[0.5, 0.25], "radius":4, "emit":"green", "emittance":1.0, "speed":{"Bmouse":0.02, "Bdr":0.01, "Bdb":-0.1, "Bspeed": 0.5}},
+      {"pos":[0.5, 0.75], "radius":50, "emit":"green", "emittance":0.25, "gravity":[0, -0.001]}
+    ]
+}

@@ -213,12 +213,11 @@ void main() {
 
 
 // TODO: An actor system.
-//   TODO: In the level, the object `actors`, where each actor is named (an array technically gives its items names too, so it's fine):
-//     TODO: ...How do we do target-selecting JS (given all of an actor's state), exactly?... Each frame, call up to 1000 targeters, and update in-buffer if updated?
+//   TODO: ...How do we do target-selecting JS (given all of an actor's state), exactly?... Each frame, call up to 1000 targeters, and update in-buffer if updated?
 //   TODO: Each frame, download x/y/dx/dy and health and dscore from GPU. Add dscore to score, and *maybe* execute "onDied" JS if health<=0 now.
-//   TODO: Each frame, download some from GPU, and position actor's DOM to match the coordinates.
+//   TODO: Each frame, download some x/y from GPU, and position actor's DOM to match the coordinates.
 // TODO: An actor-health system, communicating GPU->CPU to know which ones to kill (and update GPU data when that happens --- ...or just ignore it GPU-side), and display it in DOM.
-//   TODO: In actors, `displayHealth:bool`. ...Or should all player things automatically start with this...
+//   TODO: In actors, `displayHealth:bool`. ...Or should all player things automatically start with this... No, some levels may want to force a mechanic.
 //     (And maybe, with the direct-link library, could even expose all player-actor state as sound. This might be the coolest application I can think of: monitoring a swarm.)
 // TODO: An actor-target system, making JS decide the index of the target.
 // TODO: ...Do we want DOM-side labels on agents?... (Usable for text boxes, even: STORY. And for the main menu's label.)
@@ -235,12 +234,7 @@ void main() {
 
 // TODO: ...With an actor system, and a player-health system (and/or an actor health system, to kill enemies), come up with concrete levels.
 // Levels, the meat of the game, allowing dynamic discoveries of whole different worlds of complexity.
-//   Eye of the storm, 512×512 (blue must hurt, green can slowly heal cause it's close to blue OR red can heal cause it's far from blue, and in eyes) (actor radius 50 here):
-//     `rgb.rgb += vec3(.0, .2, .0)`, moving linearly in a direction for 1 second:
-//       Creates actual spiral-eyes, without too much complexity. Perfect.
-//     `rgb.rgb += vec3(.0, .2, .0)`, blinking with times 5s on, 1s off:
-//       A big wave. Each period, the wave changes color. Eventually, everything descends into chaos.
-//     (Nothing else seems to have interesting behavior.)
+//   Eye of the storm, 512×512 (blue must hurt, red can heal):
 //     `offset=(0,-2)`: dripping shifting platforms: red space, blue supports, green grass.
 //     `offset=(0,3)`: eternal bullet-hell, with diagonal blue bullets in a sea of red, and green explosions.
 //     `offset=(0,4)`: green becomes a self-regenerating eternal wave; if the player can burst blue for a bit, it burns away the green.
@@ -301,7 +295,7 @@ void main() {
 
 
 
-const mouse = { x:0, y:0, main:false, aux:false, update(evt) {
+const mouse = { x:.5, y:.5, main:false, aux:false, update(evt) {
     mouse.x = (evt.clientX + (evt.movementX || 0)) / innerWidth
     mouse.y = (evt.clientY + (evt.movementY || 0)) / innerHeight
     mouse.main = evt.buttons & 1
@@ -498,7 +492,7 @@ function loop(canvas) {
             s.leniaFrames.next.copyTo(gl, s.leniaFrames.extra)
             s.leniaFrames.next.resetWrite(gl)
         }
-        if (p2 !== null) {
+        if (p2 !== null) { // Make actors act.
             const u = p2.uniform, a = p2.attrib
             gl.useProgram(p2.program)
             gl.uniform1f(u.iTime, performance.now() / 1000)
