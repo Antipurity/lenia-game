@@ -79,3 +79,21 @@ For example:
 `iKernelOffset: vec2`: this originates from a buggy wind implementation, and alters the calculation of the distance to a neighbor. Many things look more visually interesting with this.
 
 ---
+
+## Entities
+
+Actors. Agents. Particles. Thingies.
+
+`.actors`: an object containing the named actors. (Could be an array too, if names are unimportant.)
+
+---
+
+TODO: What are the props?
+  health=1
+  radius=10
+  emit=red|green|blue
+
+TODO: What are the 4 behavior outputs?
+TODO: What are the per-output inputs? (If we have a number instead of an object, then it's B1.)
+
+---

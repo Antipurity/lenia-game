@@ -1,4 +1,7 @@
-const R = 5
+const R = 5 // Convolution-kernel radius. 2*R+1 is the kernel resolution.
+
+
+
 const leniaSource = `
 attribute vec2 vertexPos;
 void main() { gl_Position = vec4(vertexPos, 0., 1.); }
@@ -53,9 +56,8 @@ vec3 bell(vec3 x, vec3 m, vec3 s) {
 vec3 lenia(in sampler2D prev, in mat3 channels, in vec2 fragCoord) {
     vec3 sum = vec3(0.);
     vec3 total = vec3(0.);
-    for (int y=-R; y<=R; y++)
-    for (int x=-R; x<=R; x++)
-    { // Convolution with a pre-computed kernel.
+    for (int y=-R; y<=R; ++y)
+    for (int x=-R; x<=R; ++x) { // Convolution with a pre-computed kernel.
         vec2 xy = vec2(x,y);
         vec2 txy = mod((fragCoord + xy - iOffset) / iResolution.xy, 1.);
         vec3 val = texture2D(prev, txy).rgb * channels;
@@ -74,7 +76,7 @@ void main() {
     vec2 coord = gl_FragCoord.xy; // 0…1
     vec3 rgb = lenia(leniaGrid, iMixing, coord);
 
-    // TODO: How to move this actor system to, uh, uniform arrays or textures or something? And, be some linear equation from numbers like "time" and "colorNearby" (health) and "colorGrad" (collision) and "distToMouse" (player control) and "distToTargetN" (2 CPU-specified indices) and speed and health and score and emittances and 1 to movement of position and health-change and score-change and emittances.
+    // TODO: Move this mouse-ness action to actors.
     // TODO: ...Is it possible to make actors be able to shoot other actors... Teleport a hidden actor to a position, maybe?
     if (iMouse.z > 0.) {
         float d = length((coord.xy - iMouse.xy) / iResolution.xy);
@@ -121,28 +123,74 @@ void main() {
 const actorSource = `
 precision highp float;
 
-uniform vec4 iTime;
+uniform float iTime;
+uniform vec4 iMouse;
 uniform vec4 iResolution;
 uniform sampler2D leniaGrid;
 
+// 14 attributes.
 attribute vec4 posSpeed; // x/y/dx/dy
-attribute vec4 extraState; // health/score/dummy1/dummy2
-attribute float emitRadius;
+attribute vec4 extraState; // health/dscore/emitRadius/emitColor (emitColor is 0/1/2 for r/g/b)
+// Behavior matrix; each attribute is the input's contribution to each output, which is acceleration/emittance/dhealth/dscore. // TODO: ...Maybe, don't just compute acceleration, but compute dx and allow Bdpos as input... Would allow us to simulate drag too.
+//   For positions/velocities/color-differentials, x and y use the same weights for compactness.
+attribute vec4 B1;
+attribute vec4 Bmouse;
+attribute vec4 Btarget;
+attribute vec4 Bhealth;
+attribute vec4 Br;
+attribute vec4 Bdr;
+attribute vec4 Bg;
+attribute vec4 Bdg;
+attribute vec4 Bb;
+attribute vec4 Bdb;
+attribute vec4 Btime;
+attribute vec4 BtimePeriod; // In seconds.
 
 varying vec4 outPosSpeed; // x/y/dx/dy
-varying vec4 outExtraState; // health/score/dummy1/dummy2
-varying vec4 emittance;
+varying vec4 outExtraState; // health/dscore/emitRadius/emitColor
+varying vec4 emit;
+
+const int R = ${R};
+const float TAU = 2. * 3.14159265359;
 
 void main() {
-    // TODO: Compute behavior, as matrix multiplications.
-    //   TODO: Put behavior-matrix rows into a (square) texture, to be read here.
-    //   (Outputs: dx, dy, dhealth, dscore; emitR, emitG, emitB. If not specified, the row is 0s, meaning that the output is always 0.)
-    //     (Inputs: 1, x, y, dx, dy, health, score, dummy1, dummy2, r,rx,ry, g,gx,gy, b,bx,by, sin(time*pi*1), sin(time*pi*2), sin(time*pi*4), TODO:. Eventually, distToTargetX/distToTargetY, distToMouseX/distToMouseY.)
-    // TODO: Read close-to-actor colors from the Lenia-state texture, to later give them as inputs to behavior.
-    vec2 nextPos = mod(posSpeed.xy + posSpeed.zw, 1.);
-    outPosSpeed = vec4(nextPos, posSpeed.zw);
-    outExtraState = extraState * vec4(0., 0., 0., 0.);
-    emittance = vec4(.0, .0, .3, emitRadius);
+    // Read near-to-actor colors and color-edges from Lenia state, to give them as inputs to behavior, 0..1.
+    vec3 near = vec3(0., 0., 0.);
+    vec3 nearDX = vec3(0., 0., 0.);
+    vec3 nearDY = vec3(0., 0., 0.);
+    for (int y=-R; y<=R; ++y)
+    for (int x=-R; x<=R; ++x) {
+        vec2 txy = mod(posSpeed.xy + vec2(x,y) / iResolution.xy, 1.);
+        vec3 color = texture2D(leniaGrid, txy).rgb;
+        near += color;
+        nearDX += sign(float(x)) * color;
+        nearDY += sign(float(y)) * color;
+    }
+    near /= float(${(2*R+1) * (2*R+1)});
+    nearDX /= float(${R * (2*R+1)});
+    nearDY /= float(${R * (2*R+1)});
+
+    // TODO: How to provide the actual target x/y? Another attribute? (At least we still have space for 2.)
+    vec2 targetPos = vec2(.5, .5);
+
+    vec2 mouseVec = iMouse.xy / iResolution.xy - posSpeed.xy;
+    vec2 targetVec = targetPos - posSpeed.xy;
+    float health = extraState.x;
+
+    // Update position & state.
+    vec2 dPos = posSpeed.zw + B1.x + mouseVec*Bmouse.x + targetVec*Btarget.x + health*Bhealth.x + near.r*Br.x + vec2(nearDX.r, nearDY.r)*Bdr.x + near.g*Bg.x + vec2(nearDX.g, nearDY.g)*Bdg.x + near.b*Bb.x + vec2(nearDX.b, nearDY.b)*Bdb.x + sin(BtimePeriod.x * iTime*TAU) * Btime.x;
+    vec2 nextPos = mod(posSpeed.xy + dPos, 1.);
+    outPosSpeed = vec4(nextPos, dPos);
+
+    float dhealth = B1.z + length(mouseVec)*Bmouse.z + length(targetVec)*Btarget.z + health*Bhealth.z + near.r*Br.z + length(vec2(nearDX.r, nearDY.r))*Bdr.z + near.g*Bg.z + length(vec2(nearDX.g, nearDY.g))*Bdg.z + near.b*Bb.z + length(vec2(nearDX.b, nearDY.b))*Bdb.z + sin(BtimePeriod.z * iTime*TAU) * Btime.z;
+    float dscore  = B1.w + length(mouseVec)*Bmouse.w + length(targetVec)*Btarget.w + health*Bhealth.w + near.r*Br.w + length(vec2(nearDX.r, nearDY.r))*Bdr.w + near.g*Bg.w + length(vec2(nearDX.g, nearDY.g))*Bdg.w + near.b*Bb.w + length(vec2(nearDX.b, nearDY.b))*Bdb.w + sin(BtimePeriod.w * iTime*TAU) * Btime.w;
+    outExtraState = vec4(extraState.x + dhealth, extraState.y + dscore, extraState.zw);
+    // TODO: Try to make an actor that tracks the mouse. ...We can only make it orbit, due to acceleration. ...Also, it highlights a good point: should pick the closest of the 4 reflected points, or we'll have an infinitely-accelerating ball.
+
+    float emitRadius = extraState.z;
+    vec3 color = extraState.w<.5 ? vec3(1.,0.,0.) : extraState.w<1.5 ? vec3(0.,1.,0.) : vec3(0.,0.,1.);
+    float emittance = B1.y + length(mouseVec)*Bmouse.y + length(targetVec)*Btarget.y + health*Bhealth.y + near.r*Br.y + length(vec2(nearDX.r, nearDY.r))*Bdr.y + near.g*Bg.y + length(vec2(nearDX.g, nearDY.g))*Bdg.y + near.b*Bb.y + length(vec2(nearDX.b, nearDY.b))*Bdb.y + sin(BtimePeriod.y * iTime*TAU) * Btime.y;
+    emit = vec4(emittance * color, emitRadius);
 
     gl_Position = vec4(outPosSpeed.xy * 2. - 1., 0., 1.);
     gl_PointSize = emitRadius;
@@ -156,13 +204,13 @@ uniform vec4 iResolution;
 uniform sampler2D leniaGrid;
 
 varying vec4 outPosSpeed; // x/y/dx/dy
-varying vec4 emittance;
+varying vec4 emit;
 
 void main() {
     vec2 center = outPosSpeed.xy;
-    float distance = length(gl_FragCoord.xy - center * iResolution.xy) / emittance.w * 2.;
+    float distance = length(gl_FragCoord.xy - center * iResolution.xy) / emit.w * 2.;
     if (distance < 1.) // Relies on blending.
-        gl_FragColor = vec4(emittance.rgb, 1.) * (1. - distance);
+        gl_FragColor = vec4(emit.rgb, 1.) * (1. - distance);
     else
         discard;
 }
@@ -171,21 +219,17 @@ void main() {
 
 
 // TODO: An actor system.
-//   TODO: Each frame, download x/y/dx/dy and health and dscore from GPU. Add dscore to score, and *maybe* execute "onDied" JS if health<=0 now.
 //   TODO: In the level, the object `actors`, where each actor is named (an array technically gives its items names too, so it's fine):
-//     TODO: If `pos` has >4 numbers, instantiate many agents, each sharing behavior in the behavior store.
-//     TODO: health. When ≤0, it's not updated anymore.
+//     TODO: `like: actorName`, for data/code re-use.
 //     TODO: displayHealth, true/false.
-//     TODO: emit, [r,g,b].
-//       (Everything specified as an "output" should be able to be specified as a row of the behavior matrix. dx,dy, health, dscore, emit.)
-//     TODO: Per-output-variable behavior matrix. Outputs = matmul(outputs, behavior).
-//       (Outputs: dx, dy, dhealth, dscore; emitR, emitG, emitB. If not specified, the row is 0s, meaning that the output is always 0.)
-//       (Inputs: 1, x, y, dx, dy, health, score, dummy1, dummy2, r,rx,ry, g,gx,gy, b,bx,by, sin(time*pi*1), sin(time*pi*2), sin(time*pi*4), TODO:. Eventually, distToTargetX/distToTargetY, distToMouseX/distToMouseY.)
 //     TODO: ...How do we do target-selecting JS (given all of an actor's state), exactly?... Each frame, call up to 1000 targeters, and update in-buffer if updated?
 //     TODO: Document actors.
+//   TODO: Each frame, download x/y/dx/dy and health and dscore from GPU. Add dscore to score, and *maybe* execute "onDied" JS if health<=0 now.
 // TODO: An actor-health system, communicating GPU->CPU to know which ones to kill (and update GPU data when that happens --- ...or just ignore it GPU-side), and display it in DOM.
 // TODO: An actor-target system, making JS decide the index of the target.
 // TODO: ...Do we want DOM-side labels on agents?... (Usable for text boxes, even: STORY. And for the main menu's label.)
+
+// TODO: On level load, also add the player's actor/s at the center. (This way, we could allow unlocking 'bodies'.)
 
 // TODO: When score exceeds `level.winScore`, switch to winning state (...what, is the level's JS responsible for it, or what?), then after a time, unlock all levels in `level.winUnlocks` (notifying how many are new) and go to main menu.
 // TODO: Display in-level time and score (out of `level.winScore`), and healthbars for each of "your" agents.
@@ -257,6 +301,8 @@ void main() {
 //       `mu=.6, sigma=.2`: makes puffs that slowly dissipate, but if the actor stays long enough to make top and bottom connect, the whole world is taken over.
 //     `offset=kernelOffset=(0,-11)`: the barrier's building has visible sparks, and multiple layers, and looks cool.
 
+// TODO: Make note of browser compatibility, according to the APIs that we use: WebGL2, Object.values.
+
 
 
 const mouse = { x:0, y:0, main:false, aux:false, update(evt) {
@@ -294,8 +340,8 @@ function loop(canvas) {
         // Buffers.
         posBuffer: null, // For vertices of the full-screen quad.
         posSpeed: null, // Actor x/y/dx/dy.
-        extraState: null, // Actor health/dscore/dummy1/dummy2.
-        emitRadius: null, // Actor emit-radius.
+        extraState: null, // Actor health/dscore/emitRadius/dummy.
+        behavior: null, // An object containing per-actor behavior matrices.
         // Textures.
         leniaFrames: null, // {prev, next}
         leniaKernel: null,
@@ -327,12 +373,24 @@ function loop(canvas) {
         ] })
         s.actors = initShaders(gl, actorSource.split('====='), { uniforms:[
             'iTime',
+            'iMouse',
             'iResolution',
             'leniaGrid',
         ], attribs:[
             'posSpeed',
             'extraState',
-            'emitRadius',
+            'B1',
+            'Bmouse',
+            'Btarget',
+            'Bhealth',
+            'Br',
+            'Bdr',
+            'Bg',
+            'Bdg',
+            'Bb',
+            'Bdb',
+            'Btime',
+            'BtimePeriod',
         ], transformFeedback:[
             'outPosSpeed',
             'outExtraState',
@@ -375,19 +433,33 @@ function loop(canvas) {
         }
 
         // Load actors.
-        const actors = L.actors
-        const pos = new Float32Array(actors.length*4)
-        const extra = new Float32Array(actors.length*4)
-        const radii = new Float32Array(actors.length)
-        for (let i = 0; i < actors.length; ++i) {
+        const actors = L.actors, actorsLen = actors ? Object.values(actors).length : 0
+        const pos = b() // x/y/dx/dy
+        const extra = b() // health/dscore/emitRadius/dummy
+        const B = { B1:b(), Bmouse:b(), Btarget:b(), Bhealth:b(), Br:b(), Bdr:b(), Bg:b(), Bdg:b(), Bb:b(), Bdb:b(), Btime:b(), BtimePeriod:b() }
+        B.keys = Object.keys(B)
+        const Boutputs = ['acceleration', 'emittance', 'dhealth', 'dscore']
+        let i = 0
+        for (let aK of Object.keys(actors)) {
+            const a = actors[aK]
             for (let c=0; c<4; ++c)
-                pos[i*4+c] = actors[i].pos[c]
-            extra[i*4+0] = 1 // 1 health for everyone.
-            radii[i] = actors[i].radius || 10
+                pos[i*4+c] = a.pos[c] || 0
+            extra[i*4+0] = a.health || 1
+            extra[i*4+2] = a.radius || 10
+            extra[i*4+3] = a.emit==='blue' ? 2 : a.emit==='green' ? 1 : 0
+            for (let Bout = 0; Bout < Boutputs.length; ++Bout) {
+                const kOut = Boutputs[Bout]
+                if (a[kOut])
+                    for (let kIn of B.keys)
+                        B[kIn][i * Boutputs.length + Bout] = a[kOut][kIn] || (kIn === 'B1' && typeof a[kOut] == 'number' && a[kOut]) || 0
+            }
+            ++i
         }
         s.posSpeed = twice(() => initBuffer(gl, pos, 4))
         s.extraState = twice(() => initBuffer(gl, extra, 4))
-        s.emitRadius = initBuffer(gl, radii, 1)
+        for (let k of B.keys) B[k] = initBuffer(gl, B[k], 4)
+        s.behavior = B
+        function b() { return new Float32Array(actorsLen*4) }
         function twice(f) { return { prev:f(), next:f() } }
     }
     function draw() {
@@ -402,7 +474,7 @@ function loop(canvas) {
             const u = p1.uniform, a = p1.attrib
             gl.useProgram(p1.program)
             // Fill in the uniforms.
-            gl.uniform1f(u.iTime, performance.now())
+            gl.uniform1f(u.iTime, performance.now() / 1000)
             gl.uniform4f(u.iResolution, L.width, L.height, 0, 0)
             gl.uniform4f(u.iMouse, mouse.x * L.width, (1 - mouse.y) * L.height, mouse.main, mouse.aux)
             gl.uniform1f(u.iSlowdown, L.iSlowdown)
@@ -426,16 +498,20 @@ function loop(canvas) {
         if (p2 !== null) {
             const u = p2.uniform, a = p2.attrib
             gl.useProgram(p2.program)
-            gl.uniform1f(u.iTime, performance.now())
+            gl.uniform1f(u.iTime, performance.now() / 1000)
+            gl.uniform4f(u.iMouse, mouse.x * L.width, (1 - mouse.y) * L.height, mouse.main, mouse.aux)
             gl.uniform4f(u.iResolution, L.width, L.height, 0, 0)
             s.leniaFrames.next.read(gl, 0, u.leniaGrid)
             s.leniaFrames.extra.write(gl)
+            for (let i = 0; i < s.behavior.keys.length; ++i) {
+                const k = s.behavior.keys[i]
+                s.behavior[k].read(gl, a[k])
+            }
             s.posSpeed.prev.read(gl, a.posSpeed)
             s.posSpeed.next.write(gl, 0)
-            s.extraState.prev.read(gl, a.extraState)
             s.extraState.next.write(gl, 1)
             gl.enable(gl.BLEND), gl.blendFunc(gl.ONE, gl.ONE)
-            s.emitRadius.draw(gl, a.emitRadius, gl.POINTS, true)
+            s.extraState.prev.draw(gl, a.extraState, gl.POINTS, true)
             gl.disable(gl.BLEND), gl.blendFunc(gl.ONE, gl.ZERO)
             s.extraState.next.resetWrite(gl, 1)
             s.posSpeed.next.resetWrite(gl, 0)
