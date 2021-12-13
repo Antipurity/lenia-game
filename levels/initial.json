@@ -28,7 +28,7 @@
 
     "actors": [
       {"pos":[0.5, 0.75], "radius": 50, "emit":"blue", "emittance":0.3},
-      {"pos":[0.5, 0.5], "radius": 50, "emit":"red", "emittance":0.3, "acceleration":{"Bmouse":0.01}},
+      {"pos":[0.5, 0.5], "radius": 5, "emit":"red", "emittance":1, "acceleration":{"Bmouse":0.001, "Bdb":-0.01}},
       {"pos":[0.5, 0.25, 0, 0], "radius": 50, "emit":"green", "emittance":{"Br":50}}
     ]
 }

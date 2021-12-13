@@ -153,18 +153,23 @@ varying vec4 emit;
 const int R = ${R};
 const float TAU = 2. * 3.14159265359;
 
+vec2 closestWrapOffset(vec2 a, vec2 b) { // An approximation of it, anyway.
+    return vec2(a.x < .25 && b.x > .75 ? 1. : b.x < .25 && a.x > .75 ? -1. : 0., a.y < .25 && b.y > .75 ? 1. : b.y < .25 && a.y > .75 ? -1. : 0.);
+}
+
 void main() {
     // Read near-to-actor colors and color-edges from Lenia state, to give them as inputs to behavior, 0..1.
+    vec2 at = posSpeed.xy;
     vec3 near = vec3(0., 0., 0.);
     vec3 nearDX = vec3(0., 0., 0.);
     vec3 nearDY = vec3(0., 0., 0.);
     for (int y=-R; y<=R; ++y)
     for (int x=-R; x<=R; ++x) {
-        vec2 txy = mod(posSpeed.xy + vec2(x,y) / iResolution.xy, 1.);
+        vec2 txy = mod(at + vec2(x,y) / iResolution.xy, 1.);
         vec3 color = texture2D(leniaGrid, txy).rgb;
         near += color;
-        nearDX += sign(float(x)) * color;
-        nearDY += sign(float(y)) * color;
+        if (x != 0) nearDX += sign(float(x)) * color / abs(float(x));
+        if (y != 0) nearDY += sign(float(y)) * color / abs(float(y));
     }
     near /= float(${(2*R+1) * (2*R+1)});
     nearDX /= float(${R * (2*R+1)});
@@ -173,19 +178,20 @@ void main() {
     // TODO: How to provide the actual target x/y? Another attribute? (At least we still have space for 2.)
     vec2 targetPos = vec2(.5, .5);
 
-    vec2 mouseVec = iMouse.xy / iResolution.xy - posSpeed.xy;
-    vec2 targetVec = targetPos - posSpeed.xy;
+    vec2 mouseVec = iMouse.xy / iResolution.xy;
+    vec2 targetVec = targetPos;
+    mouseVec -= at + closestWrapOffset(at, mouseVec);
+    targetVec -= at + closestWrapOffset(at, targetVec);
     float health = extraState.x;
 
     // Update position & state.
     vec2 dPos = posSpeed.zw + B1.x + mouseVec*Bmouse.x + targetVec*Btarget.x + health*Bhealth.x + near.r*Br.x + vec2(nearDX.r, nearDY.r)*Bdr.x + near.g*Bg.x + vec2(nearDX.g, nearDY.g)*Bdg.x + near.b*Bb.x + vec2(nearDX.b, nearDY.b)*Bdb.x + sin(BtimePeriod.x * iTime*TAU) * Btime.x;
-    vec2 nextPos = mod(posSpeed.xy + dPos, 1.);
+    vec2 nextPos = mod(at + dPos, 1.);
     outPosSpeed = vec4(nextPos, dPos);
 
     float dhealth = B1.z + length(mouseVec)*Bmouse.z + length(targetVec)*Btarget.z + health*Bhealth.z + near.r*Br.z + length(vec2(nearDX.r, nearDY.r))*Bdr.z + near.g*Bg.z + length(vec2(nearDX.g, nearDY.g))*Bdg.z + near.b*Bb.z + length(vec2(nearDX.b, nearDY.b))*Bdb.z + sin(BtimePeriod.z * iTime*TAU) * Btime.z;
     float dscore  = B1.w + length(mouseVec)*Bmouse.w + length(targetVec)*Btarget.w + health*Bhealth.w + near.r*Br.w + length(vec2(nearDX.r, nearDY.r))*Bdr.w + near.g*Bg.w + length(vec2(nearDX.g, nearDY.g))*Bdg.w + near.b*Bb.w + length(vec2(nearDX.b, nearDY.b))*Bdb.w + sin(BtimePeriod.w * iTime*TAU) * Btime.w;
     outExtraState = vec4(extraState.x + dhealth, extraState.y + dscore, extraState.zw);
-    // TODO: Try to make an actor that tracks the mouse. ...We can only make it orbit, due to acceleration. ...Also, it highlights a good point: should pick the closest of the 4 reflected points, or we'll have an infinitely-accelerating ball.
 
     float emitRadius = extraState.z;
     vec3 color = extraState.w<.5 ? vec3(1.,0.,0.) : extraState.w<1.5 ? vec3(0.,1.,0.) : vec3(0.,0.,1.);
