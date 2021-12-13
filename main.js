@@ -111,9 +111,10 @@ uniform vec4 iMouse;
 uniform vec4 iResolution;
 uniform sampler2D leniaGrid;
 
-// 15 attributes.
+// 16 attributes.
 attribute vec4 posSpeed; // x/y/dx/dy
 attribute vec4 extraState; // health/dscore/emitRadius/emitColor (emitColor is 0/1/2 for r/g/b)
+attribute vec4 gravity; // gravityX/gravityY/_/_
 // Behavior matrix; each attribute is the input's contribution to each output, which is speed/emittance/dhealth/dscore.
 //   For positions/velocities/color-differentials, x and y use the same weights for compactness.
 attribute vec4 B1;
@@ -147,6 +148,7 @@ void main() {
     vec3 near = vec3(0., 0., 0.);
     vec3 nearDX = vec3(0., 0., 0.);
     vec3 nearDY = vec3(0., 0., 0.);
+    float maxDiff = 0.;
     for (int y=-R; y<=R; ++y)
     for (int x=-R; x<=R; ++x) {
         vec2 txy = mod(at + vec2(x,y) / iResolution.xy, 1.);
@@ -154,12 +156,13 @@ void main() {
         near += color;
         if (x != 0) nearDX += sign(float(x)) * color / abs(float(x));
         if (y != 0) nearDY += sign(float(y)) * color / abs(float(y));
+        if (x > 0) maxDiff += 1. / abs(float(x));
     }
     near /= float(${(2*R+1) * (2*R+1)});
-    nearDX /= float(${R * (2*R+1)});
-    nearDY /= float(${R * (2*R+1)});
+    nearDX /= maxDiff;
+    nearDY /= maxDiff;
 
-    // TODO: How to provide the actual target x/y? Another attribute? (At least we still have space for 1.)
+    // TODO: How to provide the actual target x/y? Another attribute? (At least we still have space for 2 floats, in 'gravity'.)
     vec2 targetPos = vec2(.5, .5);
 
     vec2 mouseVec = iMouse.xy / iResolution.xy;
@@ -170,7 +173,7 @@ void main() {
     vec2 speed = posSpeed.zw;
 
     // Update position & state.
-    vec2 dPos = B1.x + speed*Bspeed.x + mouseVec*Bmouse.x + targetVec*Btarget.x + health*Bhealth.x + near.r*Br.x + vec2(nearDX.r, nearDY.r)*Bdr.x + near.g*Bg.x + vec2(nearDX.g, nearDY.g)*Bdg.x + near.b*Bb.x + vec2(nearDX.b, nearDY.b)*Bdb.x + sin(BtimeFrequency.x * iTime*TAU) * Btime.x;
+    vec2 dPos = gravity.xy + B1.x + speed*Bspeed.x + mouseVec*Bmouse.x + targetVec*Btarget.x + health*Bhealth.x + near.r*Br.x + vec2(nearDX.r, nearDY.r)*Bdr.x + near.g*Bg.x + vec2(nearDX.g, nearDY.g)*Bdg.x + near.b*Bb.x + vec2(nearDX.b, nearDY.b)*Bdb.x + sin(BtimeFrequency.x * iTime*TAU) * Btime.x;
     vec2 nextPos = mod(at + dPos, 1.);
     outPosSpeed = vec4(nextPos, dPos);
 
@@ -211,17 +214,18 @@ void main() {
 
 // TODO: An actor system.
 //   TODO: In the level, the object `actors`, where each actor is named (an array technically gives its items names too, so it's fine):
-//     TODO: `like: actorName`, for data/code re-use.
-//     TODO: displayHealth, true/false.
 //     TODO: ...How do we do target-selecting JS (given all of an actor's state), exactly?... Each frame, call up to 1000 targeters, and update in-buffer if updated?
-//     TODO: Document actors.
 //   TODO: Each frame, download x/y/dx/dy and health and dscore from GPU. Add dscore to score, and *maybe* execute "onDied" JS if health<=0 now.
 //   TODO: Each frame, download some from GPU, and position actor's DOM to match the coordinates.
 // TODO: An actor-health system, communicating GPU->CPU to know which ones to kill (and update GPU data when that happens --- ...or just ignore it GPU-side), and display it in DOM.
+//   TODO: In actors, `displayHealth:bool`. ...Or should all player things automatically start with this...
+//     (And maybe, with the direct-link library, could even expose all player-actor state as sound. This might be the coolest application I can think of: monitoring a swarm.)
 // TODO: An actor-target system, making JS decide the index of the target.
 // TODO: ...Do we want DOM-side labels on agents?... (Usable for text boxes, even: STORY. And for the main menu's label.)
+//   I guess we have to.
 
-// TODO: On level load, also add the player's actor/s at the center. (This way, we could allow unlocking 'bodies'.)
+// TODO: On level load, also add the player's actor/s. (This way, we could allow unlocking 'bodies'.)
+//   TODO: Have the level prop `.playerStartsAt:[x,y]`, and add it to coords.
 
 // TODO: When score exceeds `level.winScore`, switch to winning state (...what, is the level's JS responsible for it, or what?), then after a time, unlock all levels in `level.winUnlocks` (notifying how many are new) and go to main menu.
 // TODO: Display in-level time and score (out of `level.winScore`), and healthbars for each of "your" agents.
@@ -333,6 +337,7 @@ function loop(canvas) {
         posBuffer: null, // For vertices of the full-screen quad.
         posSpeed: null, // Actor x/y/dx/dy.
         extraState: null, // Actor health/dscore/emitRadius/dummy.
+        gravity: null, // Actor gravityX/gravityY/_/_.
         behavior: null, // An object containing per-actor behavior matrices.
         // Textures.
         leniaFrames: null, // {prev, next}
@@ -371,6 +376,7 @@ function loop(canvas) {
         ], attribs:[
             'posSpeed',
             'extraState',
+            'gravity',
             'B1',
             'Bspeed',
             'Bmouse',
@@ -429,14 +435,15 @@ function loop(canvas) {
         const actors = L.actors, actorsLen = actors ? Object.values(actors).length : 0
         const pos = b() // x/y/dx/dy
         const extra = b() // health/dscore/emitRadius/dummy
+        const gravity = b()
         const B = { B1:b(), Bspeed:b(), Bmouse:b(), Btarget:b(), Bhealth:b(), Br:b(), Bdr:b(), Bg:b(), Bdg:b(), Bb:b(), Bdb:b(), Btime:b(), BtimeFrequency:b() }
         B.keys = Object.keys(B)
         const Boutputs = ['speed', 'emittance', 'dhealth', 'dscore'], empty = Object.create(null)
         let i = 0
         for (let aK of Object.keys(actors)) {
             const a = actors[aK], a2 = a.like != null && actors[a.like] || empty
-            for (let c=0; c<4; ++c)
-                pos[i*4+c] = a.pos && a.pos[c] || a2.pos && a2.pos[c] || 0
+            for (let c=0; c<4; ++c) pos[i*4+c] = a.pos && a.pos[c] || a2.pos && a2.pos[c] || 0
+            for (let c=0; c<2; ++c) gravity[i*4+c] = a.gravity && a.gravity[c] || a2.gravity && a2.gravity[c] || 0
             extra[i*4+0] = a.health || a2.health || 1
             extra[i*4+2] = a.radius || a2.radius || 10
             const color = a.emit || a2.emit
@@ -452,6 +459,7 @@ function loop(canvas) {
         }
         s.posSpeed = twice(() => initBuffer(gl, pos, 4))
         s.extraState = twice(() => initBuffer(gl, extra, 4))
+        s.gravity = initBuffer(gl, gravity, 4)
         for (let k of B.keys) B[k] = initBuffer(gl, B[k], 4)
         s.behavior = B
         function b() { return new Float32Array(actorsLen*4) }
@@ -506,6 +514,7 @@ function loop(canvas) {
             s.posSpeed.next.write(gl, 0)
             s.extraState.next.write(gl, 1)
             gl.enable(gl.BLEND), gl.blendFunc(gl.ONE, gl.ONE)
+            s.gravity.read(gl, a.gravity)
             s.extraState.prev.draw(gl, a.extraState, gl.POINTS, true)
             gl.disable(gl.BLEND), gl.blendFunc(gl.ONE, gl.ZERO)
             s.extraState.next.resetWrite(gl, 1)
