@@ -128,12 +128,13 @@ uniform vec4 iMouse;
 uniform vec4 iResolution;
 uniform sampler2D leniaGrid;
 
-// 14 attributes.
+// 15 attributes.
 attribute vec4 posSpeed; // x/y/dx/dy
 attribute vec4 extraState; // health/dscore/emitRadius/emitColor (emitColor is 0/1/2 for r/g/b)
-// Behavior matrix; each attribute is the input's contribution to each output, which is acceleration/emittance/dhealth/dscore. // TODO: ...Maybe, don't just compute acceleration, but compute dx and allow Bdpos as input... Would allow us to simulate drag too.
+// Behavior matrix; each attribute is the input's contribution to each output, which is speed/emittance/dhealth/dscore.
 //   For positions/velocities/color-differentials, x and y use the same weights for compactness.
 attribute vec4 B1;
+attribute vec4 Bspeed;
 attribute vec4 Bmouse;
 attribute vec4 Btarget;
 attribute vec4 Bhealth;
@@ -144,7 +145,7 @@ attribute vec4 Bdg;
 attribute vec4 Bb;
 attribute vec4 Bdb;
 attribute vec4 Btime;
-attribute vec4 BtimePeriod; // In seconds.
+attribute vec4 BtimeFrequency; // In 1/seconds.
 
 varying vec4 outPosSpeed; // x/y/dx/dy
 varying vec4 outExtraState; // health/dscore/emitRadius/emitColor
@@ -183,19 +184,20 @@ void main() {
     mouseVec -= at + closestWrapOffset(at, mouseVec);
     targetVec -= at + closestWrapOffset(at, targetVec);
     float health = extraState.x;
+    vec2 speed = posSpeed.zw;
 
     // Update position & state.
-    vec2 dPos = posSpeed.zw + B1.x + mouseVec*Bmouse.x + targetVec*Btarget.x + health*Bhealth.x + near.r*Br.x + vec2(nearDX.r, nearDY.r)*Bdr.x + near.g*Bg.x + vec2(nearDX.g, nearDY.g)*Bdg.x + near.b*Bb.x + vec2(nearDX.b, nearDY.b)*Bdb.x + sin(BtimePeriod.x * iTime*TAU) * Btime.x;
+    vec2 dPos = B1.x + speed*Bspeed.x + mouseVec*Bmouse.x + targetVec*Btarget.x + health*Bhealth.x + near.r*Br.x + vec2(nearDX.r, nearDY.r)*Bdr.x + near.g*Bg.x + vec2(nearDX.g, nearDY.g)*Bdg.x + near.b*Bb.x + vec2(nearDX.b, nearDY.b)*Bdb.x + sin(BtimeFrequency.x * iTime*TAU) * Btime.x;
     vec2 nextPos = mod(at + dPos, 1.);
     outPosSpeed = vec4(nextPos, dPos);
 
-    float dhealth = B1.z + length(mouseVec)*Bmouse.z + length(targetVec)*Btarget.z + health*Bhealth.z + near.r*Br.z + length(vec2(nearDX.r, nearDY.r))*Bdr.z + near.g*Bg.z + length(vec2(nearDX.g, nearDY.g))*Bdg.z + near.b*Bb.z + length(vec2(nearDX.b, nearDY.b))*Bdb.z + sin(BtimePeriod.z * iTime*TAU) * Btime.z;
-    float dscore  = B1.w + length(mouseVec)*Bmouse.w + length(targetVec)*Btarget.w + health*Bhealth.w + near.r*Br.w + length(vec2(nearDX.r, nearDY.r))*Bdr.w + near.g*Bg.w + length(vec2(nearDX.g, nearDY.g))*Bdg.w + near.b*Bb.w + length(vec2(nearDX.b, nearDY.b))*Bdb.w + sin(BtimePeriod.w * iTime*TAU) * Btime.w;
+    float dhealth = B1.z + length(speed)*Bspeed.z + length(mouseVec)*Bmouse.z + length(targetVec)*Btarget.z + health*Bhealth.z + near.r*Br.z + length(vec2(nearDX.r, nearDY.r))*Bdr.z + near.g*Bg.z + length(vec2(nearDX.g, nearDY.g))*Bdg.z + near.b*Bb.z + length(vec2(nearDX.b, nearDY.b))*Bdb.z + sin(BtimeFrequency.z * iTime*TAU) * Btime.z;
+    float dscore  = B1.w + length(speed)*Bspeed.w + length(mouseVec)*Bmouse.w + length(targetVec)*Btarget.w + health*Bhealth.w + near.r*Br.w + length(vec2(nearDX.r, nearDY.r))*Bdr.w + near.g*Bg.w + length(vec2(nearDX.g, nearDY.g))*Bdg.w + near.b*Bb.w + length(vec2(nearDX.b, nearDY.b))*Bdb.w + sin(BtimeFrequency.w * iTime*TAU) * Btime.w;
     outExtraState = vec4(extraState.x + dhealth, extraState.y + dscore, extraState.zw);
 
     float emitRadius = extraState.z;
     vec3 color = extraState.w<.5 ? vec3(1.,0.,0.) : extraState.w<1.5 ? vec3(0.,1.,0.) : vec3(0.,0.,1.);
-    float emittance = B1.y + length(mouseVec)*Bmouse.y + length(targetVec)*Btarget.y + health*Bhealth.y + near.r*Br.y + length(vec2(nearDX.r, nearDY.r))*Bdr.y + near.g*Bg.y + length(vec2(nearDX.g, nearDY.g))*Bdg.y + near.b*Bb.y + length(vec2(nearDX.b, nearDY.b))*Bdb.y + sin(BtimePeriod.y * iTime*TAU) * Btime.y;
+    float emittance = B1.y + length(speed)*Bspeed.y + length(mouseVec)*Bmouse.y + length(targetVec)*Btarget.y + health*Bhealth.y + near.r*Br.y + length(vec2(nearDX.r, nearDY.r))*Bdr.y + near.g*Bg.y + length(vec2(nearDX.g, nearDY.g))*Bdg.y + near.b*Bb.y + length(vec2(nearDX.b, nearDY.b))*Bdb.y + sin(BtimeFrequency.y * iTime*TAU) * Btime.y;
     emit = vec4(emittance * color, emitRadius);
 
     gl_Position = vec4(outPosSpeed.xy * 2. - 1., 0., 1.);
@@ -386,6 +388,7 @@ function loop(canvas) {
             'posSpeed',
             'extraState',
             'B1',
+            'Bspeed',
             'Bmouse',
             'Btarget',
             'Bhealth',
@@ -396,7 +399,7 @@ function loop(canvas) {
             'Bb',
             'Bdb',
             'Btime',
-            'BtimePeriod',
+            'BtimeFrequency',
         ], transformFeedback:[
             'outPosSpeed',
             'outExtraState',
@@ -442,9 +445,9 @@ function loop(canvas) {
         const actors = L.actors, actorsLen = actors ? Object.values(actors).length : 0
         const pos = b() // x/y/dx/dy
         const extra = b() // health/dscore/emitRadius/dummy
-        const B = { B1:b(), Bmouse:b(), Btarget:b(), Bhealth:b(), Br:b(), Bdr:b(), Bg:b(), Bdg:b(), Bb:b(), Bdb:b(), Btime:b(), BtimePeriod:b() }
+        const B = { B1:b(), Bspeed:b(), Bmouse:b(), Btarget:b(), Bhealth:b(), Br:b(), Bdr:b(), Bg:b(), Bdg:b(), Bb:b(), Bdb:b(), Btime:b(), BtimeFrequency:b() }
         B.keys = Object.keys(B)
-        const Boutputs = ['acceleration', 'emittance', 'dhealth', 'dscore']
+        const Boutputs = ['speed', 'emittance', 'dhealth', 'dscore']
         let i = 0
         for (let aK of Object.keys(actors)) {
             const a = actors[aK]
