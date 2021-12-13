@@ -76,23 +76,6 @@ void main() {
     vec2 coord = gl_FragCoord.xy; // 0…1
     vec3 rgb = lenia(leniaGrid, iMixing, coord);
 
-    // TODO: Move this mouse-ness action to actors.
-    // TODO: ...Is it possible to make actors be able to shoot other actors... Teleport a hidden actor to a position, maybe?
-    if (iMouse.z > 0.) {
-        float d = length((coord.xy - iMouse.xy) / iResolution.xy);
-        float maxD = 50., perc = 1. - d / maxD*iResolution.x;
-        if (d <= maxD/iResolution.x) {
-            rgb.rgb += vec3(.0, .2, .0) * perc;
-        }
-    }
-    if (iMouse.w > 0.) {
-        float d = length((coord - iMouse.xy) / iResolution.xy);
-        float maxD = 50., perc = 1. - d / maxD*iResolution.x;
-        if (d <= maxD/iResolution.x) {
-            rgb.rgb += vec3(.0, .0, .2) * perc;
-        }
-    }
-
     gl_FragColor = vec4(rgb, 1.);
 }`
 

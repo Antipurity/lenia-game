@@ -28,31 +28,6 @@
 
     "actors": [
       {"pos":[0.5, 0.75], "radius": 50, "emit":"blue", "emittance":0.3},
-      {"pos":[0.3, 0.3], "radius": 5, "emit":"red", "emittance":{"BtimeFrequency":2, "Btime":1}, "speed":{"Bmouse":0.001, "Bdb":-0.1, "Bdr":-0.01, "Bspeed":0.9}},
-      {"pos":[0.3, 0.4], "radius": 5, "emit":"red", "emittance":{"BtimeFrequency":2, "Btime":1}, "speed":{"Bmouse":0.001, "Bdb":-0.1, "Bdr":-0.01, "Bspeed":0.9}},
-      {"pos":[0.3, 0.5], "radius": 5, "emit":"red", "emittance":{"BtimeFrequency":2, "Btime":1}, "speed":{"Bmouse":0.001, "Bdb":-0.1, "Bdr":-0.01, "Bspeed":0.9}},
-      {"pos":[0.3, 0.6], "radius": 5, "emit":"red", "emittance":{"BtimeFrequency":2, "Btime":1}, "speed":{"Bmouse":0.001, "Bdb":-0.1, "Bdr":-0.01, "Bspeed":0.9}},
-      {"pos":[0.3, 0.7], "radius": 5, "emit":"red", "emittance":{"BtimeFrequency":2, "Btime":1}, "speed":{"Bmouse":0.001, "Bdb":-0.1, "Bdr":-0.01, "Bspeed":0.9}},
-      {"pos":[0.4, 0.3], "radius": 5, "emit":"red", "emittance":{"BtimeFrequency":2, "Btime":1}, "speed":{"Bmouse":0.001, "Bdb":-0.1, "Bdr":-0.01, "Bspeed":0.9}},
-      {"pos":[0.4, 0.4], "radius": 5, "emit":"red", "emittance":{"BtimeFrequency":2, "Btime":1}, "speed":{"Bmouse":0.001, "Bdb":-0.1, "Bdr":-0.01, "Bspeed":0.9}},
-      {"pos":[0.4, 0.5], "radius": 5, "emit":"red", "emittance":{"BtimeFrequency":2, "Btime":1}, "speed":{"Bmouse":0.001, "Bdb":-0.1, "Bdr":-0.01, "Bspeed":0.9}},
-      {"pos":[0.4, 0.6], "radius": 5, "emit":"red", "emittance":{"BtimeFrequency":2, "Btime":1}, "speed":{"Bmouse":0.001, "Bdb":-0.1, "Bdr":-0.01, "Bspeed":0.9}},
-      {"pos":[0.4, 0.7], "radius": 5, "emit":"red", "emittance":{"BtimeFrequency":2, "Btime":1}, "speed":{"Bmouse":0.001, "Bdb":-0.1, "Bdr":-0.01, "Bspeed":0.9}},
-      {"pos":[0.5, 0.3], "radius": 5, "emit":"red", "emittance":{"BtimeFrequency":2, "Btime":1}, "speed":{"Bmouse":0.001, "Bdb":-0.1, "Bdr":-0.01, "Bspeed":0.9}},
-      {"pos":[0.5, 0.4], "radius": 5, "emit":"red", "emittance":{"BtimeFrequency":2, "Btime":1}, "speed":{"Bmouse":0.001, "Bdb":-0.1, "Bdr":-0.01, "Bspeed":0.9}},
-      {"pos":[0.5, 0.5], "radius": 5, "emit":"red", "emittance":{"BtimeFrequency":2, "Btime":1}, "speed":{"Bmouse":0.001, "Bdb":-0.1, "Bdr":-0.01, "Bspeed":0.9}},
-      {"pos":[0.5, 0.6], "radius": 5, "emit":"red", "emittance":{"BtimeFrequency":2, "Btime":1}, "speed":{"Bmouse":0.001, "Bdb":-0.1, "Bdr":-0.01, "Bspeed":0.9}},
-      {"pos":[0.5, 0.7], "radius": 5, "emit":"red", "emittance":{"BtimeFrequency":2, "Btime":1}, "speed":{"Bmouse":0.001, "Bdb":-0.1, "Bdr":-0.01, "Bspeed":0.9}},
-      {"pos":[0.6, 0.3], "radius": 5, "emit":"red", "emittance":1, "speed":{"Bmouse":0.001, "Bdb":-0.1, "Bdr":-0.01, "Bspeed":0.9}},
-      {"pos":[0.6, 0.4], "radius": 5, "emit":"red", "emittance":1, "speed":{"Bmouse":0.001, "Bdb":-0.1, "Bdr":-0.01, "Bspeed":0.9}},
-      {"pos":[0.6, 0.5], "radius": 5, "emit":"red", "emittance":1, "speed":{"Bmouse":0.001, "Bdb":-0.1, "Bdr":-0.01, "Bspeed":0.9}},
-      {"pos":[0.6, 0.6], "radius": 5, "emit":"red", "emittance":1, "speed":{"Bmouse":0.001, "Bdb":-0.1, "Bdr":-0.01, "Bspeed":0.9}},
-      {"pos":[0.6, 0.7], "radius": 5, "emit":"red", "emittance":1, "speed":{"Bmouse":0.001, "Bdb":-0.1, "Bdr":-0.01, "Bspeed":0.9}},
-      {"pos":[0.7, 0.3], "radius": 5, "emit":"red", "emittance":1, "speed":{"Bmouse":0.001, "Bdb":-0.1, "Bdr":-0.01, "Bspeed":0.9}},
-      {"pos":[0.7, 0.4], "radius": 5, "emit":"red", "emittance":1, "speed":{"Bmouse":0.001, "Bdb":-0.1, "Bdr":-0.01, "Bspeed":0.9}},
-      {"pos":[0.7, 0.5], "radius": 5, "emit":"red", "emittance":1, "speed":{"Bmouse":0.001, "Bdb":-0.1, "Bdr":-0.01, "Bspeed":0.9}},
-      {"pos":[0.7, 0.6], "radius": 5, "emit":"red", "emittance":1, "speed":{"Bmouse":0.001, "Bdb":-0.1, "Bdr":-0.01, "Bspeed":0.9}},
-      {"pos":[0.7, 0.7], "radius": 5, "emit":"red", "emittance":1, "speed":{"Bmouse":0.001, "Bdb":-0.1, "Bdr":-0.01, "Bspeed":0.9}},
       {"pos":[0.5, 0.25, 0, 0], "radius": 50, "emit":"green", "emittance":{"Br":50}}
     ]
 }
