@@ -6,22 +6,28 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 <body>
+<div id=time></div>
 <div id=score></div>
 <canvas id=main></canvas>
 <script src=main.js></script>
 <style>
 html, body { margin: 0;  padding: 0;  width: 100%;  height: 100%;  overflow: hidden; }
 canvas { display: block;  width: 100%;  height: 100% }
-#score {
+#time, #score {
   position: absolute;
   left: 0;  top: 0;
   width: 100%;
-  text-align: right;
   pointer-events: none;
-  font-size: 4em;
+  font-size: 3em;
   color: white;
   text-shadow: 0 0 0.3em black;
   font-family: monospace, monospace;
+}
+#time {
+  text-align: left;
+}
+#score {
+  text-align: right;
 }
 #score.lost { color: red }
 #score.win { color: #39d339 }

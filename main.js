@@ -137,7 +137,7 @@ const int R = ${R};
 const float TAU = 2. * 3.14159265359;
 
 vec2 closestWrapOffset(vec2 a, vec2 b) { // An approximation of it, anyway.
-    return vec2(a.x < .25 && b.x > .75 ? 1. : b.x < .25 && a.x > .75 ? -1. : 0., a.y < .25 && b.y > .75 ? 1. : b.y < .25 && a.y > .75 ? -1. : 0.);
+    return vec2(a.x < .1 && b.x > .9 ? 1. : b.x < .1 && a.x > .9 ? -1. : 0., a.y < .1 && b.y > .9 ? 1. : b.y < .1 && a.y > .9 ? -1. : 0.);
 }
 
 void main() {
@@ -268,17 +268,19 @@ void main() {
 
 
 
-// TODO: API for actor JS to use, including: "update this agent's GPU data, because we changed it in-level: update(actorName)", "levelSuggest(url)", "notify(DOMelem)", "window(DOMelem, atActorName)".
+// TODO: API for actor JS to use.
 // TODO: `api.write(actorName)`, which updates the agent's GPU data to what is specified in the JS object.
 // TODO: `api.read(actorName)`, which updates the JS object to what the GPU contains, synchronously. Is usually a bad idea, but `api.window` could use it to update its location, or at least initialize it.
-// TODO: `api.levelSuggest(url)`, which, like adds the URL to `localStorage`, which has 2 lists: "visited" and "novel": if not present in either list, add to `novel`.
-//   TODO: Make `api.levelSuggest(url, true)` move the URL from the `novel` list to the `visited` list.
-//   TODO: Make winning a level also do `api.levelSuggest(url, true)`.
-//   TODO: Make `api.levelLoad(url)`, if the loaded level has `.isMenu`, do `localStorage.menu = url`.
 // TODO: `api.notify(string | DOMelem, timeoutSec=10)=>Promise<void>`.
 //   TODO: An absolutely-positioned elem for notifications, in the lower-left corner.
 // TODO: `api.window(string | DOMelem, atActorName, timeoutSec=10, posMomentum=.99)=>Promise<void>`: creates an absolutely-positioned elem, with an edge at the actor's position.
 // TODO: `api.levelExit()`, which just returns to the main menu: `localStorage.menu`.
+//   TODO: Make `api.levelLoad(url)`, if the loaded level has `.isMenu`, do `localStorage.menu = url`.
+// TODO: `api.levelSuggest(url)`, which, like adds the URL to `localStorage`, which has 2 objects: "visited" and "novel": if not present in either list, add to `novel`.
+//   TODO: Make `api.levelSuggest(url, {won:number})` move the URL from the `novel` list to the `visited` object, or if it's in `visited` already, update its number to min of old and new. (`visited` is a JSON object, from URLs to their lowest completion time.)
+//     TODO: Passing `{lost:number}` should update the `novel` number to the max of old and new.
+//   TODO: Make winning a level also do `api.levelSuggest(url, {won:L.frames})`.
+//   TODO: Make losing a level also do `api.levelSuggest(url, {lost:L.score})`.
 // TODO: Document the JS API.
 
 // TODO: The main menu, with "start" (first level) and "continue" (using the save file from localStorage, with at least the unlocked levels; select the level, with a hierarchical view).
@@ -286,7 +288,7 @@ void main() {
 //     TODO: Split each URL's post-base parts along `/` to get candidate levels; remove `.json` in the last one if present; enter that path into the tree.
 //     TODO: Post-process the hierarchy: turn 2+-layered single-key-value objects into one object, with the key `key1/key2/key3`.
 //   TODO: ...How to, given a hierarchy, should fetch ALL the JSONs, forcing the cache, and display descriptions as they arrive?...
-//   TODO: ...How to compose `localStorage.visited | localStorage.novel` into actual DOM elements, with smooth collapsing, and highlighting of novel elems and their parents...
+//   TODO: ...How to compose `localStorage.visited | localStorage.novel` into actual DOM elements, with smooth collapsing, and highlighting of novel elems and their parents... And display completion times (or max scores for ) on the right, with parents adding up completion times of children...
 //     Should we take smoothness from Conceptual?
 //   TODO: And "settings", which at least prompts whether to make this level the main-menu default. (Or maybe on visit.)
 
@@ -350,7 +352,10 @@ void main() {
 //       `mu=.6, sigma=.2`: makes puffs that slowly dissipate, but if the actor stays long enough to make top and bottom connect, the whole world is taken over.
 //     `offset=kernelOffset=(0,-11)`: the barrier's building has visible sparks, and multiple layers, and looks cool.
 
+// TODO: A system for overriding level props.
+//   TODO: In settings, a checkbox for overriding `onWon`+`onLost` with `setTimeout(api.loadLevel, 1000)`, for speedruns. (They're fun.)
 // TODO: On level load, also add the player's actor/s. (This way, we could allow unlocking 'bodies'.)
+//   TODO: Have the level prop `.playerBodies:[...actors]`.
 //   TODO: Have the level prop `.playerStartsAt:[x-.5,y-.5]`, and add x&y to coords. If `null`, well, don't.
 //   TODO: Have the actor prop `.playerBody:bool`, and if any actors are for the player, then `levelLoad` should store the URL in `localStorage.bodies`.
 //     TODO: If the player's current body is set, `levelLoad` should fetch those URLs (forcing cache) and extract `.playerBody` actors, with positions relative to their `.playerStartsAt`; then add those actors relative to `.playerStartsAt`.
@@ -512,7 +517,7 @@ function loop(canvas) {
 
         // Load actors.
         const actors = L.actors
-        L.score = L.score || 0, L.winScore = typeof L.winScore == 'number' ? L.winScore : 1, L._trackedLost = 0
+        L.score = L.score || 0, L.winScore = typeof L.winScore == 'number' ? L.winScore : 1, L.frame = 0, L._trackedLost = 0
         L._actorNames = actors ? Object.keys(actors) : []
         const pos = b() // x/y/dx/dy
         const extra = b() // health/score/emitRadius/dummy
@@ -576,15 +581,23 @@ function loop(canvas) {
             }
             a.health = health
         }
+        // Update the displayed score.
         if (L.score >= L.winScore && !L._won) {
             if (typeof L.onWon == 'string') L.onWon = new Function('api,level', L.onWon)
             if (typeof L.onWon == 'function') L.onWon(api, L)
             L._won = true
         }
-        const elem = document.getElementById('score')
-        elem.textContent = !L.isMenu ? L.score.toFixed(2) + '/' + L.winScore.toFixed(0) : L.score ? L.score.toFixed(2) : ''
-        !L.isMenu && elem.classList.toggle('win', !!L._won)
-        elem.classList.toggle('lost', L._trackedLost != null && !L._trackedLost)
+        const score = document.getElementById('score')
+        score.textContent = !L.isMenu ? L.score.toFixed(2) + '/' + L.winScore.toFixed(0) : L.score ? L.score.toFixed(2) : ''
+        !L.isMenu && score.classList.toggle('win', !!L._won)
+        score.classList.toggle('lost', L._trackedLost != null && !L._trackedLost)
+        // Update the displayed time.
+        if (!L.isMenu) {
+            const time = document.getElementById('time')
+            const secs = L.frame / 60
+            time.textContent = secs.toFixed(2) + 's'
+        }
+        if (!L._won && L._trackedLost !== 0) ++L.frame
     }
     function draw() {
         requestAnimationFrame(draw)
