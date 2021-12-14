@@ -12,11 +12,19 @@ Making a new level is best done by copying a pre-existing level and changing its
 
 ---
 
-`winScore: number`: how much score (a global number) must be accumulated for the level to be considered completed.
+`score=0: number`: the current score, which is the sum of all actor scores.
+
+---
+
+`winScore=1: number`: how much score (a global number) must be accumulated for the level to be considered completed.
 
 ---
 
 `winUnlocks: number`: a list of level URLs that are unlocked.
+
+---
+
+`onLost`: when all player's actors (with `trackLost`) have been lost, the level is lost, and this is called, with `api` and `level`.
 
 ---
 
@@ -95,6 +103,14 @@ Actors. Agents. Entities. Particles. Thingies.
 ---
 
 `health=1: 0…1`: can be displayed with `displayRadius`, and reacted-to. Represents structural integrity. Once it hits `0`, it can never rise again, unless JS wills it to.
+
+---
+
+`trackLost=false`: whether the level should call `onLost` when all that have this have depleted their structural integrity.
+
+---
+
+`onLost: string`: specifies the body of a JS function, called when `health` first reaches `0`, with `api` and `level` and `actorName` as args.
 
 ---
 

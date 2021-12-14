@@ -1,4 +1,5 @@
 const R = 5 // Convolution-kernel radius. 2*R+1 is the kernel resolution.
+const initialLevel = 'levels/initial.json'
 
 
 
@@ -174,9 +175,12 @@ void main() {
     vec2 nextPos = mod(at + dPos, 1.);
     outPosSpeed = vec4(nextPos, dPos);
 
-    float dhealth = B1.z + length(speed)*Bspeed.z + length(mouseVec)*Bmouse.z + length(targetVec)*Btarget.z + health*Bhealth.z + near.r*Br.z + near.g*Bg.z + near.b*Bb.z + sin(BtimeFrequency.z * iTime*TAU) * Btime.z;
-    float dscore  = B1.w + length(speed)*Bspeed.w + length(mouseVec)*Bmouse.w + length(targetVec)*Btarget.w + health*Bhealth.w + near.r*Br.w + near.g*Bg.w + near.b*Bb.w + sin(BtimeFrequency.w * iTime*TAU) * Btime.w;
-    outExtraState = vec4(extraState.x > 0. ? clamp(extraState.x + dhealth, 0., 1.) : 0., extraState.y + dscore, extraState.zw);
+    if (extraState.x > 0.) {
+        float dhealth = B1.z + length(speed)*Bspeed.z + length(mouseVec)*Bmouse.z + length(targetVec)*Btarget.z + health*Bhealth.z + near.r*Br.z + near.g*Bg.z + near.b*Bb.z + sin(BtimeFrequency.z * iTime*TAU) * Btime.z;
+        float dscore  = B1.w + length(speed)*Bspeed.w + length(mouseVec)*Bmouse.w + length(targetVec)*Btarget.w + health*Bhealth.w + near.r*Br.w + near.g*Bg.w + near.b*Bb.w + sin(BtimeFrequency.w * iTime*TAU) * Btime.w;
+        outExtraState = vec4(clamp(extraState.x + dhealth, 0., 1.), extraState.y + dscore, extraState.zw);
+    } else
+        outExtraState = vec4(0., extraState.y, extraState.zw);
 
     float emitRadius = extraState.z;
     vec3 color = extraState.w<.5 ? vec3(1.,0.,0.) : extraState.w<1.5 ? vec3(0.,1.,0.) : vec3(0.,0.,1.);
@@ -265,8 +269,7 @@ void main() {
 
 
 // TODO: Each frame, download health and score from GPU (slightly stale data is fine).
-//   TODO: Add the change in per-actor score to total score.
-//   TODO: and execute "onDied" JS if health<=0 now.
+//   TODO: Display score in DOM, with an absolutely-positioned elem.
 // TODO: An actor-target system, which makes "toTarget(actors, actorNames)->actorName" JS decide the index of the target.
 //   TODO: Each frame, communicate x/y/dx/dy of the actor's target to actors. Use gl.drawElements, and gl.ELEMENT_ARRAY_BUFFER, to select from actor positions.
 //   TODO: If >100 actors, only execute & update a random contiguous subset each frame. (The index buffer is GPU-side, and updates are efficient.)
@@ -364,15 +367,20 @@ addEventListener('contextmenu', evt => evt.preventDefault())
 
 loop(document.getElementById('main'))
 function loop(canvas) {
+    // For actors' JS.
+    const api = {
+        _level: null, _url: null,
+        levelLoad(url = api._url) {
+            api._url = url
+            loadLevel(url).then(r => (api._level = r, glState.leniaFrames = null)).catch(e => (error(e), api.levelLoad(initialLevel)))
+        }
+    }
     // The main drawing loop.
     if (!canvas.gl)
         canvas.gl = canvas.getContext('webgl2', {alpha:false, desynchronized:true})
     const gl = canvas.gl
     if (!gl) throw new Error("Failed to get a WebGL2 context.")
     canvas.width = canvas.height = 0
-
-    let level = null
-    loadLevel('levels/initial.json').then(r => level = r).catch(error)
 
     const glState = {
         // Shader programs.
@@ -392,11 +400,12 @@ function loop(canvas) {
         leniaKernel: null,
     }
 
-    canvas.addEventListener('webglcontextlost', evt => evt.preventDefault()) // Allow restoring.
-    canvas.addEventListener('webglcontextrestored', setup)
-
+    api.levelLoad(initialLevel)
     setup()
     draw()
+
+    canvas.addEventListener('webglcontextlost', evt => evt.preventDefault()) // Allow restoring.
+    canvas.addEventListener('webglcontextrestored', setup)
     function setup() {
         const s = glState
         s.lenia = initShaders(gl, leniaSource.split('====='), { uniforms:[
@@ -459,12 +468,11 @@ function loop(canvas) {
             'displayRadius',
         ]})
         s.posBuffer = initBuffer(gl, [-1,1, 1,1, -1,-1, 1,-1], 2)
-        s.leniaFrames = null
         gl.clearColor(0,0,0,1)
     }
-    function initTextures(s, L) {
+    function handleLevelLoaded(s, L) {
         // This is separated from `setup` and called in `draw` after init, because it depends on the level `L`.
-        s.leniaFrames = {
+        s.leniaFrames = { // This might leak memory.
             prev:initTexture(gl, L.width, L.height),
             next:initTexture(gl, L.width, L.height), // The Lenia loop modifies Lenia state.
             extra:initTexture(gl, L.width, L.height), // Actors modify Lenia state too.
@@ -487,7 +495,9 @@ function loop(canvas) {
         }
 
         // Load actors.
-        const actors = L.actors, actorsLen = actors ? Object.values(actors).length : 0
+        const actors = L.actors
+        L.score = L.score || 0, L.winScore = L.winScore === undefined ? 1 : L.winScore, L._trackedLost = 0
+        L._actorNames = actors ? Object.keys(actors) : []
         const pos = b() // x/y/dx/dy
         const extra = b() // health/score/emitRadius/dummy
         const gravity = b()
@@ -496,8 +506,9 @@ function loop(canvas) {
         B.keys = Object.keys(B)
         const Boutputs = ['speed', 'emittance', 'dhealth', 'dscore'], empty = Object.create(null)
         let i = 0
-        for (let aK of Object.keys(actors)) {
+        for (let aK of L._actorNames) {
             const a = actors[aK], a2 = a.like != null && actors[a.like] || empty
+            if (a.trackLost) ++L._trackedLost
             for (let c=0; c<4; ++c) pos[i*4+c] = a.pos && a.pos[c] || a2.pos && a2.pos[c] || 0
             for (let c=0; c<2; ++c) gravity[i*4+c] = a.gravity && a.gravity[c] || a2.gravity && a2.gravity[c] || 0
             for (let c=0; c<3; ++c) displayRadius[i*4+c] = a.displayRadius && a.displayRadius[c] || a2.displayRadius && a2.displayRadius[c] || 0
@@ -514,23 +525,53 @@ function loop(canvas) {
             }
             ++i
         }
+        if (!L._trackedLost) L._trackedLost = null
         s.posSpeed = twice(() => initBuffer(gl, pos, 4))
         s.extraState = twice(() => initBuffer(gl, extra, 4))
         s.gravity = initBuffer(gl, gravity, 4)
         s.displayRadius = initBuffer(gl, displayRadius, 4)
         for (let k of B.keys) B[k] = initBuffer(gl, B[k], 4)
         s.behavior = B
-        function b() { return new Float32Array(actorsLen*4) }
+        function b() { return new Float32Array(L._actorNames.length*4) }
         function twice(f) { return { prev:f(), next:f() } }
+    }
+    function handleExtraData(L, len = 4, start = Math.random() * (L._actorNames.length - len + 1) | 0) { // Health & score.
+        // This sync GPU->CPU transfer may slow the game down.
+        if (len > L._actorNames.length) len = L._actorNames.length, start = 0
+        const s = glState
+        const data = new Float32Array(len * 4)
+        gl.bindBuffer(gl.ARRAY_BUFFER, s.extraState.prev.buf)
+        gl.getBufferSubData(gl.ARRAY_BUFFER, start*4*4, data, 0, len*4)
+        for (let i = 0; i < len; ++i) {
+            const name = L._actorNames[start+i], a = L.actors[name]
+            L.score -= (a.score || 0) - (a.score = data[i*4+1])
+
+            const health = data[i*4+0]
+            if (a.health > 0 && health <= 0) {
+                if (typeof a.onLost == 'string') a.onLost = new Function('api,level,actorName', a.onLost)
+                if (typeof a.onLost == 'function') a.onLost(api, L, name)
+                const wasOk = !!L._trackedLost
+                if (a.trackLost && L._trackedLost) --L._trackedLost
+                if (wasOk && !L._trackedLost && L.score < L.winScore) {
+                    if (typeof L.onLost == 'string') L.onLost = new Function('api,level,actorName', L.onLost)
+                    if (typeof L.onLost == 'function') L.onLost(api, L)
+                }
+            }
+            a.health = health
+        }
+        const elem = document.getElementById('score')
+        elem.textContent = !L.isMenu ? L.score.toFixed(2) + '/' + L.winScore.toFixed(0) : L.score ? L.score.toFixed(2) : ''
+        !L.isMenu && elem.classList.toggle('win', L.score >= L.winScore)
+        elem.classList.toggle('lost', L._trackedLost != null && !L._trackedLost)
     }
     function draw() {
         requestAnimationFrame(draw)
         maybeResize(canvas, canvas)
         gl.clear(gl.COLOR_BUFFER_BIT)
-        if (!level) return
-        const s = glState, p1 = s.lenia, p2 = s.actors, p3 = s.displayLenia, p4 = s.displayActors, rect = s.posBuffer, L = level
+        if (!api._level) return
+        const s = glState, p1 = s.lenia, p2 = s.actors, p3 = s.displayLenia, p4 = s.displayActors, rect = s.posBuffer, L = api._level
         if (!s.leniaFrames)
-            initTextures(s, L)
+            handleLevelLoaded(s, L)
         if (p1 !== null) { // Lenia.
             const u = p1.uniform, a = p1.attrib
             gl.useProgram(p1.program)
@@ -605,6 +646,8 @@ function loop(canvas) {
         gl.disable(gl.BLEND), gl.blendFunc(gl.ONE, gl.ZERO)
         swap(s.leniaFrames, 'prev', 'extra')
         gl.flush()
+
+        handleExtraData(L)
     }
     function swap(a, k1='prev', k2='next') { [a[k1], a[k2]] = [a[k2], a[k1]] }
 }

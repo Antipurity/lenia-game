@@ -1,6 +1,6 @@
 {
     "description": "Weave a red string.\n\nRed's iGrowthWidth=0.0793 is the strongest weave that doesn't weave the world when crossing itself, meaning that it can be upgraded from 0.077 in a cutscene.\n\nEnlist the help of green worms, which should destroy the blue emitter.\n\n(Kinda one-trick pony so far.)",
-    "isMenu": true,
+    "isMenu": false,
 
     "winScore": null,
     "winUnlocks": [],
