@@ -1,5 +1,5 @@
 {
-    "description": "The eye of the storm. Find it if you want to survive. ...Or, surfing, looks like. (Want my advice? Minimize reaction time to unexpected events. See those wave corners? They decide what happens. Follow the eye of the storm, but be flexible, and switch eyes as needed.) (Could benefit from the player's actor being highlighted much better. And from actual health. And being winnable. And having a story. But otherwise, looking good.)\n\nTime assaults you with billowing waves of thought.\n\nVision lost, hearing lost, touch lost… Perhaps you can find something else? Even with nothing, you are not done for. Reach out with your mind and grasp thoughts.",
+    "description": "The eye of the storm. Find it if you want to survive. ...Or, surfing, looks like. (Want my advice? Minimize reaction time to unexpected events. See those wave corners? They decide what happens, and the wave follows. Follow the eye of the storm, but be flexible, and switch eyes when they break. That's how you stay alive in this world.) (Could benefit from having a story. But otherwise, looking very good.)\n\nTime assaults you with billowing waves of thought.\n\nVision lost, hearing lost, touch lost… Perhaps you can find something else? Even with nothing, you are not done for. Reach out with your mind and grasp thoughts.",
 
     "winScore": 100,
     "winUnlocks": [],
@@ -27,7 +27,7 @@
     "iOffset": [0,0], "iKernelOffset": [0,0],
 
     "actors": [
-      {"displayRadius":[0,20,0], "pos":[0.5, 0.25], "emitRadius":4, "emit":"green", "emittance":0.5, "speed":{"Bmouse":0.02, "Br":0.01, "Bb":-0.1, "Bspeed": 0.5}, "dhealth":{"Br":0.15, "Bb":-2.0}, "dscore":{"Br":0.1, "Bg":0.001}, "trackLost":true},
+      {"displayRadius":[0,20,0], "pos":[0.5, 0.25], "emitRadius":4, "emit":"green", "emittance":0.5, "speed":{"Bmouse":0.02, "Br":0.01, "Bb":-0.1, "Bspeed": 0.5}, "dhealth":{"Br":0.15, "Bb":-2.0}, "dscore":{"Br":0.1, "Bg":0.01}, "trackLost":true},
       {"pos":[0.5, 0.75], "emitRadius":50, "emit":"green", "emittance":0.25, "gravity":[0, -0.001]}
     ]
 }
