@@ -271,9 +271,9 @@ void main() {
 // TODO: API for actor JS to use.
 // TODO: `api.notify(string | DOMelem, timeoutSec=10)=>Promise<void>`.
 //   TODO: An absolutely-positioned elem for notifications, in the lower-left corner.
+//   TODO: Make losing the level (and timeouts) clear notifications.
 // TODO: `api.window(string | DOMelem, atActorName, timeoutSec=10, posMomentum=.99)=>Promise<void>`: creates an absolutely-positioned elem, with an edge at the actor's position.
-// TODO: `api.levelExit()`, which just returns to the main menu: `localStorage.menu`.
-//   TODO: Make `api.levelLoad(url)`, if the loaded level has `.isMenu`, do `localStorage.menu = url`.
+//   TODO: Make losing the level (and timeouts) clear windows.
 // TODO: `api.levelSuggest(url)`, which, like adds the URL to `localStorage`, which has 2 objects: "visited" and "novel": if not present in either list, add to `novel`.
 //   TODO: Make `api.levelSuggest(url, {won:number})` move the URL from the `novel` list to the `visited` object, or if it's in `visited` already, update its number to min of old and new. (`visited` is a JSON object, from URLs to their lowest completion time.)
 //     TODO: Passing `{lost:number}` should update the `novel` number to the max of old and new.
@@ -387,11 +387,21 @@ addEventListener('contextmenu', evt => evt.preventDefault())
 loop(document.getElementById('main'))
 function loop(canvas) {
     // For actors' JS.
-    const api = self.api = { // TODO:
+    const api = self.api = { // TODO: Don't leak the API as a global, this is just for debugging.
         _level: null, _url: null,
         levelLoad(url = api._url) {
+            // Goes to a level. `url` must point to a JSON file of the level.
             api._url = url
-            loadLevel(url).then(r => (glState.leniaFrames = null, api._level = r, self.level=r)).catch(e => (error(e), api.levelLoad(initialLevel))) // TODO: Don't leak the level as a global, this is just for debugging.
+            loadLevel(url).then(L => {
+                glState.leniaFrames = null
+                api._level = L
+                if (L.isMenu) storeSet('menu', url)
+                self.level = L // TODO: Don't leak the level as a global, this is just for debugging.
+            }).catch(e => (error(e), api.levelLoad(initialLevel)))
+        },
+        levelExit() {
+            // Returns to the last-visited main menu.
+            storeGet('menu').then(url => api.levelLoad(url || initialLevel))
         },
         read(actorName) {
             // Syncs GPU state to our CPU actor object, namely, position+speed. After this, writing can proceed safely.
@@ -437,7 +447,7 @@ function loop(canvas) {
     }
     const Boutputs = ['speed', 'emittance', 'dhealth', 'dscore'], empty = Object.create(null)
 
-    api.levelLoad(initialLevel)
+    api.levelExit()
     setup()
     draw()
 
@@ -900,3 +910,6 @@ function leniaKernel(gl, R, mus, sigmas, offsets, data=null, totals=[0,0,0,1]) {
     return r
     function bell(x, m, s) { return Math.exp(-(x-m)*(x-m)/(s*s*2.)) }
 }
+
+function storeSet(key, value) { localStorage[key] = value }
+function storeGet(key) { return Promise.resolve(localStorage[key]) }

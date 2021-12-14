@@ -8,7 +8,7 @@ Making a new level is best done by copying a pre-existing level and changing its
 
 ---
 
-`isMenu: bool`: if `true`, level-select buttons will be displayed, and the main-menu will return to this level.
+`isMenu=false: bool`: if `true`, level-select buttons will be displayed, and the main-menu will return to this level.
 
 ---
 
