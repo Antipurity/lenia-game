@@ -274,11 +274,6 @@ void main() {
 //   TODO: Make losing the level (and timeouts) clear notifications.
 // TODO: `api.window(string | DOMelem, atActorName, timeoutSec=10, posMomentum=.99)=>Promise<void>`: creates an absolutely-positioned elem, with an edge at the actor's position.
 //   TODO: Make losing the level (and timeouts) clear windows.
-// TODO: `api.levelSuggest(url)`, which, like adds the URL to `localStorage`, which has 2 objects: "visited" and "novel": if not present in either list, add to `novel`.
-//   TODO: Make `api.levelSuggest(url, {won:number})` move the URL from the `novel` list to the `visited` object, or if it's in `visited` already, update its number to min of old and new. (`visited` is a JSON object, from URLs to their lowest completion time.)
-//     TODO: Passing `{lost:number}` should update the `novel` number to the max of old and new.
-//   TODO: Make winning a level also do `api.levelSuggest(url, {won:L.frames})`.
-//   TODO: Make losing a level also do `api.levelSuggest(url, {lost:L.score})`.
 // TODO: Document the JS API.
 
 // TODO: The main menu, with "start" (first level) and "continue" (using the save file from localStorage, with at least the unlocked levels; select the level, with a hierarchical view).
@@ -363,7 +358,7 @@ void main() {
 //   TODO: Each frame, communicate x/y/dx/dy of the actor's target to actors. Use gl.drawElements, and gl.ELEMENT_ARRAY_BUFFER, to select from actor positions.
 //   TODO: If >100 actors, only execute & update a random contiguous subset each frame. (The index buffer is GPU-side, and updates are efficient.)
 
-// TODO: Make note of browser compatibility, according to the APIs that we use: WebGL2, Object.values.
+// TODO: Make note of browser compatibility, according to the APIs that we use: WebGL2, Object.values, object destructuring.
 // TODO: With a direct-link library, expose data & surroundings & individual-mouse-position of all agents with `displayRadius` with sound. This might be the coolest application that I can think of: controlling a swarm.
 
 
@@ -393,11 +388,40 @@ function loop(canvas) {
             // Goes to a level. `url` must point to a JSON file of the level.
             api._url = url
             loadLevel(url).then(L => {
-                glState.leniaFrames = null
+                L.url = url
                 api._level = L
+                glState.leniaFrames = null
                 if (L.isMenu) storeSet('menu', url)
+                else {
+                    api.levelSuggest(url)
+                    api.levelSuggest().then(({won, lost}) => { L._won = won[url], L._lost = lost[url] })
+                }
                 self.level = L // TODO: Don't leak the level as a global, this is just for debugging.
             }).catch(e => (error(e), api.levelLoad(initialLevel)))
+        },
+        levelSuggest(url, winLose = {lost:0}) {
+            // Given `url`, remembers it, to recommend to the user later. 🌟
+            // Given `url` and `{won:L.frame, lost:L.score}`, may update the min stored time.
+            // Given `url` and `{lost:L.score}`, such as on level lose or end, may update the max stored score.
+            // Given nothing, fetches `{ won:{url:time}, lost:{url:score} }` for all URLs. Won levels are in both, non-won ones are in `lost`.
+            // Given `url` and `{}`, forgets the level's data.
+            const novel = storeGet('novel')
+            return storeGet('won').then(won => novel.then(novel => {
+                // (Can potentially cause a data race, but no one cares.)
+                won = won && JSON.parse(won) || {}
+                novel = novel && JSON.parse(novel) || {}
+                if (!url) return { won, lost:novel }
+                if (typeof winLose.won == 'number') { // Won a level. Remember min time.
+                    won[url] = won[url] !== undefined ? Math.min(won[url], winLose.won) : winLose.won, storeSet('won', JSON.stringify(won))
+                }
+                if (typeof winLose.lost == 'number') { // Lost a level. Remember max score.
+                    novel[url] = Math.max(novel[url] || 0, winLose.lost), storeSet('novel', JSON.stringify(novel))
+                }
+                if (typeof winLose.won != 'number' && typeof winLose.lost != 'number') { // Forget about Freeman.
+                    delete novel[url], storeSet('novel', JSON.stringify(novel))
+                    delete won[url], storeSet('won', JSON.stringify(won))
+                }
+            }))
         },
         levelExit() {
             // Returns to the last-visited main menu.
@@ -626,27 +650,33 @@ function loop(canvas) {
                 const wasOk = !!L._trackedLost
                 const diff = a._health<=0 && a.health>0 ? 1 : a._health>0 && a.health<=0 ? -1 : 0
                 if (a.trackLost && L._trackedLost != null) L._trackedLost += diff
-                if (wasOk && !L._trackedLost && L.score < L.winScore) {
-                    if (typeof L.onLost == 'string') L.onLost = new Function('api,level', L.onLost)
-                    if (typeof L.onLost == 'function') L.onLost(api, L)
+                if (wasOk && !L._trackedLost) { // Lost the level, possibly after winnig.
+                    if (L.score < L.winScore) { // Did not win.
+                        if (typeof L.onLost == 'string') L.onLost = new Function('api,level', L.onLost)
+                        if (typeof L.onLost == 'function') L.onLost(api, L)
+                    }
+                    if (!L.isMenu) api.levelSuggest(L.url, { lost:L.score })
                 }
             }
             a._health = a.health = health
         }
         // Update the displayed score.
-        if (L.score >= L.winScore && !L._won) {
+        if (L.score >= L.winScore && !L._didWin) { // Won the level.
             if (typeof L.onWon == 'string') L.onWon = new Function('api,level', L.onWon)
             if (typeof L.onWon == 'function') L.onWon(api, L)
-            L._won = true
+            if (!L.isMenu) api.levelSuggest(L.url, { won:L.frame, lost:L.score })
+            L._didWin = true
         }
         const score = document.getElementById('score')
         score.textContent = !L.isMenu ? L.score.toFixed(2) + '/' + L.winScore.toFixed(0) : L.score ? L.score.toFixed(2) : ''
-        !L.isMenu && score.classList.toggle('win', !!L._won)
+        if (!L.isMenu && L._lost) score.textContent += '\nbest ' + L._lost.toFixed(2)
+        !L.isMenu && score.classList.toggle('win', !!L._didWin)
         score.classList.toggle('lost', L._trackedLost != null && !L._trackedLost)
         // Update the displayed time.
         const time = document.getElementById('time')
         time.textContent = !L.isMenu ? (L.frame / 60).toFixed(2) + 's' : ''
-        if (!L._won && L._trackedLost !== 0) ++L.frame
+        if (!L.isMenu && L._won) time.textContent += '\nbest ' + (L._won / 60).toFixed(2) + 's'
+        if (!L._didWin && L._trackedLost !== 0) ++L.frame
     }
     function draw() {
         requestAnimationFrame(draw)
