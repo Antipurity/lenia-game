@@ -1,5 +1,5 @@
 const R = 5 // Convolution-kernel radius. 2*R+1 is the kernel resolution.
-const initialLevel = 'levels/initial.json'
+const initialLevel = 'levels/2.json'
 
 
 
@@ -268,24 +268,30 @@ void main() {
 
 
 
-// TODO: Each frame, download health and score from GPU (slightly stale data is fine).
-//   TODO: Display score in DOM, with an absolutely-positioned elem.
-// TODO: An actor-target system, which makes "toTarget(actors, actorNames)->actorName" JS decide the index of the target.
-//   TODO: Each frame, communicate x/y/dx/dy of the actor's target to actors. Use gl.drawElements, and gl.ELEMENT_ARRAY_BUFFER, to select from actor positions.
-//   TODO: If >100 actors, only execute & update a random contiguous subset each frame. (The index buffer is GPU-side, and updates are efficient.)
+// TODO: API for actor JS to use, including: "update this agent's GPU data, because we changed it in-level: update(actorName)", "levelSuggest(url)", "notify(DOMelem)", "window(DOMelem, atActorName)".
+// TODO: `api.write(actorName)`, which updates the agent's GPU data to what is specified in the JS object.
+// TODO: `api.read(actorName)`, which updates the JS object to what the GPU contains, synchronously. Is usually a bad idea, but `api.window` could use it to update its location, or at least initialize it.
+// TODO: `api.levelSuggest(url)`, which, like adds the URL to `localStorage`, which has 2 lists: "visited" and "novel": if not present in either list, add to `novel`.
+//   TODO: Make `api.levelSuggest(url, true)` move the URL from the `novel` list to the `visited` list.
+//   TODO: Make winning a level also do `api.levelSuggest(url, true)`.
+//   TODO: Make `api.levelLoad(url)`, if the loaded level has `.isMenu`, do `localStorage.menu = url`.
+// TODO: `api.notify(string | DOMelem, timeoutSec=10)=>Promise<void>`.
+//   TODO: An absolutely-positioned elem for notifications, in the lower-left corner.
+// TODO: `api.window(string | DOMelem, atActorName, timeoutSec=10, posMomentum=.99)=>Promise<void>`: creates an absolutely-positioned elem, with an edge at the actor's position.
+// TODO: `api.levelExit()`, which just returns to the main menu: `localStorage.menu`.
+// TODO: Document the JS API.
 
-// TODO: API for actor JS to use, including: "update this agent's GPU data, because we changed it in-level", "levelSuggest(url), levelLoad(url)", "notify(DOMelem)", "window(DOMelem, atActorName)".
-
-// TODO: On level load, also add the player's actor/s. (This way, we could allow unlocking 'bodies'.)
-//   TODO: Have the level prop `.playerStartsAt:[x-.5,y-.5]`, and add x&y to coords. If `null`, well, don't.
-
-// TODO: When score exceeds `level.winScore`, switch to winning state (...what, is the level's JS responsible for it, or what?), then after a time, unlock all levels in `level.winUnlocks` (notifying how many are new) and go to main menu.
-// TODO: Display in-level time and score (out of `level.winScore`), and healthbars for each of "your" agents.
 // TODO: The main menu, with "start" (first level) and "continue" (using the save file from localStorage, with at least the unlocked levels; select the level, with a hierarchical view).
+//   TODO: `urlsToHierarchy({ url:value })->objTree`.
+//     TODO: Split each URL's post-base parts along `/` to get candidate levels; remove `.json` in the last one if present; enter that path into the tree.
+//     TODO: Post-process the hierarchy: turn 2+-layered single-key-value objects into one object, with the key `key1/key2/key3`.
+//   TODO: ...How to, given a hierarchy, should fetch ALL the JSONs, forcing the cache, and display descriptions as they arrive?...
+//   TODO: ...How to compose `localStorage.visited | localStorage.novel` into actual DOM elements, with smooth collapsing, and highlighting of novel elems and their parents...
+//     Should we take smoothness from Conceptual?
 //   TODO: And "settings", which at least prompts whether to make this level the main-menu default. (Or maybe on visit.)
 
 
-// TODO: ...With an actor system, and a player-health system (and/or an actor health system, to kill enemies), come up with concrete levels.
+// TODO: ...With the means to make a story and go across levels, come up with concrete levels.
 // Levels, the meat of the game, allowing dynamic discoveries of whole different worlds of complexity.
 //   Eye of the storm, 512×512 (blue must hurt, red can heal):
 //     `offset=(0,-2)`: dripping shifting platforms: red space, blue supports, green grass.
@@ -344,6 +350,16 @@ void main() {
 //       `mu=.6, sigma=.2`: makes puffs that slowly dissipate, but if the actor stays long enough to make top and bottom connect, the whole world is taken over.
 //     `offset=kernelOffset=(0,-11)`: the barrier's building has visible sparks, and multiple layers, and looks cool.
 
+// TODO: On level load, also add the player's actor/s. (This way, we could allow unlocking 'bodies'.)
+//   TODO: Have the level prop `.playerStartsAt:[x-.5,y-.5]`, and add x&y to coords. If `null`, well, don't.
+//   TODO: Have the actor prop `.playerBody:bool`, and if any actors are for the player, then `levelLoad` should store the URL in `localStorage.bodies`.
+//     TODO: If the player's current body is set, `levelLoad` should fetch those URLs (forcing cache) and extract `.playerBody` actors, with positions relative to their `.playerStartsAt`; then add those actors relative to `.playerStartsAt`.
+//     TODO: Settings should allow choosing bodies, via per-URL checkboxes.
+
+// TODO: An actor-target system, which makes "toTarget(actors, actorNames)->actorName" JS decide the index of the target.
+//   TODO: Each frame, communicate x/y/dx/dy of the actor's target to actors. Use gl.drawElements, and gl.ELEMENT_ARRAY_BUFFER, to select from actor positions.
+//   TODO: If >100 actors, only execute & update a random contiguous subset each frame. (The index buffer is GPU-side, and updates are efficient.)
+
 // TODO: Make note of browser compatibility, according to the APIs that we use: WebGL2, Object.values.
 // TODO: With a direct-link library, expose data & surroundings & individual-mouse-position of all agents with `displayRadius` with sound. This might be the coolest application that I can think of: controlling a swarm.
 
@@ -372,7 +388,7 @@ function loop(canvas) {
         _level: null, _url: null,
         levelLoad(url = api._url) {
             api._url = url
-            loadLevel(url).then(r => (api._level = r, glState.leniaFrames = null)).catch(e => (error(e), api.levelLoad(initialLevel)))
+            loadLevel(url).then(r => (glState.leniaFrames = null, api._level = r)).catch(e => (error(e), api.levelLoad(initialLevel)))
         }
     }
     // The main drawing loop.
@@ -496,7 +512,7 @@ function loop(canvas) {
 
         // Load actors.
         const actors = L.actors
-        L.score = L.score || 0, L.winScore = L.winScore === undefined ? 1 : L.winScore, L._trackedLost = 0
+        L.score = L.score || 0, L.winScore = typeof L.winScore == 'number' ? L.winScore : 1, L._trackedLost = 0
         L._actorNames = actors ? Object.keys(actors) : []
         const pos = b() // x/y/dx/dy
         const extra = b() // health/score/emitRadius/dummy
@@ -537,6 +553,7 @@ function loop(canvas) {
     }
     function handleExtraData(L, len = 4, start = Math.random() * (L._actorNames.length - len + 1) | 0) { // Health & score.
         // This sync GPU->CPU transfer may slow the game down.
+        if (typeof L.winScore != 'number') return
         if (len > L._actorNames.length) len = L._actorNames.length, start = 0
         const s = glState
         const data = new Float32Array(len * 4)
@@ -553,15 +570,20 @@ function loop(canvas) {
                 const wasOk = !!L._trackedLost
                 if (a.trackLost && L._trackedLost) --L._trackedLost
                 if (wasOk && !L._trackedLost && L.score < L.winScore) {
-                    if (typeof L.onLost == 'string') L.onLost = new Function('api,level,actorName', L.onLost)
+                    if (typeof L.onLost == 'string') L.onLost = new Function('api,level', L.onLost)
                     if (typeof L.onLost == 'function') L.onLost(api, L)
                 }
             }
             a.health = health
         }
+        if (L.score >= L.winScore && !L._won) {
+            if (typeof L.onWon == 'string') L.onWon = new Function('api,level', L.onWon)
+            if (typeof L.onWon == 'function') L.onWon(api, L)
+            L._won = true
+        }
         const elem = document.getElementById('score')
         elem.textContent = !L.isMenu ? L.score.toFixed(2) + '/' + L.winScore.toFixed(0) : L.score ? L.score.toFixed(2) : ''
-        !L.isMenu && elem.classList.toggle('win', L.score >= L.winScore)
+        !L.isMenu && elem.classList.toggle('win', !!L._won)
         elem.classList.toggle('lost', L._trackedLost != null && !L._trackedLost)
     }
     function draw() {

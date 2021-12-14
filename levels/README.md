@@ -20,7 +20,7 @@ Making a new level is best done by copying a pre-existing level and changing its
 
 ---
 
-`winUnlocks: number`: a list of level URLs that are unlocked.
+`onWon`: when `level.score > level.winScore`, this JS is called, with `api` and `level`.
 
 ---
 
