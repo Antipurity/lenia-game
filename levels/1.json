@@ -27,8 +27,8 @@
     "iOffset": [0,0], "iKernelOffset": [0,0],
 
     "actors": [
-      {"pos":[0.5, 0.5], "radius":6, "emit":"red", "emittance":1, "speed":{"Bmouse":0.01, "Bg": -0.01, "Bb":-0.03, "Bspeed":0.7}, "gravity":[0, -0.00000]},
-      {"pos":[0.5, 0.8], "radius":30, "emit":"blue", "emittance":{"B1":0.5, "Btime":0.5, "BtimeFrequency":0.5}},
-      {"pos":[0.5, 0.2], "radius":6, "emit":"green", "emittance":1, "speed":{"Bmouse":0.0001, "Br": -0.003, "Bg": -0.003, "Bb":0.008}}
+      {"displayRadius":[15,0,0], "pos":[0.5, 0.5], "emitRadius":6, "emit":"red", "emittance":1, "speed":{"Bmouse":0.01, "Bg": -0.01, "Bb":-0.03, "Bspeed":0.7}, "dhealth":{"Br":0.05, "Bg":-2, "Bb":-0.5}},
+      {"pos":[0.5, 0.8], "emitRadius":30, "emit":"blue", "emittance":{"B1":0.5, "Btime":0.5, "BtimeFrequency":0.5}},
+      {"pos":[0.5, 0.2], "emitRadius":6, "emit":"green", "emittance":1, "speed":{"Bmouse":0.0001, "Br": -0.003, "Bg": -0.003, "Bb":0.008}}
     ]
 }

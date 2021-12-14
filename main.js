@@ -81,7 +81,7 @@ void main() {
 
 
 
-const displaySource = `
+const displayLeniaSource = `
 attribute vec2 vertexPos;
 void main() { gl_Position = vec4(vertexPos, 0., 1.); }
 
@@ -113,7 +113,7 @@ uniform sampler2D leniaGrid;
 
 // 13 attributes.
 attribute vec4 posSpeed; // x/y/dx/dy
-attribute vec4 extraState; // health/dscore/emitRadius/emitColor (emitColor is 0/1/2 for r/g/b)
+attribute vec4 extraState; // health/score/emitRadius/emitColor (emitColor is 0/1/2 for r/g/b)
 attribute vec4 gravity; // gravityX/gravityY/_/_
 // Behavior matrix; each attribute is the input's contribution to each output, which is speed/emittance/dhealth/dscore.
 //   For positions/velocities/color-differentials, x and y use the same weights for compactness.
@@ -129,7 +129,7 @@ attribute vec4 Btime;
 attribute vec4 BtimeFrequency; // In 1/seconds.
 
 varying vec4 outPosSpeed; // x/y/dx/dy
-varying vec4 outExtraState; // health/dscore/emitRadius/emitColor
+varying vec4 outExtraState; // health/score/emitRadius/emitColor
 varying vec4 emit;
 
 const int R = ${R};
@@ -176,7 +176,7 @@ void main() {
 
     float dhealth = B1.z + length(speed)*Bspeed.z + length(mouseVec)*Bmouse.z + length(targetVec)*Btarget.z + health*Bhealth.z + near.r*Br.z + near.g*Bg.z + near.b*Bb.z + sin(BtimeFrequency.z * iTime*TAU) * Btime.z;
     float dscore  = B1.w + length(speed)*Bspeed.w + length(mouseVec)*Bmouse.w + length(targetVec)*Btarget.w + health*Bhealth.w + near.r*Br.w + near.g*Bg.w + near.b*Bb.w + sin(BtimeFrequency.w * iTime*TAU) * Btime.w;
-    outExtraState = vec4(extraState.x + dhealth, extraState.y + dscore, extraState.zw);
+    outExtraState = vec4(extraState.x > 0. ? clamp(extraState.x + dhealth, 0., 1.) : 0., extraState.y + dscore, extraState.zw);
 
     float emitRadius = extraState.z;
     vec3 color = extraState.w<.5 ? vec3(1.,0.,0.) : extraState.w<1.5 ? vec3(0.,1.,0.) : vec3(0.,0.,1.);
@@ -209,21 +209,72 @@ void main() {
 
 
 
-// TODO: An actor system.
-//   TODO: ...How do we do target-selecting JS (given all of an actor's state), exactly?... Each frame, call up to 1000 targeters, and update in-buffer if updated?
-//   TODO: Each frame, download x/y/dx/dy and health and dscore from GPU. Add dscore to score, and *maybe* execute "onDied" JS if health<=0 now.
-//   TODO: Each frame, download some x/y from GPU, and position actor's DOM to match the coordinates.
-// TODO: An actor-health system, communicating GPU->CPU to know which ones to kill (and update GPU data when that happens --- ...or just ignore it GPU-side), and display it in DOM.
-//   TODO: In actors, `displayHealth:bool`. ...Or should all player things automatically start with this... No, some levels may want to force a mechanic.
-//     (And maybe, with the direct-link library, could even expose all player-actor state as sound. This might be the coolest application I can think of: monitoring a swarm.)
-// TODO: An actor-target system, making JS decide the index of the target.
-// TODO: ...Do we want DOM-side labels on agents?... (Usable for text boxes, even: STORY. And for the main menu's label.)
-//   I guess we have to.
+const displayActorsSource = `
+precision highp float;
 
-// TODO: API for actors to use, including: "update this agent's GPU data", "levelSuggest(url)", "levelLoad(url)".
+uniform vec4 iDisplay;
+
+attribute vec4 posSpeed; // x/y/dx/dy
+attribute vec4 extraState; // health/score/emitRadius/emitColor
+attribute vec4 displayRadius; // R/G/B/_
+
+varying float health;
+varying vec2 center;
+varying vec4 emitColor;
+varying vec4 emitRadius;
+
+void main() {
+    emitRadius = displayRadius;
+    emitColor = vec4(0.,0.,0.,0.);
+    if (displayRadius.r > 0.) emitColor += vec4(1.,0.,0.,0.);
+    if (displayRadius.g > 0.) emitColor += vec4(0.,1.,0.,0.);
+    if (displayRadius.b > 0.) emitColor += vec4(0.,0.,1.,0.);
+
+    center = posSpeed.xy;
+    health = extraState.x;
+    gl_Position = vec4(center * 2. - 1., 0., 1.);
+    gl_PointSize = max(emitRadius.r, max(emitRadius.g, emitRadius.b)) * iDisplay.z;
+}
+
+=====
+
+precision highp float;
+
+uniform float iTime;
+uniform vec4 iDisplay;
+uniform sampler2D leniaGrid;
+uniform mat4 iColorMatrix;
+
+varying float health;
+varying vec2 center;
+varying vec4 emitColor;
+varying vec4 emitRadius;
+
+void main() {
+    vec4 distances = length(gl_FragCoord.xy - center * iDisplay.xy) / (emitRadius + 1.) * 2. / iDisplay.z;
+    float minD = min(distances.r, min(distances.g, distances.b));
+    // float dist = distances.g;//length(distances.rgb);
+    if (minD < 1.) {
+        vec4 inner = sign((.6 - distances) + abs(.6 - distances));
+        vec4 outer = sign((1. - distances) + abs(1. - distances));
+        gl_FragColor = (emitColor * (1. - distances / .6) + (1. - inner) * outer * vec4(emitColor.rgb, 1.) * health) * iColorMatrix;
+    } else discard;
+}
+`
+
+
+
+// TODO: Each frame, download health and score from GPU (slightly stale data is fine).
+//   TODO: Add the change in per-actor score to total score.
+//   TODO: and execute "onDied" JS if health<=0 now.
+// TODO: An actor-target system, which makes "toTarget(actors, actorNames)->actorName" JS decide the index of the target.
+//   TODO: Each frame, communicate x/y/dx/dy of the actor's target to actors. Use gl.drawElements, and gl.ELEMENT_ARRAY_BUFFER, to select from actor positions.
+//   TODO: If >100 actors, only execute & update a random contiguous subset each frame. (The index buffer is GPU-side, and updates are efficient.)
+
+// TODO: API for actor JS to use, including: "update this agent's GPU data, because we changed it in-level", "levelSuggest(url), levelLoad(url)", "notify(DOMelem)", "window(DOMelem, atActorName)".
 
 // TODO: On level load, also add the player's actor/s. (This way, we could allow unlocking 'bodies'.)
-//   TODO: Have the level prop `.playerStartsAt:[x,y]`, and add it to coords.
+//   TODO: Have the level prop `.playerStartsAt:[x-.5,y-.5]`, and add x&y to coords. If `null`, well, don't.
 
 // TODO: When score exceeds `level.winScore`, switch to winning state (...what, is the level's JS responsible for it, or what?), then after a time, unlock all levels in `level.winUnlocks` (notifying how many are new) and go to main menu.
 // TODO: Display in-level time and score (out of `level.winScore`), and healthbars for each of "your" agents.
@@ -291,16 +342,18 @@ void main() {
 //     `offset=kernelOffset=(0,-11)`: the barrier's building has visible sparks, and multiple layers, and looks cool.
 
 // TODO: Make note of browser compatibility, according to the APIs that we use: WebGL2, Object.values.
+// TODO: With a direct-link library, expose data & surroundings & individual-mouse-position of all agents with `displayRadius` with sound. This might be the coolest application that I can think of: controlling a swarm.
 
 
 
 const mouse = { x:.5, y:.5, main:false, aux:false, update(evt) {
-    mouse.x = (evt.clientX + (evt.movementX || 0)) / innerWidth
-    mouse.y = (evt.clientY + (evt.movementY || 0)) / innerHeight
+    mouse.x = ((evt.changedTouches ? evt.changedTouches[0] : evt).clientX + (evt.movementX || 0)) / innerWidth
+    mouse.y = ((evt.changedTouches ? evt.changedTouches[0] : evt).clientY + (evt.movementY || 0)) / innerHeight
     mouse.main = evt.buttons & 1
     mouse.aux = evt.buttons & 2
 } }
 addEventListener('pointerdown', mouse.update, {passive:true})
+addEventListener('touchmove', mouse.update, {passive:true})
 addEventListener('pointermove', mouse.update, {passive:true})
 addEventListener('pointerup', mouse.update, {passive:true})
 addEventListener('contextmenu', evt => evt.preventDefault())
@@ -323,14 +376,16 @@ function loop(canvas) {
 
     const glState = {
         // Shader programs.
-        leniaPhysics: null,
+        lenia: null,
         actors: null,
-        display: null,
+        displayLenia: null,
+        displayActors: null,
         // Buffers.
         posBuffer: null, // For vertices of the full-screen quad.
         posSpeed: null, // Actor x/y/dx/dy.
-        extraState: null, // Actor health/dscore/emitRadius/dummy.
+        extraState: null, // Actor health/score/emitRadius/dummy.
         gravity: null, // Actor gravityX/gravityY/_/_.
+        displayRadius: null, // R/G/B/_.
         behavior: null, // An object containing per-actor behavior matrices.
         // Textures.
         leniaFrames: null, // {prev, next}
@@ -344,7 +399,7 @@ function loop(canvas) {
     draw()
     function setup() {
         const s = glState
-        s.leniaPhysics = initShaders(gl, leniaSource.split('====='), { uniforms:[
+        s.lenia = initShaders(gl, leniaSource.split('====='), { uniforms:[
             // Simulation parameters.
             'iSlowdown',
             'iMixing',
@@ -384,7 +439,7 @@ function loop(canvas) {
             'outPosSpeed',
             'outExtraState',
         ] })
-        s.display = initShaders(gl, displaySource.split('====='), { uniforms:[
+        s.displayLenia = initShaders(gl, displayLeniaSource.split('====='), { uniforms:[
             'iColorMatrix',
             'iDisplay',
             'iResolution',
@@ -392,6 +447,16 @@ function loop(canvas) {
             'leniaKernel',
         ], attribs:[
             'vertexPos',
+        ]})
+        s.displayActors = initShaders(gl, displayActorsSource.split('====='), { uniforms:[
+            'iColorMatrix',
+            'iTime',
+            'iDisplay',
+            'leniaGrid',
+        ], attribs:[
+            'posSpeed',
+            'extraState',
+            'displayRadius',
         ]})
         s.posBuffer = initBuffer(gl, [-1,1, 1,1, -1,-1, 1,-1], 2)
         s.leniaFrames = null
@@ -424,8 +489,9 @@ function loop(canvas) {
         // Load actors.
         const actors = L.actors, actorsLen = actors ? Object.values(actors).length : 0
         const pos = b() // x/y/dx/dy
-        const extra = b() // health/dscore/emitRadius/dummy
+        const extra = b() // health/score/emitRadius/dummy
         const gravity = b()
+        const displayRadius = b()
         const B = { B1:b(), Bspeed:b(), Bmouse:b(), Btarget:b(), Bhealth:b(), Br:b(), Bg:b(), Bb:b(), Btime:b(), BtimeFrequency:b() }
         B.keys = Object.keys(B)
         const Boutputs = ['speed', 'emittance', 'dhealth', 'dscore'], empty = Object.create(null)
@@ -434,8 +500,9 @@ function loop(canvas) {
             const a = actors[aK], a2 = a.like != null && actors[a.like] || empty
             for (let c=0; c<4; ++c) pos[i*4+c] = a.pos && a.pos[c] || a2.pos && a2.pos[c] || 0
             for (let c=0; c<2; ++c) gravity[i*4+c] = a.gravity && a.gravity[c] || a2.gravity && a2.gravity[c] || 0
+            for (let c=0; c<3; ++c) displayRadius[i*4+c] = a.displayRadius && a.displayRadius[c] || a2.displayRadius && a2.displayRadius[c] || 0
             extra[i*4+0] = a.health || a2.health || 1
-            extra[i*4+2] = a.radius || a2.radius || 10
+            extra[i*4+2] = a.emitRadius || a2.emitRadius || 10
             const color = a.emit || a2.emit
             extra[i*4+3] = color==='blue' ? 2 : color==='green' ? 1 : 0
             for (let Bout = 0; Bout < Boutputs.length; ++Bout) {
@@ -450,6 +517,7 @@ function loop(canvas) {
         s.posSpeed = twice(() => initBuffer(gl, pos, 4))
         s.extraState = twice(() => initBuffer(gl, extra, 4))
         s.gravity = initBuffer(gl, gravity, 4)
+        s.displayRadius = initBuffer(gl, displayRadius, 4)
         for (let k of B.keys) B[k] = initBuffer(gl, B[k], 4)
         s.behavior = B
         function b() { return new Float32Array(actorsLen*4) }
@@ -460,7 +528,7 @@ function loop(canvas) {
         maybeResize(canvas, canvas)
         gl.clear(gl.COLOR_BUFFER_BIT)
         if (!level) return
-        const s = glState, p1 = s.leniaPhysics, p2 = s.actors, p3 = s.display, rect = s.posBuffer, L = level
+        const s = glState, p1 = s.lenia, p2 = s.actors, p3 = s.displayLenia, p4 = s.displayActors, rect = s.posBuffer, L = level
         if (!s.leniaFrames)
             initTextures(s, L)
         if (p1 !== null) { // Lenia.
@@ -503,16 +571,15 @@ function loop(canvas) {
             s.posSpeed.prev.read(gl, a.posSpeed)
             s.posSpeed.next.write(gl, 0)
             s.extraState.next.write(gl, 1)
-            gl.enable(gl.BLEND), gl.blendFunc(gl.ONE, gl.ONE)
             s.gravity.read(gl, a.gravity)
+            gl.enable(gl.BLEND), gl.blendFunc(gl.ONE, gl.ONE)
             s.extraState.prev.draw(gl, a.extraState, gl.POINTS, true)
-            gl.disable(gl.BLEND), gl.blendFunc(gl.ONE, gl.ZERO)
             s.extraState.next.resetWrite(gl, 1)
             s.posSpeed.next.resetWrite(gl, 0)
             s.leniaFrames.extra.resetWrite(gl)
             swap(s.posSpeed), swap(s.extraState)
         }
-        if (p3 !== null) { // Display what happened.
+        if (p3 !== null) { // Display Lenia state.
             const u = p3.uniform, a = p3.attrib
             gl.useProgram(p3.program)
             gl.uniform4f(u.iResolution, L.width, L.height, 0, 0)
@@ -522,7 +589,20 @@ function loop(canvas) {
             gl.uniformMatrix4fv(u.iColorMatrix, false, L.iColorMatrix)
             rect.draw(gl, a.vertexPos)
         }
+        if (p4 !== null) { // Display actors.
+            const u = p4.uniform, a = p4.attrib
+            gl.useProgram(p4.program)
+            gl.uniform1f(u.iTime, performance.now() / 1000)
+            gl.uniform4f(u.iDisplay, gl.drawingBufferWidth, gl.drawingBufferHeight, (self.devicePixelRatio || 1) | 0, 0)
+            s.leniaFrames.extra.read(gl, 0, u.leniaGrid)
+            s.posSpeed.prev.read(gl, a.posSpeed)
+            s.extraState.prev.read(gl, a.extraState)
+            gl.uniformMatrix4fv(u.iColorMatrix, false, L.iColorMatrix)
+            gl.enable(gl.BLEND), gl.blendFunc(gl.ONE, gl.SRC_COLOR)
+            s.displayRadius.draw(gl, a.displayRadius, gl.POINTS)
+        }
 
+        gl.disable(gl.BLEND), gl.blendFunc(gl.ONE, gl.ZERO)
         swap(s.leniaFrames, 'prev', 'extra')
         gl.flush()
     }

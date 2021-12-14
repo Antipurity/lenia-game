@@ -90,11 +90,15 @@ Actors. Agents. Entities. Particles. Thingies.
 
 ---
 
-`health=1`: has no inherent meaning, but actors can change their health and react to it.
+`displayRadius=[0,0,0]: [r,g,b]`: creates an extra visual highlight.
 
 ---
 
-`radius=10`: actors can emit Lenia colors, and this determines the radius of that emittance.
+`health=1: 0…1`: can be displayed with `displayRadius`, and reacted-to. Represents structural integrity. Once it hits `0`, it can never rise again, unless JS wills it to.
+
+---
+
+`emitRadius=10`: actors can emit Lenia colors, and this determines the radius of that emittance.
 
 ---
 
