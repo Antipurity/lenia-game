@@ -136,12 +136,9 @@ Inputs, in an output's object (or specify a number to make the output constant),
 - `Btarget`: how far away the target is, as a vec2 with 0…1 components.
 - `Bhealth`: the current health.
 - Colors:
-  - `Br`: the intensity of Lenia RED nearby, 0…1. For example, for `emittance`, this can be used for traps that wait for a color to emit their own.
-  - `Bg`: the intensity of Lenia GREEN nearby.
-  - `Bb`: the intensity of Lenia BLUE nearby.
-  - `Bdr`: the direction of Lenia RED nearby, 0…1. For example, for `speed`, `Bdr=-0.01` implements collision detection.
-  - `Bdg`: the direction of Lenia GREEN nearby.
-  - `Bdb`: the direction of Lenia BLUE nearby.
+  - `Br`: the intensity/direction of Lenia RED nearby, 0…1. Examples: for `speed`, `Bdr=-0.01` implements collision detection; for `emittance`, this can be used for traps that wait for a color to emit their own.
+  - `Bg`: the intensity/direction of Lenia GREEN nearby.
+  - `Bb`: the intensity/direction of Lenia BLUE nearby.
 - `Btime`: `sin(BtimeFrequency * time * 2*PI)`, -1…1, changing periodically.
 - `BtimeFrequency`: how often the value of `Btime` repeats itself, in 1/seconds.
 

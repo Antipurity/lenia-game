@@ -1,5 +1,5 @@
 {
-    "description": "The eye of the storm. Find it if you want to survive. (Could benefit from the player's actor being highlighted much better. And from actual health. And being winnable. And having a story. But otherwise, looking good.)",
+    "description": "The eye of the storm. Find it if you want to survive. (Could benefit from the player's actor being highlighted much better. And from actual health. And being winnable. And having a story. But otherwise, looking good.)\n\nTime assaults you with billowing waves of thought.\n\nVision lost, hearing lost, touch lost… Perhaps you can find something else? Even with nothing, you are not done for. Reach out with your mind and grasp thoughts.",
     "isMenu": true,
 
     "winScore": null,
@@ -27,7 +27,7 @@
     "iOffset": [0,0], "iKernelOffset": [0,0],
 
     "actors": [
-      {"pos":[0.5, 0.25], "radius":4, "emit":"green", "emittance":1.0, "speed":{"Bmouse":0.02, "Bdr":0.01, "Bdb":-0.1, "Bspeed": 0.5}},
+      {"pos":[0.5, 0.25], "radius":4, "emit":"green", "emittance":1.0, "speed":{"Bmouse":0.02, "Br":0.01, "Bb":-0.1, "Bspeed": 0.5}},
       {"pos":[0.5, 0.75], "radius":50, "emit":"green", "emittance":0.25, "gravity":[0, -0.001]}
     ]
 }
