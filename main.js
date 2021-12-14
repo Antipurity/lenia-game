@@ -269,8 +269,6 @@ void main() {
 
 
 // TODO: API for actor JS to use.
-// TODO: `api.write(actorName)`, which updates the agent's GPU data to what is specified in the JS object.
-// TODO: `api.read(actorName)`, which updates the JS object to what the GPU contains, synchronously. Is usually a bad idea, but `api.window` could use it to update its location, or at least initialize it.
 // TODO: `api.notify(string | DOMelem, timeoutSec=10)=>Promise<void>`.
 //   TODO: An absolutely-positioned elem for notifications, in the lower-left corner.
 // TODO: `api.window(string | DOMelem, atActorName, timeoutSec=10, posMomentum=.99)=>Promise<void>`: creates an absolutely-positioned elem, with an edge at the actor's position.
@@ -389,12 +387,29 @@ addEventListener('contextmenu', evt => evt.preventDefault())
 loop(document.getElementById('main'))
 function loop(canvas) {
     // For actors' JS.
-    const api = {
+    const api = self.api = { // TODO:
         _level: null, _url: null,
         levelLoad(url = api._url) {
             api._url = url
-            loadLevel(url).then(r => (glState.leniaFrames = null, api._level = r)).catch(e => (error(e), api.levelLoad(initialLevel)))
-        }
+            loadLevel(url).then(r => (glState.leniaFrames = null, api._level = r, self.level=r)).catch(e => (error(e), api.levelLoad(initialLevel))) // TODO: Don't leak the level as a global, this is just for debugging.
+        },
+        read(actorName) {
+            // Syncs GPU state to our CPU actor object, namely, position+speed. After this, writing can proceed safely.
+            // Kinda slow.
+            const data = new Float32Array(4), L = api._level, s = glState
+            const a = L.actors[actorName]
+            if (!a) throw new Error("Nonexistent actor "+actorName)
+            gl.bindBuffer(gl.ARRAY_BUFFER, s.posSpeed.prev.buf)
+            gl.getBufferSubData(gl.ARRAY_BUFFER, a.i*4*4, data)
+            a.pos[0] = data[0], a.pos[1] = data[1], a.pos[2] = data[2], a.pos[3] = data[3]
+        },
+        write(actorName) {
+            // After changing an actor object's props, call this to sync changes to GPU.
+            const L = api._level, a = L.actors[actorName]
+            if (!a) throw new Error("Nonexistent actor "+actorName)
+            updateActor(L, a)
+            updateActorWebGLData(L, a.i)
+        },
     }
     // The main drawing loop.
     if (!canvas.gl)
@@ -420,6 +435,7 @@ function loop(canvas) {
         leniaFrames: null, // {prev, next}
         leniaKernel: null,
     }
+    const Boutputs = ['speed', 'emittance', 'dhealth', 'dscore'], empty = Object.create(null)
 
     api.levelLoad(initialLevel)
     setup()
@@ -525,25 +541,11 @@ function loop(canvas) {
         const displayRadius = b()
         const B = { B1:b(), Bspeed:b(), Bmouse:b(), Btarget:b(), Bhealth:b(), Br:b(), Bg:b(), Bb:b(), Btime:b(), BtimeFrequency:b() }
         B.keys = Object.keys(B)
-        const Boutputs = ['speed', 'emittance', 'dhealth', 'dscore'], empty = Object.create(null)
+        L._buffers = {pos,extra,gravity,displayRadius,B}
         let i = 0
-        for (let aK of L._actorNames) {
-            const a = actors[aK], a2 = a.like != null && actors[a.like] || empty
-            if (a.trackLost) ++L._trackedLost
-            for (let c=0; c<4; ++c) pos[i*4+c] = a.pos && a.pos[c] || a2.pos && a2.pos[c] || 0
-            for (let c=0; c<2; ++c) gravity[i*4+c] = a.gravity && a.gravity[c] || a2.gravity && a2.gravity[c] || 0
-            for (let c=0; c<3; ++c) displayRadius[i*4+c] = a.displayRadius && a.displayRadius[c] || a2.displayRadius && a2.displayRadius[c] || 0
-            extra[i*4+0] = a.health || a2.health || 1
-            extra[i*4+2] = a.emitRadius || a2.emitRadius || 10
-            const color = a.emit || a2.emit
-            extra[i*4+3] = color==='blue' ? 2 : color==='green' ? 1 : 0
-            for (let Bout = 0; Bout < Boutputs.length; ++Bout) {
-                const kOut = Boutputs[Bout]
-                const props = a[kOut] || a2[kOut], props2 = a2[kOut]
-                if (props)
-                    for (let kIn of B.keys)
-                        B[kIn][i * Boutputs.length + Bout] = props[kIn] || props2 && props2[kIn] || (kIn === 'B1' && typeof props == 'number' && props) || 0
-            }
+        for (let name of L._actorNames) {
+            actors[name].i = i
+            updateActor(L, actors[name])
             ++i
         }
         if (!L._trackedLost) L._trackedLost = null
@@ -551,10 +553,48 @@ function loop(canvas) {
         s.extraState = twice(() => initBuffer(gl, extra, 4))
         s.gravity = initBuffer(gl, gravity, 4)
         s.displayRadius = initBuffer(gl, displayRadius, 4)
-        for (let k of B.keys) B[k] = initBuffer(gl, B[k], 4)
-        s.behavior = B
+        s.behavior = { keys: B.keys }
+        for (let k of B.keys) s.behavior[k] = initBuffer(gl, B[k], 4)
         function b() { return new Float32Array(L._actorNames.length*4) }
         function twice(f) { return { prev:f(), next:f() } }
+    }
+    function updateActor(L, a) {
+        if (!L._buffers) return
+        const { pos, extra, gravity, displayRadius, B } = L._buffers
+        const a2 = a.like != null && L.actors[a.like] || empty, i = a.i
+        for (let c=0; c<4; ++c) pos[i*4+c] = a.pos && a.pos[c] || a2.pos && a2.pos[c] || 0
+        for (let c=0; c<2; ++c) gravity[i*4+c] = a.gravity && a.gravity[c] || a2.gravity && a2.gravity[c] || 0
+        for (let c=0; c<3; ++c) displayRadius[i*4+c] = a.displayRadius && a.displayRadius[c] || a2.displayRadius && a2.displayRadius[c] || 0
+        extra[i*4+0] = a.health = a._health == null ? a2._health || 1 : a.health
+        extra[i*4+2] = a.emitRadius || a2.emitRadius || 10
+        const color = a.emit || a2.emit
+        extra[i*4+3] = color==='blue' ? 2 : color==='green' ? 1 : 0
+        a._health = a._health || 0
+        if (a.trackLost) {
+            const diff = a._health<=0 && a.health>0 ? 1 : a._health>0 && a.health<=0 ? -1 : 0
+            L._trackedLost += diff
+        }
+        a._health = a.health
+        for (let Bout = 0; Bout < Boutputs.length; ++Bout) {
+            const kOut = Boutputs[Bout]
+            const props = a[kOut] || a2[kOut], props2 = a2[kOut]
+            if (props)
+                for (let kIn of B.keys)
+                    B[kIn][i * Boutputs.length + Bout] = props[kIn] || props2 && props2[kIn] || (kIn === 'B1' && typeof props == 'number' && props) || 0
+        }
+    }
+    function updateActorWebGLData(L, start, end = start+1) {
+        // Intended to be called after `updateActor`, with `actor.i` as `start`.
+        const s = glState, b = L._buffers
+        const i = start*4*4, n = start*4, m = end*4
+        s.posSpeed.prev.set(gl, i, b.pos.subarray(n, m))
+        s.posSpeed.next.set(gl, i, b.pos.subarray(n, m))
+        s.extraState.prev.set(gl, i, b.extra.subarray(n, m))
+        s.extraState.next.set(gl, i, b.extra.subarray(n, m))
+        s.gravity.set(gl, i, b.gravity.subarray(n, m))
+        s.displayRadius.set(gl, i, b.displayRadius.subarray(n, m))
+        for (let k of s.behavior.keys)
+            s.behavior[k].set(gl, i, b.B[k].subarray(n, m))
     }
     function handleExtraData(L, len = 4, start = Math.random() * (L._actorNames.length - len + 1) | 0) { // Health & score.
         // This sync GPU->CPU transfer may slow the game down.
@@ -570,16 +610,18 @@ function loop(canvas) {
 
             const health = data[i*4+0]
             if (a.health > 0 && health <= 0) {
+                a.health = health
                 if (typeof a.onLost == 'string') a.onLost = new Function('api,level,actorName', a.onLost)
                 if (typeof a.onLost == 'function') a.onLost(api, L, name)
                 const wasOk = !!L._trackedLost
-                if (a.trackLost && L._trackedLost) --L._trackedLost
+                const diff = a._health<=0 && a.health>0 ? 1 : a._health>0 && a.health<=0 ? -1 : 0
+                if (a.trackLost && L._trackedLost != null) L._trackedLost += diff
                 if (wasOk && !L._trackedLost && L.score < L.winScore) {
                     if (typeof L.onLost == 'string') L.onLost = new Function('api,level', L.onLost)
                     if (typeof L.onLost == 'function') L.onLost(api, L)
                 }
             }
-            a.health = health
+            a._health = a.health = health
         }
         // Update the displayed score.
         if (L.score >= L.winScore && !L._won) {
@@ -592,11 +634,8 @@ function loop(canvas) {
         !L.isMenu && score.classList.toggle('win', !!L._won)
         score.classList.toggle('lost', L._trackedLost != null && !L._trackedLost)
         // Update the displayed time.
-        if (!L.isMenu) {
-            const time = document.getElementById('time')
-            const secs = L.frame / 60
-            time.textContent = secs.toFixed(2) + 's'
-        }
+        const time = document.getElementById('time')
+        time.textContent = !L.isMenu ? (L.frame / 60).toFixed(2) + 's' : ''
         if (!L._won && L._trackedLost !== 0) ++L.frame
     }
     function draw() {
@@ -772,6 +811,11 @@ function initBuffer(gl, f32, numbersPerValue = 1, usageHint = gl.STATIC_DRAW) {
         },
         resetWrite(gl, index) {
             gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, index, null)
+        },
+        set(gl, offset, data) {
+            // Overwrites GPU-side data.
+            gl.bindBuffer(gl.ARRAY_BUFFER, this.buf)
+            gl.bufferSubData(gl.ARRAY_BUFFER, offset, data)
         },
     }
 }

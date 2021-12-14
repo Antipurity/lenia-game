@@ -4,7 +4,7 @@
 
     "winScore": 100,
     "winUnlocks": [],
-    "onLost": "setTimeout(api.levelLoad, 1000)",
+    "onLost": "setTimeout(api.levelLoad, 3000)",
 
     "iColorMatrix": [
         1, 0, 0, 0,
