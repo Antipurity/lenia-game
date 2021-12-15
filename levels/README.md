@@ -201,11 +201,15 @@ For example, specifying `onLost: "setTimeout(() => api.levelLoad(level.url), 100
 
 ---
 
-`api.window(content, actorName = null, timeoutSec = 16, posMomentum = .9)`: creates a window, near an actor. Story.
-- Given a string or a DOM element, and the actor name, positions a window that follows the actor.
-- Given a string or a DOM element, positions a free-floating window in the bottom-left corner.
+`api.window(content, actorName = null, timeoutSec = 32, posMomentum = .9)`: creates a window, near an actor. For STORY.
+- Given a string or a DOM element or an array tree, and the actor name, positions a window that follows the actor.
+- Given a string or a DOM element or an array tree, positions a free-floating window in the bottom-left corner.
 - To not fade away after `timeoutSec`, pass `timeoutSec = null`.
 - Given nothing, clears every window instantly. (Level load does this.)
 - Returns a promise, which resolves when the timeout has passed.
+
+When the user clicks, all active windows take 2 less seconds to disappear. Click repeatedly to skip the story.
+
+`content` can be of the format shown in the example `['div', { style:'color:red', onclick() { api.levelLoad() } }, 'Click to ', ['span', { style:'color:blue' }, 'reload'], ' the level']`, for convenience.
 
 ---

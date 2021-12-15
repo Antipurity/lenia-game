@@ -350,7 +350,7 @@ void main() {
 //   TODO: Each frame, communicate x/y/dx/dy of the actor's target to actors. Use gl.drawElements, and gl.ELEMENT_ARRAY_BUFFER, to select from actor positions.
 //   TODO: If >100 actors, only execute & update a random contiguous subset each frame. (The index buffer is GPU-side, and updates are efficient.)
 
-// TODO: Make note of browser compatibility, according to the APIs that we use: WebGL2, Object.values, object destructuring, element.append(…).
+// TODO: Make note of browser compatibility, according to the APIs that we use: WebGL2, Object.values, object destructuring, element.append(…), pointer events.
 // TODO: With a direct-link library, expose data & surroundings & individual-mouse-position of all agents with `displayRadius` with sound. This might be the coolest application that I can think of: controlling a swarm.
 
 
@@ -365,17 +365,16 @@ addEventListener('pointerdown', mouse.update, {passive:true})
 addEventListener('touchmove', mouse.update, {passive:true})
 addEventListener('pointermove', mouse.update, {passive:true})
 addEventListener('pointerup', mouse.update, {passive:true})
-addEventListener('contextmenu', evt => evt.preventDefault())
 
 
 
 
 
-loop(document.getElementById('main'))
-function loop(canvas) {
+loop(document.getElementById('main'), self)
+function loop(canvas, exports) {
     // For actors' JS.
-    const api = self.api = { // TODO: Don't leak the API as a global, this is just for debugging. (No easy invincibility exploits, please.)
-        _level: null, _url: null,
+    const api = exports.api = {
+        _level: null, _url: null, _windowShorteners: new Set,
         levelLoad(url = api._url) {
             // Goes to a level. `url` must point to a JSON file of the level.
             api._url = url
@@ -389,7 +388,7 @@ function loop(canvas) {
                     api.levelSuggest(url)
                     api.levelSuggest().then(({won, lost}) => { L._won = won[url], L._lost = lost[url] })
                 }
-                self.level = L // TODO: Don't leak the level as a global, this is just for debugging.
+                exports.level = L
             }).catch(e => (error(e), api.levelLoad(initialLevel)))
         },
         levelSuggest(url, winLose = {lost:0}) {
@@ -438,8 +437,8 @@ function loop(canvas) {
             updateActorWebGLData(L, a.i)
         },
         window(content, actorName = null, timeoutSec = 16, posMomentum = .9) {
-            // Given a string or a DOM element, and the actor name, positions a window that follows the actor.
-            // Given a string or a DOM element, positions a free-floating window in the bottom-left corner.
+            // Given a string or a DOM element or an array tree, and the actor name, positions a window that follows the actor.
+            // Given a string or a DOM element or an array tree, positions a free-floating window in the bottom-left corner.
             // To not fade away after `timeoutSec`, pass `timeoutSec = null`.
             // Given nothing, clears every window instantly. (Level load does this.)
             // Returns a promise, which resolves when the timeout has passed.
@@ -452,6 +451,22 @@ function loop(canvas) {
                 return
             }
             if (typeof content == 'string') { const el = document.createElement('div');  el.append(content);  content = el }
+            if (Array.isArray(content)) { // Ex: ['div', { style:'color:red', onclick() { api.levelLoad() } }, 'Click to reload the level']
+                content = (function arrayTreeToDOM(x) {
+                    if (Array.isArray(x)) {
+                        const el = document.createElement(x[0])
+                        for (let i = 1; i < x.length; ++i)
+                            if (x[i] && !Array.isArray(x[i]) && typeof x[i] == 'object')
+                                for (let k of Object.keys(x[i])) {
+                                    const v = el[k] = x[i][k]
+                                    if (typeof v == 'string' || typeof v == 'number' || typeof v == 'boolean')
+                                        el.setAttribute(k, v)
+                                }
+                            else el.append(arrayTreeToDOM(x[i]))
+                        return el
+                    } else return document.createTextNode(''+x)
+                })(content)
+            }
             content.classList.add('window')
             if (actorName) {
                 const margin = 6 // Personal space, buddy.
@@ -483,16 +498,29 @@ function loop(canvas) {
                 content.style.left = content.style.bottom = 0
             document.body.append(content)
             return new Promise((resolve, reject) => {
-                if (timeoutSec != null)
-                    setTimeout(() => {
+                if (timeoutSec != null) {
+                    const start = performance.now()
+                    let duration = timeoutSec*1000, timeout = setTimeout(disappear, duration)
+                    api._windowShorteners.add(content._windowShortener = sec => { // On click, take 2 seconds less to disappear.
+                        clearTimeout(timeout)
+                        duration -= sec*1000
+                        timeout = setTimeout(disappear, duration - (performance.now() - start))
+                    })
+                    function disappear() {
+                        api._windowShorteners.delete(content._windowShortener)
                         content.classList.contains('removed') ? reject('windows were cleared, do not proceed') : resolve('proceed')
                         content.classList.add('removed')
                         setTimeout(() => content.remove(), 5000)
-                    }, timeoutSec*1000)
-                else resolve()
+                    }
+                } else resolve()
             })
         },
+        _windowsAreShorter(bySeconds) {
+            if (typeof bySeconds != 'number') bySeconds = 2
+            api._windowShorteners.forEach(f => f(bySeconds))
+        },
     }
+    addEventListener('pointerdown', api._windowsAreShorter, {passive:true})
     // The main drawing loop.
     if (!canvas.gl)
         canvas.gl = canvas.getContext('webgl2', {alpha:false, desynchronized:true})
