@@ -439,11 +439,12 @@ function loop(canvas) {
             updateActor(L, a)
             updateActorWebGLData(L, a.i)
         },
-        window(content, actorName = null, timeoutSec = 100, posMomentum = .9) {
+        window(content, actorName = null, timeoutSec = 16, posMomentum = .9) {
             // Given a string or a DOM element, and the actor name, positions a window near the actor.
             // Given a string or a DOM element, positions a free-floating window in the bottom-left corner.
             // To not fade away after `timeoutSec`, pass `timeoutSec = null`.
-            // Given `null`, clears every window instantly. (Level load does this)
+            // Given nothing, clears every window instantly. (Level load does this.)
+            // Returns a promise, which resolves when the timeout has passed.
             if (!document.body) return
             if (content == null) {
                 for (let el of document.querySelectorAll('.window')) {
@@ -473,6 +474,8 @@ function loop(canvas) {
                     const y3 = y == null ? y2 : y2-topY < y ? y2 + m/h : y2-bottomY > y ? y2-height - m/h : y
                     x = x != null ? p*x + (1-p)*x3 : x3 - Math.random()*width
                     y = y != null ? p*y + (1-p)*y3 : y3 - Math.random()*height
+                    x = Math.max(0, Math.min(x, 1-width))
+                    y = Math.max(0, Math.min(y, 1-height))
                     content.style.left = x*w + 'px'
                     content.style.top = (1-y - height)*h + 'px'
                     if (!content.classList.contains('removed')) requestAnimationFrame(moveWindow)
@@ -481,11 +484,15 @@ function loop(canvas) {
                 // Bottom-left.
                 content.style.left = content.style.bottom = 0
             document.body.append(content)
-            if (timeoutSec != null)
-                setTimeout(() => {
-                    content.classList.add('removed')
-                    setTimeout(() => content.remove(), 5000)
-                }, timeoutSec*1000)
+            return new Promise((resolve, reject) => {
+                if (timeoutSec != null)
+                    setTimeout(() => {
+                        content.classList.contains('removed') ? reject('windows were cleared, do not proceed') : resolve('proceed')
+                        content.classList.add('removed')
+                        setTimeout(() => content.remove(), 5000)
+                    }, timeoutSec*1000)
+                else resolve()
+            })
         },
     }
     // The main drawing loop.
