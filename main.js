@@ -530,7 +530,7 @@ void main() {
                             { class:'hidable' },
                             ['div',
                                 { style:'float:right; clear:right; display:inline-block; text-align:right; font-size:.9em' },
-                                ['button', { url, onclick() { api.levelLoad(this.url) } }, 'Visit'],
+                                ['button', { url, onclick() { api.levelLoad(this.url) } }, 'Go'],
                             ],
                             fetch(url, { mode:'cors', cache:'force-cache' }).then(r => r.json()).then(level => {
                                 return ['div',

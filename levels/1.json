@@ -1,9 +1,10 @@
 {
-    "description": "Weave a red string.\n\nRed's iGrowthWidth=0.0793 is the strongest weave that doesn't weave the world when crossing itself, meaning that it can be upgraded from 0.077 in a cutscene.\n\nEnlist the help of green worms, which should destroy the blue emitter.\n\n(Kinda one-trick pony so far.)",
+    "description": "Weave a red string.\n\nRed's iGrowthWidth=0.0793 is the strongest weave that doesn't weave the world when crossing itself, meaning that it can be upgraded from 0.077 in a cutscene.\n\nEnlist the help of green worms, which should destroy the blue emitter.\n\n(Kinda one-trick pony so far.)\n\n(Just running some checks. Can you hear me? Do you have access? Can you put the green thing into the blue thing?)",
     "isMenu": false,
 
-    "winScore": null,
+    "winScore": 100,
     "winUnlocks": [],
+    "onLost": "setTimeout(api.levelLoad, 3000)",
 
     "iColorMatrix": [
         1, 0, 0, 0,
@@ -27,8 +28,8 @@
     "iOffset": [0,0], "iKernelOffset": [0,0],
 
     "actors": [
-      {"displayRadius":[15,0,0], "pos":[0.5, 0.5], "emitRadius":6, "emit":"red", "emittance":1, "speed":{"Bmouse":0.01, "Bg": -0.01, "Bb":-0.03, "Bspeed":0.7}, "dhealth":{"Br":0.05, "Bg":-2, "Bb":-0.5}},
-      {"pos":[0.5, 0.8], "emitRadius":30, "emit":"blue", "emittance":{"B1":0.5, "Btime":0.5, "BtimeFrequency":0.5}},
-      {"pos":[0.5, 0.2], "emitRadius":6, "emit":"green", "emittance":1, "speed":{"Bmouse":0.0001, "Br": -0.003, "Bg": -0.003, "Bb":0.008}}
+      {"displayRadius":[15,0,0], "pos":[0.5, 0.5], "emitRadius":6, "emit":"red", "emittance":1, "speed":{"Bmouse":0.01, "Bg": -0.01, "Bb":-0.03, "Bspeed":0.7}, "dhealth":{"Br":0.05, "Bg":-2, "Bb":-0.5}, "trackLost":true},
+      {"pos":[0.5, 0.8], "emitRadius":30, "emit":"blue", "emittance":{"B1":0.5, "Btime":0.5, "BtimeFrequency":0.5}, "TODO:": "Die when there's green here. When dead, initiate the level-end sequence --- or maybe add score when health is not full."},
+      {"pos":[0.5, 0.2], "emitRadius":6, "emit":"green", "emittance":1, "speed":{"Bmouse":0.0001, "Br": -0.003, "Bg": -0.003, "Bb":0.008}, "TODO:":"Die when speed is too low."}
     ]
 }
