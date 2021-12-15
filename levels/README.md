@@ -20,6 +20,10 @@ Making a new level is best done by copying a pre-existing level and changing its
 
 ---
 
+`onLoad`: when this level is loaded, this JS is called, with `api` and `level`.
+
+---
+
 `onWon`: when `level.score > level.winScore`, this JS is called, with `api` and `level`.
 
 ---
@@ -126,6 +130,10 @@ Actors. Agents. Entities. Particles. Thingies.
 
 ---
 
+`target: ActorName`: actors can react to their target actor's position, and be attracted or repulsed by it.
+
+---
+
 `like: ActorName`: specify this to inherit (copy) properties from another actor. You don't have to copy-paste with this.
 
 Only one layer of copying here, though.
@@ -152,11 +160,11 @@ Inputs, in an output's object (or specify a number to make the output constant),
 
 - `B1`: the `1` input. Constant. Uniform. Bias. B for Behavior.
 - `Bspeed`: the current speed. For example, when computing `speed`, set `Bspeed=1` to make the rest compute acceleration, or `Bspeed=0.99` to slow down gradually.
-- `Bmouse`: how far away the mouse is, as a vec2 with 0…1 components.
-- `Btarget`: how far away the target is, as a vec2 with 0…1 components.
+- `Bmouse`: how far away the mouse is, as a vec2 with -1…1 components.
+- `Btarget`: how far away the target is, as a vec2 with -1…1 components.
 - `Bhealth`: the current health.
 - Colors:
-  - `Br`: the intensity/direction of Lenia RED nearby, 0…1. Examples: for `speed`, `Bdr=-0.01` implements collision detection; for `emittance`, this can be used for traps that wait for a color to emit their own.
+  - `Br`: the intensity/direction of Lenia RED nearby, 0…1 or -1…1. Examples: for `speed`, `Bdr=-0.01` implements collision detection; for `emittance`, this can be used for traps that wait for a color to emit their own.
   - `Bg`: the intensity/direction of Lenia GREEN nearby.
   - `Bb`: the intensity/direction of Lenia BLUE nearby.
 - `Btime`: `sin(BtimeFrequency * time * 2*PI)`, -1…1, changing periodically.

@@ -115,7 +115,7 @@ uniform sampler2D leniaGrid;
 // 13 attributes.
 attribute vec4 posSpeed; // x/y/dx/dy
 attribute vec4 extraState; // health/score/emitRadius/emitColor (emitColor is 0/1/2 for r/g/b)
-attribute vec4 gravity; // gravityX/gravityY/_/_
+attribute vec4 gravity; // gravityX/gravityY/targetX/targetY
 // Behavior matrix; each attribute is the input's contribution to each output, which is speed/emittance/dhealth/dscore.
 //   For positions/velocities/color-differentials, x and y use the same weights for compactness.
 attribute vec4 B1;
@@ -160,11 +160,8 @@ void main() {
     nearDX /= maxDiff;
     nearDY /= maxDiff;
 
-    // TODO: How to provide the actual target x/y? Another attribute? (At least we still have space for 2 floats, in 'gravity'.)
-    vec2 targetPos = vec2(.5, .5);
-
     vec2 mouseVec = iMouse.xy / iResolution.xy;
-    vec2 targetVec = targetPos;
+    vec2 targetVec = gravity.zw;
     mouseVec -= at + closestWrapOffset(at, mouseVec);
     targetVec -= at + closestWrapOffset(at, targetVec);
     float health = extraState.x;
@@ -204,7 +201,7 @@ varying vec4 emit;
 void main() {
     vec2 center = outPosSpeed.xy;
     float distance = length(gl_FragCoord.xy - center * iResolution.xy) / emit.w * 2.;
-    if (distance < 1.) // Relies on blending.
+    if (distance < 1. || true) // Relies on blending.
         gl_FragColor = vec4(emit.rgb, 1.) * (1. - distance);
     else
         discard;
@@ -268,7 +265,7 @@ void main() {
 
 
 
-// TODO: The main menu, with "start" (first level) and "continue" (using the save file from localStorage, with at least the unlocked levels; select the level, with a hierarchical view).
+// TODO: The main menu, with "start" (if nothing is won and 1 is lost, then go to that level; else display the hierarchy).
 //   TODO: `urlsToHierarchy({ url:value })->objTree`.
 //     TODO: Split each URL's post-base parts along `/` to get candidate levels; remove `.json` in the last one if present; enter that path into the tree.
 //     TODO: Post-process the hierarchy: turn 2+-layered single-key-value objects into one object, with the key `key1/key2/key3`.
@@ -276,6 +273,7 @@ void main() {
 //   TODO: ...How to compose `api.levelSuggest()=>{won,lost}` into actual DOM elements, with smooth collapsing, and highlighting of novel elems and their parents... And display completion times (or max scores for ) on the right, with parents adding up completion times of children...
 //     Should we take smoothness from Conceptual?
 //   TODO: And "settings", which at least prompts whether to make this level the main-menu default. (Or maybe on visit.)
+//   TODO: Make the first main menu `api.levelSuggest(firstLevel)`.
 
 
 // TODO: ...With the means to make a story and go across levels, come up with concrete levels.
@@ -339,16 +337,6 @@ void main() {
 
 // TODO: A system for overriding level props.
 //   TODO: In settings, a checkbox for overriding `onWon`+`onLost` with `setTimeout(api.loadLevel, 1000)`, for speedruns. (They're fun.)
-// TODO: On level load, also add the player's actor/s. (This way, we could allow unlocking 'bodies'.)
-//   TODO: Have the level prop `.playerBodies:[...actors]`.
-//   TODO: Have the level prop `.playerStartsAt:[x-.5,y-.5]`, and add x&y to coords. If `null`, well, don't.
-//   TODO: Have the actor prop `.playerBody:bool`, and if any actors are for the player, then `levelLoad` should store the URL in `localStorage.bodies`.
-//     TODO: If the player's current body is set, `levelLoad` should fetch those URLs (forcing cache) and extract `.playerBody` actors, with positions relative to their `.playerStartsAt`; then add those actors relative to `.playerStartsAt`.
-//     TODO: Settings should allow choosing bodies, via per-URL checkboxes.
-
-// TODO: An actor-target system, which makes "toTarget(actors, actorNames)->actorName" JS decide the index of the target.
-//   TODO: Each frame, communicate x/y/dx/dy of the actor's target to actors. Use gl.drawElements, and gl.ELEMENT_ARRAY_BUFFER, to select from actor positions.
-//   TODO: If >100 actors, only execute & update a random contiguous subset each frame. (The index buffer is GPU-side, and updates are efficient.)
 
 // TODO: Make note of browser compatibility, according to the APIs that we use: WebGL2, Object.values, object destructuring, element.append(…), pointer events.
 // TODO: With a direct-link library, expose data & surroundings & individual-mouse-position of all agents with `displayRadius` with sound. This might be the coolest application that I can think of: controlling a swarm.
@@ -422,12 +410,9 @@ function loop(canvas, exports) {
         read(actorName) {
             // Syncs GPU state to our CPU actor object, namely, position+speed. After this, writing can proceed safely.
             // Can be called slow.
-            const data = new Float32Array(4), L = api._level, s = glState
-            const a = L.actors[actorName]
+            const L = api._level, a = L.actors[actorName]
             if (!a) throw new Error("Nonexistent actor "+actorName)
-            gl.bindBuffer(gl.ARRAY_BUFFER, s.posSpeed.prev.buf)
-            gl.getBufferSubData(gl.ARRAY_BUFFER, a.i*4*4, data)
-            a.pos[0] = data[0], a.pos[1] = data[1], a.pos[2] = data[2], a.pos[3] = data[3]
+            updateActorCPUData(L, 1, a.i)
         },
         write(actorName) {
             // After changing an actor object's props, call this to sync changes to GPU.
@@ -515,12 +500,12 @@ function loop(canvas, exports) {
                 } else resolve()
             })
         },
-        _windowsAreShorter(bySeconds) {
+        _windowsAreShorterNow(bySeconds) {
             if (typeof bySeconds != 'number') bySeconds = 2
             api._windowShorteners.forEach(f => f(bySeconds))
         },
     }
-    addEventListener('pointerdown', api._windowsAreShorter, {passive:true})
+    addEventListener('pointerdown', api._windowsAreShorterNow, {passive:true})
     // The main drawing loop.
     if (!canvas.gl)
         canvas.gl = canvas.getContext('webgl2', {alpha:false, desynchronized:true})
@@ -614,7 +599,7 @@ function loop(canvas, exports) {
             'extraState',
             'displayRadius',
         ]})
-        s.posBuffer = initBuffer(gl, [-1,1, 1,1, -1,-1, 1,-1], 2)
+        s.posBuffer = initBuffer(gl, new Float32Array([-1,1, 1,1, -1,-1, 1,-1]), 2)
         gl.clearColor(0,0,0,1)
     }
     function handleLevelLoaded(s, L) {
@@ -646,18 +631,17 @@ function loop(canvas, exports) {
         L.score = L.score || 0, L.winScore = typeof L.winScore == 'number' ? L.winScore : 1, L.frame = 0, L._trackedLost = 0
         L._actorNames = actors ? Object.keys(actors) : []
         const pos = b() // x/y/dx/dy
-        const extra = b() // health/score/emitRadius/dummy
+        const extra = b() // health/score/emitRadius/emitColor
         const gravity = b()
         const displayRadius = b()
         const B = { B1:b(), Bspeed:b(), Bmouse:b(), Btarget:b(), Bhealth:b(), Br:b(), Bg:b(), Bb:b(), Btime:b(), BtimeFrequency:b() }
         B.keys = Object.keys(B)
-        L._buffers = {pos,extra,gravity,displayRadius,B}
+        L._buffers = { pos, extra, gravity, displayRadius, B }
         let i = 0
-        for (let name of L._actorNames) {
-            actors[name].i = i
+        for (let name of L._actorNames)
+            actors[name].i = i++
+        for (let name of L._actorNames)
             updateActor(L, actors[name])
-            ++i
-        }
         if (!L._trackedLost) L._trackedLost = null
         s.posSpeed = twice(() => initBuffer(gl, pos, 4))
         s.extraState = twice(() => initBuffer(gl, extra, 4))
@@ -665,6 +649,8 @@ function loop(canvas, exports) {
         s.displayRadius = initBuffer(gl, displayRadius, 4)
         s.behavior = { keys: B.keys }
         for (let k of B.keys) s.behavior[k] = initBuffer(gl, B[k], 4)
+        if (typeof L.onLoad == 'string') L.onLoad = new Function('api,level', L.onLoad)
+        if (typeof L.onLoad == 'function') L.onLoad(api, L)
         function b() { return new Float32Array(L._actorNames.length*4) }
         function twice(f) { return { prev:f(), next:f() } }
     }
@@ -675,6 +661,8 @@ function loop(canvas, exports) {
         for (let c=0; c<4; ++c) pos[i*4+c] = a.pos && a.pos[c] || a2.pos && a2.pos[c] || 0
         for (let c=0; c<2; ++c) gravity[i*4+c] = a.gravity && a.gravity[c] || a2.gravity && a2.gravity[c] || 0
         for (let c=0; c<3; ++c) displayRadius[i*4+c] = a.displayRadius && a.displayRadius[c] || a2.displayRadius && a2.displayRadius[c] || 0
+        const targetName = a.target && a.target || a2.target && a2.target || 0
+        a._targetActor = L.actors[targetName] || null
         extra[i*4+0] = a.health = a._health == null ? a2._health || 1 : a.health
         extra[i*4+2] = a.emitRadius || a2.emitRadius || 10
         const color = a.emit || a2.emit
@@ -693,6 +681,11 @@ function loop(canvas, exports) {
                     B[kIn][i * Boutputs.length + Bout] = props[kIn] || props2 && props2[kIn] || (kIn === 'B1' && typeof props == 'number' && props) || 0
         }
     }
+    function updateActorWebGLGravity(L, start, end) {
+        const s = glState, b = L._buffers
+        const i = start*4*4, n = start*4, m = end*4
+        s.gravity.set(gl, i, b.gravity.subarray(n, m))
+    }
     function updateActorWebGLData(L, start, end = start+1) {
         // Intended to be called after `updateActor`, with `actor.i` as `start`.
         const s = glState, b = L._buffers
@@ -701,22 +694,37 @@ function loop(canvas, exports) {
         s.posSpeed.next.set(gl, i, b.pos.subarray(n, m))
         s.extraState.prev.set(gl, i, b.extra.subarray(n, m))
         s.extraState.next.set(gl, i, b.extra.subarray(n, m))
-        s.gravity.set(gl, i, b.gravity.subarray(n, m))
+        updateActorWebGLGravity(L, start, end)
         s.displayRadius.set(gl, i, b.displayRadius.subarray(n, m))
         for (let k of s.behavior.keys)
             s.behavior[k].set(gl, i, b.B[k].subarray(n, m))
     }
-    function handleExtraData(L, len = 4, start = Math.random() * (L._actorNames.length - len + 1) | 0) { // Health & score.
+    function updateActorCPUData(L, len, start) { // Returns `[…, health, score, _, _, …]`, with `len*4` numbers.
         // This sync GPU->CPU transfer may slow the game down.
-        if (typeof L.winScore != 'number') return
-        if (len > L._actorNames.length) len = L._actorNames.length, start = 0
         const s = glState
         const data = new Float32Array(len * 4)
+        gl.bindBuffer(gl.ARRAY_BUFFER, s.posSpeed.prev.buf)
+        gl.getBufferSubData(gl.ARRAY_BUFFER, start*4*4, data, 0, len*4)
+        for (let i = start; i < start + len; ++i) {
+            const a = L.actors[L._actorNames[i]], p = a.pos, j = i-start
+            p[0] = data[j*4 + 0], p[1] = data[j*4 + 1], p[2] = data[j*4 + 2], p[3] = data[j*4 + 3]
+        }
         gl.bindBuffer(gl.ARRAY_BUFFER, s.extraState.prev.buf)
         gl.getBufferSubData(gl.ARRAY_BUFFER, start*4*4, data, 0, len*4)
+        return data
+    }
+    function handleExtraData(L, len = 16, start = Math.random() * (L._actorNames.length - len + 1) | 0) { // Health & score.
+        if (typeof L.winScore != 'number') return
+        if (len > L._actorNames.length) len = L._actorNames.length, start = 0
+        const data = updateActorCPUData(L, len, start)
+        const gravity = L._buffers.gravity
         for (let i = 0; i < len; ++i) {
             const name = L._actorNames[start+i], a = L.actors[name]
             L.score -= (a.score || 0) - (a.score = data[i*4+1])
+
+            // Update target positions. (May be slow to propagate, but much better than WebGL-only "targets are impossible to implement unless we forego attributes and do everything through textures".)
+            gravity[(start+i)*4+2] = a._targetActor ? a._targetActor.pos[0] : .5
+            gravity[(start+i)*4+3] = a._targetActor ? a._targetActor.pos[1] : .5
 
             const health = data[i*4+0]
             if (a.health > 0 && health <= 0) {
@@ -736,6 +744,7 @@ function loop(canvas, exports) {
             }
             a._health = a.health = health
         }
+        updateActorWebGLGravity(L, start, start+len)
         // Update the displayed score.
         if (L.score >= L.winScore && !L._didWin) { // Won the level.
             if (typeof L.onWon == 'string') L.onWon = new Function('api,level', L.onWon)
@@ -759,7 +768,7 @@ function loop(canvas, exports) {
         maybeResize(canvas, canvas)
         gl.clear(gl.COLOR_BUFFER_BIT)
         if (!api._level) return
-        const s = glState, p1 = s.lenia, p2 = s.actors, p3 = s.displayLenia, p4 = s.displayActors, rect = s.posBuffer, L = api._level
+        const s = glState, L = api._level, p1 = s.lenia, p2 = s.actors, p3 = s.displayLenia, p4 = s.displayActors, rect = s.posBuffer
         if (!s.leniaFrames)
             handleLevelLoaded(s, L)
         if (p1 !== null) { // Lenia.
@@ -799,12 +808,13 @@ function loop(canvas, exports) {
                 const k = s.behavior.keys[i]
                 s.behavior[k].read(gl, a[k])
             }
-            s.posSpeed.prev.read(gl, a.posSpeed)
             s.posSpeed.next.write(gl, 0)
+            s.extraState.prev.read(gl, a.extraState)
             s.extraState.next.write(gl, 1)
             s.gravity.read(gl, a.gravity)
             gl.enable(gl.BLEND), gl.blendFunc(gl.ONE, gl.ONE)
-            s.extraState.prev.draw(gl, a.extraState, gl.POINTS, true)
+            s.posSpeed.prev.draw(gl, a.posSpeed, gl.POINTS, true)
+            gl.disable(gl.BLEND), gl.blendFunc(gl.ONE, gl.ZERO)
             s.extraState.next.resetWrite(gl, 1)
             s.posSpeed.next.resetWrite(gl, 0)
             s.leniaFrames.extra.resetWrite(gl)
@@ -831,9 +841,9 @@ function loop(canvas, exports) {
             gl.uniformMatrix4fv(u.iColorMatrix, false, L.iColorMatrix)
             gl.enable(gl.BLEND), gl.blendFunc(gl.ONE, gl.SRC_COLOR)
             s.displayRadius.draw(gl, a.displayRadius, gl.POINTS)
+            gl.disable(gl.BLEND), gl.blendFunc(gl.ONE, gl.ZERO)
         }
 
-        gl.disable(gl.BLEND), gl.blendFunc(gl.ONE, gl.ZERO)
         swap(s.leniaFrames, 'prev', 'extra')
         gl.flush()
 
@@ -897,21 +907,20 @@ function initShaders(gl, [vsSource, fsSource], {uniforms, attribs, transformFeed
 }
 
 function initBuffer(gl, f32, numbersPerValue = 1, usageHint = gl.STATIC_DRAW) {
-    // An array of f32 values, `r`.
+    // An array of f32 values, `r: Float32Array`.
     //   Read with `r.read(gl, gl.getAttribLocation(program, 'attrib'))` as a vertex attribute.
     //   Draw this list of vertices with `r.draw(gl, gl.getAttribLocation(program, 'attrib'), gl.POINTS, false)`.
     //   Write with `r.write(gl, 0)` then `r.resetWrite(gl)` as transform-feedback of a vertex shader.
     //     If there are any buffer writes, pass `true` to `.draw`.
-    if (!(f32 instanceof Float32Array)) f32 = Float32Array.from(f32)
     const buf = gl.createBuffer()
     gl.bindBuffer(gl.ARRAY_BUFFER, buf)
     gl.bufferData(gl.ARRAY_BUFFER, f32, usageHint)
     return {
         buf,
-        length: f32.length,
+        length: f32.length / numbersPerValue | 0,
         numbersPerValue,
         read(gl, attribLocation) {
-            if (attribLocation < 0) throw new Error("Attrib not found")
+            if (attribLocation < 0) return
             gl.bindBuffer(gl.ARRAY_BUFFER, this.buf)
             gl.enableVertexAttribArray(attribLocation)
             gl.vertexAttribPointer(attribLocation, this.numbersPerValue, gl.FLOAT, false, 0, 0)
@@ -919,7 +928,7 @@ function initBuffer(gl, f32, numbersPerValue = 1, usageHint = gl.STATIC_DRAW) {
         draw(gl, attribLocation, mode = gl.TRIANGLE_STRIP, needsTransformFeedback = false) {
             this.read(gl, attribLocation)
             if (needsTransformFeedback) gl.beginTransformFeedback(gl.POINTS)
-            gl.drawArrays(mode, 0, this.length / this.numbersPerValue | 0)
+            gl.drawArrays(mode, 0, this.length)
             if (needsTransformFeedback) gl.endTransformFeedback()
         },
         write(gl, index = 0) {
@@ -953,8 +962,7 @@ function initTexture(gl, width, height, pixels = null) {
     return { // Who needs JS classes when you have *objects*? What are we aiming for anyway, *efficiency* or something?
         R: tex,
         W: null,
-        _width: width,
-        _height: height,
+        width, height,
         _cache: Object.create(null),
         read(gl, i, uniformLocation) {
             gl.activeTexture(this._cache[i] || (this._cache[i] = gl['TEXTURE'+i]))
@@ -966,11 +974,11 @@ function initTexture(gl, width, height, pixels = null) {
                 gl.bindFramebuffer(gl.FRAMEBUFFER, this.W = gl.createFramebuffer())
                 gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0)
             } else gl.bindFramebuffer(gl.FRAMEBUFFER, this.W)
-            gl.viewport(0,0, this._width, this._height)
+            gl.viewport(0,0, this.width, this.height)
         },
         copyTo(gl, texture) {
             gl.bindTexture(gl.TEXTURE_2D, texture.R)
-            gl.copyTexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 0, 0, this._width, this._height, 0)
+            gl.copyTexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 0, 0, this.width, this.height, 0)
         },
         resetWrite(gl) {
             gl.bindFramebuffer(gl.FRAMEBUFFER, null)
