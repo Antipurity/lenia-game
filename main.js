@@ -335,7 +335,7 @@ void main() {
 //       `mu=.6, sigma=.2`: makes puffs that slowly dissipate, but if the actor stays long enough to make top and bottom connect, the whole world is taken over.
 //     `offset=kernelOffset=(0,-11)`: the barrier's building has visible sparks, and multiple layers, and looks cool.
 
-// TODO: A system for overriding level props.
+// TODO: A system for overriding level props. Mainly events, but also `iColorMatrix`.
 //   TODO: In settings, a checkbox for overriding `onWon`+`onLost` with `setTimeout(api.loadLevel, 1000)`, for speedruns. (They're fun.)
 
 // TODO: Make note of browser compatibility, according to the APIs that we use: WebGL2, Object.values, object destructuring, element.append(…), pointer events.
@@ -438,10 +438,15 @@ function loop(canvas, exports) {
             if (typeof content == 'string') { const el = document.createElement('div');  el.append(content);  content = el }
             if (Array.isArray(content)) { // Ex: ['div', { style:'color:red', onclick() { api.levelLoad() } }, 'Click to reload the level']
                 content = (function arrayTreeToDOM(x) {
-                    if (Array.isArray(x)) {
+                    if (x instanceof Promise) {
+                        const el = document.createElement('div')
+                        x.then(x => el.replaceWith(arrayTreeToDOM(x)), err => el.textContent = '<Error>')
+                        el.classList.add('promise')
+                        return el
+                    } else if (Array.isArray(x)) {
                         const el = document.createElement(x[0])
                         for (let i = 1; i < x.length; ++i)
-                            if (x[i] && !Array.isArray(x[i]) && typeof x[i] == 'object')
+                            if (x[i] && !Array.isArray(x[i]) && typeof x[i] == 'object' && !(x[i] instanceof Promise))
                                 for (let k of Object.keys(x[i])) {
                                     const v = el[k] = x[i][k]
                                     if (typeof v == 'string' || typeof v == 'number' || typeof v == 'boolean')
