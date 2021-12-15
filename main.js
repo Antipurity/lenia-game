@@ -264,7 +264,7 @@ void main() {
 
 
 
-// TODO: Why does display fail when zoom is 75% or less... (Simulation is still going, but animation just stops.)
+// TODO: Hide all globals inside `load`, which won't be a global now.
 
 
 // TODO: ...With the means to make a story and go across levels, come up with concrete levels.
@@ -766,7 +766,7 @@ function loop(canvas, exports) {
 
         // If at the main menu, display UI.
         if (L.isMenu) {
-            api.window(['div', {style:'font-size:2em; letter-spacing:2px'}, 'LENIA GAME'], 'title', null, 0)
+            api.window(['div', {style:'font-size:2em; letter-spacing:2px; text-align:center'}, 'LENIA GAME'], 'title', null, 0)
             api.window(api.levelSelection(), 'levels', null, 0)
         }
 
@@ -953,7 +953,7 @@ function loop(canvas, exports) {
             const u = p4.uniform, a = p4.attrib
             gl.useProgram(p4.program)
             gl.uniform1f(u.iTime, performance.now() / 1000)
-            gl.uniform4f(u.iDisplay, gl.drawingBufferWidth, gl.drawingBufferHeight, (self.devicePixelRatio || 1) | 0, 0)
+            gl.uniform4f(u.iDisplay, gl.drawingBufferWidth, gl.drawingBufferHeight, self.devicePixelRatio || 1, 0)
             s.leniaFrames.extra.read(gl, 0, u.leniaGrid)
             s.posSpeed.prev.read(gl, a.posSpeed)
             s.extraState.prev.read(gl, a.extraState)
@@ -974,9 +974,9 @@ function loop(canvas, exports) {
 
 
 function maybeResize(canvas, sizeToElem) {
-    const dpr = (self.devicePixelRatio || 1) | 0
-    const w = sizeToElem.clientWidth * dpr
-    const h = sizeToElem.clientHeight * dpr
+    const dpr = self.devicePixelRatio || 1
+    const w = sizeToElem.clientWidth * dpr | 0
+    const h = sizeToElem.clientHeight * dpr | 0
     if (canvas.width !== w || canvas.height !== h) {
         canvas.width = w, canvas.height = h
         const gl = canvas.gl
