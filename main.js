@@ -266,10 +266,7 @@ void main() {
 
 
 // TODO: The main menu, with "start" (if nothing is won and 1 is lost, then go to that level; else display the hierarchy).
-//   TODO: `urlsToHierarchy({ url:value })->objTree`.
-//     TODO: Split each URL's post-base parts along `/` to get candidate levels; remove `.json` in the last one if present; enter that path into the tree.
-//     TODO: Post-process the hierarchy: turn 2+-layered single-key-value objects into one object, with the key `key1/key2/key3`.
-//   TODO: ...How to, given a hierarchy, fetch ALL the JSONs, forcing the cache, and display descriptions as they arrive?...
+//   TODO: ...How to, given a hierarchy (`urlsToHierarchy`), fetch ALL the JSONs, forcing the cache, and display descriptions as they arrive?...
 //   TODO: ...How to compose `api.levelSuggest()=>{won,lost}` into actual DOM elements, with smooth collapsing, and highlighting of novel elems and their parents... And display completion times (or max scores for ) on the right, with parents adding up completion times of children...
 //     Should we take smoothness from Conceptual?
 //   TODO: And "settings", which at least prompts whether to make this level the main-menu default. (Or maybe on visit.)
@@ -1032,3 +1029,30 @@ function leniaKernel(gl, R, mus, sigmas, offsets, data=null, totals=[0,0,0,1]) {
 
 function storeSet(key, value) { localStorage[key] = value }
 function storeGet(key) { return Promise.resolve(localStorage[key]) }
+
+function urlsToHierarchy(urls) {
+    // Converts `{ url:value }` to an object hierarchy such as `{ 'levels/directory1/directory2':{ 1:550, 2:-0.2 } }`, suitable for displaying.
+    // Ex: `urlsToHierarchy({'a/b/c.json':5, 'a/b/d.json':6})` → `{'a/b':{ c:5, d:6 }}`
+    const result = Object.create(null)
+    for (let k in urls) {
+        const v = urls[k], parts = new URL(k, location).pathname.slice(1).split('/')
+        parts.length && (parts[parts.length-1] = parts[parts.length-1].replace('.json', ''))
+        for (let i = 0, o = result; i < parts.length; ++i)
+            o = o[parts[i]] = i < parts.length-1 ? (o[parts[i]] || Object.create(null)) : v
+    }
+    return mergeSingles(result)
+    function mergeSingles(x, up = false) { // {levels:{directory1:{directory2:{…}}}} → {'levels/directory1/directory2':{…}}
+        if (!x || typeof x != 'object' || Object.getPrototypeOf(x) !== null) return x
+        const keys = Object.keys(x), k = keys[0]
+        if (keys.length != 1) return x
+        if (!up)
+            for (let k of keys)
+                x[k] = mergeSingles(x[k])
+        if (!x[k] || typeof x[k] != 'object' || Object.getPrototypeOf(x[k]) !== null) return x
+        const keys2 = Object.keys(x[k]), k2 = keys2[0]
+        if (keys2.length != 1) return x
+        const r = Object.create(null)
+        r[k + '/' + k2] = x[k][k2]
+        return mergeSingles(r, true)
+    }
+}
