@@ -268,8 +268,6 @@ void main() {
 
 
 
-// TODO: Document the JS API.
-
 // TODO: The main menu, with "start" (first level) and "continue" (using the save file from localStorage, with at least the unlocked levels; select the level, with a hierarchical view).
 //   TODO: `urlsToHierarchy({ url:value })->objTree`.
 //     TODO: Split each URL's post-base parts along `/` to get candidate levels; remove `.json` in the last one if present; enter that path into the tree.
@@ -440,7 +438,7 @@ function loop(canvas) {
             updateActorWebGLData(L, a.i)
         },
         window(content, actorName = null, timeoutSec = 16, posMomentum = .9) {
-            // Given a string or a DOM element, and the actor name, positions a window near the actor.
+            // Given a string or a DOM element, and the actor name, positions a window that follows the actor.
             // Given a string or a DOM element, positions a free-floating window in the bottom-left corner.
             // To not fade away after `timeoutSec`, pass `timeoutSec = null`.
             // Given nothing, clears every window instantly. (Level load does this.)

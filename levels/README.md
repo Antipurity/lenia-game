@@ -163,3 +163,49 @@ Inputs, in an output's object (or specify a number to make the output constant),
 - `BtimeFrequency`: how often the value of `Btime` repeats itself, in 1/seconds.
 
 ---
+
+## JS API
+
+Some methods here begin with `on`, and define a string. These are JS callbacks. They are usually given `api, level, actorName` as arguments.
+
+For example, specifying `onLost: "setTimeout(() => api.levelLoad(level.url), 1000)"` or `onLost: "setTimeout(api.levelLoad, 1000)"` would reload the level on losing, after 1 second.
+
+`api` contains:
+
+---
+
+`api.levelLoad(url = level.url)`: goes to a level. `url` must point to a JSON file of the level.
+
+---
+
+`api.levelSuggest(url, winLose = {lost:0})`: remembers information about a level.
+- Given `url`, remembers it, to recommend to the user later. 🌟 Preferred 🌟
+- Given `url` and `{ won:level.frame, lost:level.score }`, may update the min stored time.
+- Given `url` and `{ lost:level.score }`, such as on level lose or end, may update the max stored score.
+- Given nothing, fetches a promise of `{ won:{url:time}, lost:{url:score} }` for all URLs. Won levels are in both, non-won ones are in `lost`.
+- Given `url` and `{}`, forgets the level's data.
+
+---
+
+`api.levelExit()`: goes to the last-visited main menu level.
+
+---
+
+`api.read(actorName)`: syncs in-GPU state to our in-CPU actor object, namely, position+speed. After this, writing can proceed safely.
+
+(Yes, actors are updated in-GPU, so the engine can handle hundreds of thousands of actors.)
+
+---
+
+`api.write(actorName)`: after changing an actor object's props, call this to sync changes to in-GPU state.
+
+---
+
+`api.window(content, actorName = null, timeoutSec = 16, posMomentum = .9)`: creates a window, near an actor. Story.
+- Given a string or a DOM element, and the actor name, positions a window that follows the actor.
+- Given a string or a DOM element, positions a free-floating window in the bottom-left corner.
+- To not fade away after `timeoutSec`, pass `timeoutSec = null`.
+- Given nothing, clears every window instantly. (Level load does this.)
+- Returns a promise, which resolves when the timeout has passed.
+
+---
