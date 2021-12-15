@@ -1,25 +1,61 @@
-const R = 5 // Convolution-kernel radius. 2*R+1 is the kernel resolution.
-const initialLevel = 'levels/initial.json'
-
-
-
-const leniaSource = `
-attribute vec2 vertexPos;
-void main() { gl_Position = vec4(vertexPos, 0., 1.); }
-
-=====
-
-precision highp float;
-uniform float iTime;
-uniform vec4 iResolution;
-uniform vec4 iMouse;
-
-uniform sampler2D leniaGrid;
-uniform sampler2D leniaKernel;
-
-
-
-// modified from https://www.shadertoy.com/view/7ls3z7
+// TODO: ...With the means to make a story and go across levels, come up with concrete levels.
+// Levels, the meat of the game, allowing dynamic discoveries of whole different worlds of complexity.
+//   Eye of the storm, 512×512 (blue must hurt, red can heal):
+//     `offset=(0,-2)`: dripping shifting platforms: red space, blue supports, green grass.
+//     `offset=(0,3)`: eternal bullet-hell, with diagonal blue bullets in a sea of red, and green explosions.
+//     `offset=(0,4)`: green becomes a self-regenerating eternal wave; if the player can burst blue for a bit, it burns away the green.
+//     `offset=kernelOffset=(0,-2)`:
+//       Blue: a really cool animation. Could be good for the title screen.
+//       Green+blue: violently-shifting platforms, too hard to climb, but cool visually.
+//     `offset=kernelOffset=(0,-3)`:
+//       Blue: blue gliders with red wings, fighting for the right to become a platform.
+//       Green: first a green field with blue sparkles, then slowly-shifting screen-wide platforms, too hard to climb.
+//     `offset=kernelOffset=(0,-4)`:
+//       Blue: glacial blue gliders held up by red flames, which sometimes flare up and destroy other gliders; gliders sometimes split off.
+//   Self-eating waves, 1024×1024:
+//     `rgb.rgb += vec3(.0, .2, .0)` green circles, of radii such as 10/50/100/500:
+//       Init:
+//         When unmoving on black, creates a big green bubble.
+//         When moving, creates green->blue->red transitions.
+//         When unmoving but blinking, creates waves on each creation.
+//       When the field is filled with shimmering blue circles, which impede green ones:
+//         Borders emanate blue.
+//         Moving slowly creates no disturbances, only a cool trail.
+//         Moving quickly creates green waves, which dissipate.
+//         Radius 100: highlights its movement history in blue with bubble-like circles, looking cool.
+//     `rgb.rgb += vec3(.0, .0, .2)` blue circles, radius 50 tested:
+//       Init:
+//         Sometimes initiates colonies of dividing blue cells.
+//       Moving:
+//         Erases blue colonies.
+//         Looks entwined with red. Leaves some red behind; much more when ` * perc`.
+//     `rgb.rgb += vec3(.2, .0, .0)` red circles, radius 50 tested:
+//       In black or in green:
+//         Does nothing. A faintly-red blob.
+//       In blue:
+//         When staying, the blue slowly ignites into intense red, and the ignited material's movement leaves a trail, but can't keep up if the actor moves too fast.
+//           (When ` * perc`, there's no ignition.)
+//         A battery for greenery.
+//     offset=kernelOffset=(0,-1), with `blue * perc`: a very complex animation, with blue mushroom tops always rising up whenever the red goes away from the actor.
+//     offset=kernelOffset=(0,-2), with `blue * perc`: blue releases much more rapidly, and the red in its wake looks like blood dripping down.
+//       (Platformer, anyone?)
+//     offset=kernelOffset=(0,-5), with `green`: levitating, blood-dripping caves with slight cave-ins.
+//       (With actors doing some collision detection to stay out of terrain, and taking damage if impossible, getting to the top can be a challenging task.)
+//       `red * perc` functions as a cave-in aura.
+//     `offset=(0,-1)`, blue: a colony has come to kill you; weave through the little things.
+//     `offset=(0,-2)`, green: self-replicating gliders are death, green grass that can be on top of them is life, in a platformer that depends on either the player sometimes injecting green or some actors doing so. If greenery is unneeded, blue actors can act as wipers.
+//     `offset=(0,-4)`, green+blue: title-screen material, with full-screen waves, green held up by blue.
+//     `offset=(0,-5)`, green: green-triangle churn, and blue-bullet hell.
+//     `offset=(0,-6)`:
+//       Blue, constant: a being. For a cutscene, maybe?
+//       Blue+green: a trapped green being.
+//       Green: the great green being.
+//   Fountains of power:
+//     `dx=0, dy=-9`, with `blue * perc` and `mu=.2, sigma=.05`: builds indistinct Sierpinski triangles, until they reach the actor and destroy their own source, and start again.
+//       (Could be the great barrier to cross.)
+//       (A small actor radius makes the triangle much more distinct.)
+//       `mu=.6, sigma=.2`: makes puffs that slowly dissipate, but if the actor stays long enough to make top and bottom connect, the whole world is taken over.
+//     `offset=kernelOffset=(0,-11)`: the barrier's building has visible sparks, and multiple layers, and looks cool.
 
 // TODO: Extract all these to levels. (Kinda need that actor system, so that we could actually see what those levels look like.)
 // const vec3 mu = vec3(0.4, .2, .4);     // growth center // TODO: First two worlds.
@@ -40,6 +76,36 @@ uniform sampler2D leniaKernel;
 //        -1., 2.02,  -1.,
 //        -8.,   .8,   1./**/
 // );
+
+// TODO: Make note of browser compatibility, according to the APIs that we use: WebGL2, Object.values, object destructuring, element.append(…), pointer events.
+// TODO: With a direct-link library, expose data & surroundings & individual-mouse-position of all agents with `displayRadius` with sound. This might be the coolest application that I can think of: controlling a swarm.
+// TODO: A license notice in this file.
+
+
+
+;(function loop(canvas, exports) {
+    const R = 5 // Convolution-kernel radius. 2*R+1 is the kernel resolution.
+    const initialLevel = 'levels/initial.json'
+
+
+
+    const leniaSource = `
+attribute vec2 vertexPos;
+void main() { gl_Position = vec4(vertexPos, 0., 1.); }
+
+=====
+
+precision highp float;
+uniform float iTime;
+uniform vec4 iResolution;
+uniform vec4 iMouse;
+
+uniform sampler2D leniaGrid;
+uniform sampler2D leniaKernel;
+
+
+
+// modified from https://www.shadertoy.com/view/7ls3z7
 
 uniform float iSlowdown;
 uniform mat3 iMixing;
@@ -82,7 +148,7 @@ void main() {
 
 
 
-const displayLeniaSource = `
+    const displayLeniaSource = `
 attribute vec2 vertexPos;
 void main() { gl_Position = vec4(vertexPos, 0., 1.); }
 
@@ -104,7 +170,7 @@ void main() {
 
 
 
-const actorSource = `
+    const actorSource = `
 precision highp float;
 
 uniform float iTime;
@@ -210,7 +276,7 @@ void main() {
 
 
 
-const displayActorsSource = `
+    const displayActorsSource = `
 precision highp float;
 
 uniform vec4 iDisplay;
@@ -264,90 +330,19 @@ void main() {
 
 
 
-// TODO: Hide all globals inside `load`, which won't be a global now.
-
-
-// TODO: ...With the means to make a story and go across levels, come up with concrete levels.
-// Levels, the meat of the game, allowing dynamic discoveries of whole different worlds of complexity.
-//   Eye of the storm, 512×512 (blue must hurt, red can heal):
-//     `offset=(0,-2)`: dripping shifting platforms: red space, blue supports, green grass.
-//     `offset=(0,3)`: eternal bullet-hell, with diagonal blue bullets in a sea of red, and green explosions.
-//     `offset=(0,4)`: green becomes a self-regenerating eternal wave; if the player can burst blue for a bit, it burns away the green.
-//     `offset=kernelOffset=(0,-2)`:
-//       Blue: a really cool animation. Could be good for the title screen.
-//       Green+blue: violently-shifting platforms, too hard to climb, but cool visually.
-//     `offset=kernelOffset=(0,-3)`:
-//       Blue: blue gliders with red wings, fighting for the right to become a platform.
-//       Green: first a green field with blue sparkles, then slowly-shifting screen-wide platforms, too hard to climb.
-//     `offset=kernelOffset=(0,-4)`:
-//       Blue: glacial blue gliders held up by red flames, which sometimes flare up and destroy other gliders; gliders sometimes split off.
-//   Self-eating waves, 1024×1024:
-//     `rgb.rgb += vec3(.0, .2, .0)` green circles, of radii such as 10/50/100/500:
-//       Init:
-//         When unmoving on black, creates a big green bubble.
-//         When moving, creates green->blue->red transitions.
-//         When unmoving but blinking, creates waves on each creation.
-//       When the field is filled with shimmering blue circles, which impede green ones:
-//         Borders emanate blue.
-//         Moving slowly creates no disturbances, only a cool trail.
-//         Moving quickly creates green waves, which dissipate.
-//         Radius 100: highlights its movement history in blue with bubble-like circles, looking cool.
-//     `rgb.rgb += vec3(.0, .0, .2)` blue circles, radius 50 tested:
-//       Init:
-//         Sometimes initiates colonies of dividing blue cells.
-//       Moving:
-//         Erases blue colonies.
-//         Looks entwined with red. Leaves some red behind; much more when ` * perc`.
-//     `rgb.rgb += vec3(.2, .0, .0)` red circles, radius 50 tested:
-//       In black or in green:
-//         Does nothing. A faintly-red blob.
-//       In blue:
-//         When staying, the blue slowly ignites into intense red, and the ignited material's movement leaves a trail, but can't keep up if the actor moves too fast.
-//           (When ` * perc`, there's no ignition.)
-//         A battery for greenery.
-//     offset=kernelOffset=(0,-1), with `blue * perc`: a very complex animation, with blue mushroom tops always rising up whenever the red goes away from the actor.
-//     offset=kernelOffset=(0,-2), with `blue * perc`: blue releases much more rapidly, and the red in its wake looks like blood dripping down.
-//       (Platformer, anyone?)
-//     offset=kernelOffset=(0,-5), with `green`: levitating, blood-dripping caves with slight cave-ins.
-//       (With actors doing some collision detection to stay out of terrain, and taking damage if impossible, getting to the top can be a challenging task.)
-//       `red * perc` functions as a cave-in aura.
-//     `offset=(0,-1)`, blue: a colony has come to kill you; weave through the little things.
-//     `offset=(0,-2)`, green: self-replicating gliders are death, green grass that can be on top of them is life, in a platformer that depends on either the player sometimes injecting green or some actors doing so. If greenery is unneeded, blue actors can act as wipers.
-//     `offset=(0,-4)`, green+blue: title-screen material, with full-screen waves, green held up by blue.
-//     `offset=(0,-5)`, green: green-triangle churn, and blue-bullet hell.
-//     `offset=(0,-6)`:
-//       Blue, constant: a being. For a cutscene, maybe?
-//       Blue+green: a trapped green being.
-//       Green: the great green being.
-//   Fountains of power:
-//     `dx=0, dy=-9`, with `blue * perc` and `mu=.2, sigma=.05`: builds indistinct Sierpinski triangles, until they reach the actor and destroy their own source, and start again.
-//       (Could be the great barrier to cross.)
-//       (A small actor radius makes the triangle much more distinct.)
-//       `mu=.6, sigma=.2`: makes puffs that slowly dissipate, but if the actor stays long enough to make top and bottom connect, the whole world is taken over.
-//     `offset=kernelOffset=(0,-11)`: the barrier's building has visible sparks, and multiple layers, and looks cool.
-
-// TODO: Make note of browser compatibility, according to the APIs that we use: WebGL2, Object.values, object destructuring, element.append(…), pointer events.
-// TODO: With a direct-link library, expose data & surroundings & individual-mouse-position of all agents with `displayRadius` with sound. This might be the coolest application that I can think of: controlling a swarm.
+    const mouse = { x:.5, y:.5, main:false, aux:false, update(evt) {
+        mouse.x = ((evt.changedTouches ? evt.changedTouches[0] : evt).clientX + (evt.movementX || 0)) / innerWidth
+        mouse.y = ((evt.changedTouches ? evt.changedTouches[0] : evt).clientY + (evt.movementY || 0)) / innerHeight
+        mouse.main = evt.buttons & 1
+        mouse.aux = evt.buttons & 2
+    } }
+    addEventListener('pointerdown', mouse.update, {passive:true})
+    addEventListener('touchmove', mouse.update, {passive:true})
+    addEventListener('pointermove', mouse.update, {passive:true})
+    addEventListener('pointerup', mouse.update, {passive:true})
 
 
 
-const mouse = { x:.5, y:.5, main:false, aux:false, update(evt) {
-    mouse.x = ((evt.changedTouches ? evt.changedTouches[0] : evt).clientX + (evt.movementX || 0)) / innerWidth
-    mouse.y = ((evt.changedTouches ? evt.changedTouches[0] : evt).clientY + (evt.movementY || 0)) / innerHeight
-    mouse.main = evt.buttons & 1
-    mouse.aux = evt.buttons & 2
-} }
-addEventListener('pointerdown', mouse.update, {passive:true})
-addEventListener('touchmove', mouse.update, {passive:true})
-addEventListener('pointermove', mouse.update, {passive:true})
-addEventListener('pointerup', mouse.update, {passive:true})
-
-
-
-
-
-loop(document.getElementById('main'), self)
-function loop(canvas, exports) {
     // For actors' JS.
     const api = exports.api = {
         _level: null, _url: null, _windowShorteners: new Set,
@@ -766,8 +761,12 @@ function loop(canvas, exports) {
 
         // If at the main menu, display UI.
         if (L.isMenu) {
-            api.window(['div', {style:'font-size:2em; letter-spacing:2px; text-align:center'}, 'LENIA GAME'], 'title', null, 0)
-            api.window(api.levelSelection(), 'levels', null, 0)
+            storeGet('menu').then(_ => {
+                setTimeout(() => {
+                    api.window(['div', {style:'font-size:2em; letter-spacing:2px; text-align:center'}, 'LENIA GAME'], 'title', null, 0)
+                    api.window(api.levelSelection(), 'levels', null, 0)
+                }, 100) // This is for first-time visitors, waiting until `api.levelSuggest` is *probably* done.
+            })
         }
 
         function b() { return new Float32Array(L._actorNames.length*4) }
@@ -969,209 +968,209 @@ function loop(canvas, exports) {
         handleExtraData(L)
     }
     function swap(a, k1='prev', k2='next') { [a[k1], a[k2]] = [a[k2], a[k1]] }
-}
 
 
 
-function maybeResize(canvas, sizeToElem) {
-    const dpr = self.devicePixelRatio || 1
-    const w = sizeToElem.clientWidth * dpr | 0
-    const h = sizeToElem.clientHeight * dpr | 0
-    if (canvas.width !== w || canvas.height !== h) {
-        canvas.width = w, canvas.height = h
-        const gl = canvas.gl
-        gl && gl.viewport(0,0, gl.drawingBufferWidth, gl.drawingBufferHeight)
-        return true
+    function maybeResize(canvas, sizeToElem) {
+        const dpr = self.devicePixelRatio || 1
+        const w = sizeToElem.clientWidth * dpr | 0
+        const h = sizeToElem.clientHeight * dpr | 0
+        if (canvas.width !== w || canvas.height !== h) {
+            canvas.width = w, canvas.height = h
+            const gl = canvas.gl
+            gl && gl.viewport(0,0, gl.drawingBufferWidth, gl.drawingBufferHeight)
+            return true
+        }
+        return false
     }
-    return false
-}
 
-function initShaders(gl, [vsSource, fsSource], {uniforms, attribs, transformFeedback}) {
-    // Compiles vertex+fragment shaders in a WebGL context.
-    const vs = initShader(gl, gl.VERTEX_SHADER, vsSource)
-    const fs = initShader(gl, gl.FRAGMENT_SHADER, fsSource)
-    if (vs === null || fs === null) return null
-    const program = gl.createProgram()
-    gl.attachShader(program, vs)
-    gl.attachShader(program, fs)
-    if (transformFeedback)
-        gl.transformFeedbackVaryings(program, transformFeedback, gl.SEPARATE_ATTRIBS)
-    gl.linkProgram(program)
-    gl.validateProgram(program)
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-        error(gl.getProgramInfoLog(program))
-        gl.deleteProgram(program)
-        return null
-    }
-    const r = { program, uniform:Object.create(null), attrib:Object.create(null) }
-    if (uniforms)
-        for (let u of uniforms)
-            r.uniform[u] = gl.getUniformLocation(program, u) // null if not found.
-    if (attribs)
-        for (let u of attribs)
-            r.attrib[u] = gl.getAttribLocation(program, u) // -1 if not found.
-    return r
-
-    function initShader(gl, type, source) {
-        const sh = gl.createShader(type)
-        gl.shaderSource(sh, source)
-        gl.compileShader(sh)
-        if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) {
-            error(gl.getShaderInfoLog(sh))
-            gl.deleteShader(sh)
+    function initShaders(gl, [vsSource, fsSource], {uniforms, attribs, transformFeedback}) {
+        // Compiles vertex+fragment shaders in a WebGL context.
+        const vs = initShader(gl, gl.VERTEX_SHADER, vsSource)
+        const fs = initShader(gl, gl.FRAGMENT_SHADER, fsSource)
+        if (vs === null || fs === null) return null
+        const program = gl.createProgram()
+        gl.attachShader(program, vs)
+        gl.attachShader(program, fs)
+        if (transformFeedback)
+            gl.transformFeedbackVaryings(program, transformFeedback, gl.SEPARATE_ATTRIBS)
+        gl.linkProgram(program)
+        gl.validateProgram(program)
+        if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+            error(gl.getProgramInfoLog(program))
+            gl.deleteProgram(program)
             return null
         }
-        return sh
+        const r = { program, uniform:Object.create(null), attrib:Object.create(null) }
+        if (uniforms)
+            for (let u of uniforms)
+                r.uniform[u] = gl.getUniformLocation(program, u) // null if not found.
+        if (attribs)
+            for (let u of attribs)
+                r.attrib[u] = gl.getAttribLocation(program, u) // -1 if not found.
+        return r
+
+        function initShader(gl, type, source) {
+            const sh = gl.createShader(type)
+            gl.shaderSource(sh, source)
+            gl.compileShader(sh)
+            if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) {
+                error(gl.getShaderInfoLog(sh))
+                gl.deleteShader(sh)
+                return null
+            }
+            return sh
+        }
     }
-}
 
-function initBuffer(gl, f32, numbersPerValue = 1, usageHint = gl.STATIC_DRAW) {
-    // An array of f32 values, `r: Float32Array`.
-    //   Read with `r.read(gl, gl.getAttribLocation(program, 'attrib'))` as a vertex attribute.
-    //   Draw this list of vertices with `r.draw(gl, gl.getAttribLocation(program, 'attrib'), gl.POINTS, false)`.
-    //   Write with `r.write(gl, 0)` then `r.resetWrite(gl)` as transform-feedback of a vertex shader.
-    //     If there are any buffer writes, pass `true` to `.draw`.
-    const buf = gl.createBuffer()
-    gl.bindBuffer(gl.ARRAY_BUFFER, buf)
-    gl.bufferData(gl.ARRAY_BUFFER, f32, usageHint)
-    return {
-        buf,
-        length: f32.length / numbersPerValue | 0,
-        numbersPerValue,
-        read(gl, attribLocation) {
-            if (attribLocation < 0) return
-            gl.bindBuffer(gl.ARRAY_BUFFER, this.buf)
-            gl.enableVertexAttribArray(attribLocation)
-            gl.vertexAttribPointer(attribLocation, this.numbersPerValue, gl.FLOAT, false, 0, 0)
-        },
-        draw(gl, attribLocation, mode = gl.TRIANGLE_STRIP, needsTransformFeedback = false) {
-            this.read(gl, attribLocation)
-            if (needsTransformFeedback) gl.beginTransformFeedback(gl.POINTS)
-            gl.drawArrays(mode, 0, this.length)
-            if (needsTransformFeedback) gl.endTransformFeedback()
-        },
-        write(gl, index = 0) {
-            gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, index, this.buf)
-        },
-        resetWrite(gl, index) {
-            gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, index, null)
-        },
-        set(gl, offset, data) {
-            // Overwrites GPU-side data.
-            gl.bindBuffer(gl.ARRAY_BUFFER, this.buf)
-            gl.bufferSubData(gl.ARRAY_BUFFER, offset, data)
-        },
+    function initBuffer(gl, f32, numbersPerValue = 1, usageHint = gl.STATIC_DRAW) {
+        // An array of f32 values, `r: Float32Array`.
+        //   Read with `r.read(gl, gl.getAttribLocation(program, 'attrib'))` as a vertex attribute.
+        //   Draw this list of vertices with `r.draw(gl, gl.getAttribLocation(program, 'attrib'), gl.POINTS, false)`.
+        //   Write with `r.write(gl, 0)` then `r.resetWrite(gl)` as transform-feedback of a vertex shader.
+        //     If there are any buffer writes, pass `true` to `.draw`.
+        const buf = gl.createBuffer()
+        gl.bindBuffer(gl.ARRAY_BUFFER, buf)
+        gl.bufferData(gl.ARRAY_BUFFER, f32, usageHint)
+        return {
+            buf,
+            length: f32.length / numbersPerValue | 0,
+            numbersPerValue,
+            read(gl, attribLocation) {
+                if (attribLocation < 0) return
+                gl.bindBuffer(gl.ARRAY_BUFFER, this.buf)
+                gl.enableVertexAttribArray(attribLocation)
+                gl.vertexAttribPointer(attribLocation, this.numbersPerValue, gl.FLOAT, false, 0, 0)
+            },
+            draw(gl, attribLocation, mode = gl.TRIANGLE_STRIP, needsTransformFeedback = false) {
+                this.read(gl, attribLocation)
+                if (needsTransformFeedback) gl.beginTransformFeedback(gl.POINTS)
+                gl.drawArrays(mode, 0, this.length)
+                if (needsTransformFeedback) gl.endTransformFeedback()
+            },
+            write(gl, index = 0) {
+                gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, index, this.buf)
+            },
+            resetWrite(gl, index) {
+                gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, index, null)
+            },
+            set(gl, offset, data) {
+                // Overwrites GPU-side data.
+                gl.bindBuffer(gl.ARRAY_BUFFER, this.buf)
+                gl.bufferSubData(gl.ARRAY_BUFFER, offset, data)
+            },
+        }
     }
-}
 
-function initTexture(gl, width, height, pixels = null) {
-    // A 2D array of RGBA values `r`.
-    //   Read with `r.read(gl, 0, gl.getUniformLocation(program, 'textureName'))` in JS,
-    //     `uniform sampler2D textureName;  void main(void) { texture2D(textureName, vec2(0., 0.)) }` in GLSL.
-    //     (In-JS's index, `0` in this example, has no meaning except that it doesn't overlap with other texture reads.)
-    //   Write with `r.write(gl)`, then finally `r.resetWrite(gl)`.
-    //     (Can only write to 1 texture at a time.)
-    //     Reset with `gl.bindFramebuffer(gl.FRAMEBUFFER, null), gl.viewport(0,0, gl.canvas.width, gl.canvas.height)`.
-    //   To write a copy to another place too, use `r.copyTo(gl, r2)`.
-    const tex = gl.createTexture()
-    gl.bindTexture(gl.TEXTURE_2D, tex)
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, pixels)
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+    function initTexture(gl, width, height, pixels = null) {
+        // A 2D array of RGBA values `r`.
+        //   Read with `r.read(gl, 0, gl.getUniformLocation(program, 'textureName'))` in JS,
+        //     `uniform sampler2D textureName;  void main(void) { texture2D(textureName, vec2(0., 0.)) }` in GLSL.
+        //     (In-JS's index, `0` in this example, has no meaning except that it doesn't overlap with other texture reads.)
+        //   Write with `r.write(gl)`, then finally `r.resetWrite(gl)`.
+        //     (Can only write to 1 texture at a time.)
+        //     Reset with `gl.bindFramebuffer(gl.FRAMEBUFFER, null), gl.viewport(0,0, gl.canvas.width, gl.canvas.height)`.
+        //   To write a copy to another place too, use `r.copyTo(gl, r2)`.
+        const tex = gl.createTexture()
+        gl.bindTexture(gl.TEXTURE_2D, tex)
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, pixels)
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
 
-    return { // Who needs JS classes when you have *objects*? What are we aiming for anyway, *efficiency* or something?
-        R: tex,
-        W: null,
-        width, height,
-        _cache: Object.create(null),
-        read(gl, i, uniformLocation) {
-            gl.activeTexture(this._cache[i] || (this._cache[i] = gl['TEXTURE'+i]))
-            gl.bindTexture(gl.TEXTURE_2D, this.R)
-            gl.uniform1i(uniformLocation, i)
-        },
-        write(gl) {
-            if (!this.W) {
-                gl.bindFramebuffer(gl.FRAMEBUFFER, this.W = gl.createFramebuffer())
-                gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0)
-            } else gl.bindFramebuffer(gl.FRAMEBUFFER, this.W)
-            gl.viewport(0,0, this.width, this.height)
-        },
-        copyTo(gl, texture) {
-            gl.bindTexture(gl.TEXTURE_2D, texture.R)
-            gl.copyTexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 0, 0, this.width, this.height, 0)
-        },
-        resetWrite(gl) {
-            gl.bindFramebuffer(gl.FRAMEBUFFER, null)
-            gl.viewport(0,0, gl.canvas.width, gl.canvas.height)
-        },
+        return { // Who needs JS classes when you have *objects*? What are we aiming for anyway, *efficiency* or something?
+            R: tex,
+            W: null,
+            width, height,
+            _cache: Object.create(null),
+            read(gl, i, uniformLocation) {
+                gl.activeTexture(this._cache[i] || (this._cache[i] = gl['TEXTURE'+i]))
+                gl.bindTexture(gl.TEXTURE_2D, this.R)
+                gl.uniform1i(uniformLocation, i)
+            },
+            write(gl) {
+                if (!this.W) {
+                    gl.bindFramebuffer(gl.FRAMEBUFFER, this.W = gl.createFramebuffer())
+                    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0)
+                } else gl.bindFramebuffer(gl.FRAMEBUFFER, this.W)
+                gl.viewport(0,0, this.width, this.height)
+            },
+            copyTo(gl, texture) {
+                gl.bindTexture(gl.TEXTURE_2D, texture.R)
+                gl.copyTexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 0, 0, this.width, this.height, 0)
+            },
+            resetWrite(gl) {
+                gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+                gl.viewport(0,0, gl.canvas.width, gl.canvas.height)
+            },
+        }
     }
-}
 
-function error(...msg) { console.error(...msg) }
+    function error(...msg) { console.error(...msg) }
 
-function loadLevel(url) {
-    // Returns a promise of a level's object.
-    return fetch(url, {mode:'cors'}).then(response => response.json())
-}
+    function loadLevel(url) {
+        // Returns a promise of a level's object.
+        return fetch(url, {mode:'cors'}).then(response => response.json())
+    }
 
-function leniaKernel(gl, R, mus, sigmas, offsets, data=null, totals=[0,0,0,1]) {
-    // Pre-computes a Lenia kernel, with 3 colors.
-    // The `result` can be given to `initTexture(gl, 2*R+1, 2*R+1, pixels)`.
-    const sz = 2*R+1, colors = 3
-    if (!data) {
-        data = new Float32Array(sz*sz * 4) // Pre-normalization.
-        const [dx, dy] = offsets
+    function leniaKernel(gl, R, mus, sigmas, offsets, data=null, totals=[0,0,0,1]) {
+        // Pre-computes a Lenia kernel, with 3 colors.
+        // The `result` can be given to `initTexture(gl, 2*R+1, 2*R+1, pixels)`.
+        const sz = 2*R+1, colors = 3
+        if (!data) {
+            data = new Float32Array(sz*sz * 4) // Pre-normalization.
+            const [dx, dy] = offsets
+            for (let y = -R; y <= R; ++y)
+                for (let x = -R; x <= R; ++x) {
+                    const r = Math.hypot(x - dx, y - dy) / R // 0..sqrt(2), usually.
+                    for (let c=0; c < colors; ++c) {
+                        const weight = bell(r, mus[c], sigmas[c])
+                        const index = (y+R) * sz + (x+R)
+                        data[4*index + c] = weight
+                        totals[c] = Math.max(totals[c], weight)
+                    }
+                }
+        }
+        const data2 = new Uint8Array(sz*sz * 4) // Normalized, so that max is 1.
         for (let y = -R; y <= R; ++y)
             for (let x = -R; x <= R; ++x) {
-                const r = Math.hypot(x - dx, y - dy) / R // 0..sqrt(2), usually.
-                for (let c=0; c < colors; ++c) {
-                    const weight = bell(r, mus[c], sigmas[c])
-                    const index = (y+R) * sz + (x+R)
-                    data[4*index + c] = weight
-                    totals[c] = Math.max(totals[c], weight)
+                const index = (y+R) * sz + (x+R)
+                for (let c=0; c < 4; ++c) {
+                    data2[4*index + c] = c < colors ? Math.round(data[4*index + c] / totals[c] * 255) : 255
                 }
             }
+        const r = initTexture(gl, sz, sz, data2)
+        return r
+        function bell(x, m, s) { return Math.exp(-(x-m)*(x-m)/(s*s*2.)) }
     }
-    const data2 = new Uint8Array(sz*sz * 4) // Normalized, so that max is 1.
-    for (let y = -R; y <= R; ++y)
-        for (let x = -R; x <= R; ++x) {
-            const index = (y+R) * sz + (x+R)
-            for (let c=0; c < 4; ++c) {
-                data2[4*index + c] = c < colors ? Math.round(data[4*index + c] / totals[c] * 255) : 255
-            }
+
+    function storeSet(key, value) { localStorage[key] = value }
+    function storeGet(key) { return Promise.resolve(localStorage[key]) }
+
+    function urlsToHierarchy(urls) {
+        // Converts `{ url:value }` to an object hierarchy such as `{ 'levels/directory1/directory2':{ 1:550, 2:-0.2 } }`, suitable for displaying.
+        // Ex: `urlsToHierarchy({'a/b/c.json':5, 'a/b/d.json':6})` → `{'a/b':{ c:5, d:6 }}`
+        const result = Object.create(null)
+        for (let k in urls) {
+            const v = urls[k], parts = new URL(k, location).pathname.slice(1).split('/')
+            if (parts[0] !== 'levels') parts.unshift('levels')
+            parts.length && (parts[parts.length-1] = parts[parts.length-1].replace('.json', ''))
+            for (let i = 0, o = result; i < parts.length; ++i)
+                parts[i] = (parts[i][0].toUpperCase() + parts[i].slice(1)).replace(/\-\_/g, ' '),
+                o = o[parts[i]] = i < parts.length-1 ? (o[parts[i]] || Object.create(null)) : v
         }
-    const r = initTexture(gl, sz, sz, data2)
-    return r
-    function bell(x, m, s) { return Math.exp(-(x-m)*(x-m)/(s*s*2.)) }
-}
-
-function storeSet(key, value) { localStorage[key] = value }
-function storeGet(key) { return Promise.resolve(localStorage[key]) }
-
-function urlsToHierarchy(urls) {
-    // Converts `{ url:value }` to an object hierarchy such as `{ 'levels/directory1/directory2':{ 1:550, 2:-0.2 } }`, suitable for displaying.
-    // Ex: `urlsToHierarchy({'a/b/c.json':5, 'a/b/d.json':6})` → `{'a/b':{ c:5, d:6 }}`
-    const result = Object.create(null)
-    for (let k in urls) {
-        const v = urls[k], parts = new URL(k, location).pathname.slice(1).split('/')
-        if (parts[0] !== 'levels') parts.unshift('levels')
-        parts.length && (parts[parts.length-1] = parts[parts.length-1].replace('.json', ''))
-        for (let i = 0, o = result; i < parts.length; ++i)
-            parts[i] = (parts[i][0].toUpperCase() + parts[i].slice(1)).replace(/\-\_/g, ' '),
-            o = o[parts[i]] = i < parts.length-1 ? (o[parts[i]] || Object.create(null)) : v
+        return mergeSingles(result)
+        function mergeSingles(x, up = false) { // {levels:{directory1:{directory2:{…}}}} → {'levels/directory1/directory2':{…}}
+            if (!x || typeof x != 'object' || Object.getPrototypeOf(x) !== null) return x
+            const keys = Object.keys(x), k = keys[0]
+            if (keys.length != 1) return x
+            if (!up)
+                for (let k of keys)
+                    x[k] = mergeSingles(x[k])
+            if (!x[k] || typeof x[k] != 'object' || Object.getPrototypeOf(x[k]) !== null) return x
+            const keys2 = Object.keys(x[k]), k2 = keys2[0]
+            if (keys2.length != 1) return x
+            const r = Object.create(null)
+            r[k + ' / ' + k2] = x[k][k2]
+            return mergeSingles(r, true)
+        }
     }
-    return mergeSingles(result)
-    function mergeSingles(x, up = false) { // {levels:{directory1:{directory2:{…}}}} → {'levels/directory1/directory2':{…}}
-        if (!x || typeof x != 'object' || Object.getPrototypeOf(x) !== null) return x
-        const keys = Object.keys(x), k = keys[0]
-        if (keys.length != 1) return x
-        if (!up)
-            for (let k of keys)
-                x[k] = mergeSingles(x[k])
-        if (!x[k] || typeof x[k] != 'object' || Object.getPrototypeOf(x[k]) !== null) return x
-        const keys2 = Object.keys(x[k]), k2 = keys2[0]
-        if (keys2.length != 1) return x
-        const r = Object.create(null)
-        r[k + ' / ' + k2] = x[k][k2]
-        return mergeSingles(r, true)
-    }
-}
+})(document.getElementById('main'), self)
