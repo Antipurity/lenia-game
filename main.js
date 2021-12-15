@@ -513,23 +513,36 @@ function loop(canvas, exports) {
             // Given nothing, returns (a promise of) the DOM element for level-selection, suitable for `api.window`'s `content`.
             // Given `true`, returns (a promise of) how many levels are not-won (are novel).
             return api.levelSuggest().then(({ won, lost }) => {
-                if (reportNovel) return Object.keys(lost).length
+                if (reportNovel) return Object.keys(lost).length // TODO: ...No, should also subtract how many are won...
                 // Create a hierarchy containing `[url, wonFrame, lostScore]`.
                 const data = Object.create(null)
                 for (let k in lost) data[k] = [k, 0, lost[k]]
                 for (let k in won) data[k] = [k, won[k], data[k] ? data[k][1] : 0]
                 const tree = urlsToHierarchy(data)
                 // TODO: Also augment intermediate nodes with sum-of-best-times, and sum-of-best-scores, and with do-we-have-lost-children.
-                return toUI(tree)
+                return toUI(computeChildSummaries(tree))
+                function computeChildSummaries(x) {
+                    // With this, parents display are-there-lost-children and sum-of-best-times and sum-of-best-scores.
+                    if (Array.isArray(x)) return x
+                    let novel = 0, wonSum = 0, lostSum = 0
+                    for (let k in x) {
+                        let v = computeChildSummaries(x[k])
+                        if (!Array.isArray(v)) {
+                            v = v.__summary
+                            v[0] && (novel = true), wonSum += v[1], lostSum += v[2]
+                        } else
+                            v[1] === 0 && (novel = true), wonSum += v[1], lostSum += v[2]
+                    }
+                    x.__summary = [novel, wonSum, lostSum]
+                    return x
+                }
                 function toUI(x) {
                     if (Array.isArray(x)) { // A concrete level.
                         const [url, wonFrame, lostScore] = x
-                        return ['div', // TODO: Also highlight novel elements (CSS class .novel? Highlighed with a bluer-to-the-right gradient?).
+                        return ['div',
                             ['div',
-                                { style:'float:right; clear:right; display:inline-block; text-align:right' },
+                                { style:'float:right; clear:right; display:inline-block; text-align:right; font-size:.9em' },
                                 ['button', { url, onclick() { api.levelLoad(this.url) } }, 'Visit'],
-                                wonFrame !== 0 ? ['div', 'Time ', ['span', { class:'numeric-information' }, (wonFrame/60).toFixed(2) + 's']] : null,
-                                lostScore !== 0 ? ['div', 'Score ', ['span', { class:'numeric-information' }, lostScore.toFixed(2)]] : null,
                             ],
                             // TODO: Also actual level descriptions, fetched asynchronously, with cache forced.
                             //   First line displayed here, the rest is collapsed.
@@ -541,13 +554,30 @@ function loop(canvas, exports) {
                         ]
                     } else { // A parent node.
                         const children = []
-                        const keys = Object.keys(x).sort((a,b) => {
+                        const keys = Object.keys(x).filter(k => k !== '__summary').sort((a,b) => {
                             // Sort keys in lexicographic order, but ensure that `9 < 10`.
                             return a.replace(/[0-9]+/g, s => String.fromCodePoint(+s)).localeCompare(b.replace(/[0-9]+/g, s => String.fromCodePoint(+s)))
                         })
-                        for (let k of keys) children.push(['div', ['div', k], toUI(x[k])], ['hr']) // TODO: Also display sum-of-best-times and sum-of-best-scores, and add .novel if needed.
+                        for (let k of keys) {
+                            const [novel, wonFrame, lostScore] = Array.isArray(x[k]) ? [x[k][1] === 0, x[k][1], x[k][2]] : x[k].__summary
+                            children.push(['div',
+                                novel ? { class:'novel' } : null,
+                                ['div',
+                                    novel ? { class:'novel-header' } : null,
+                                    k,
+                                    ['div',
+                                        { style:'float:right; clear:right; display:inline-block; text-align:left; font-size:.75em' },
+                                        ['div', 'Score  ', ['span', { class:'numeric-information' }, lostScore !== 0 ? lostScore.toFixed(2) : '—']],
+                                        ['div', 'Time   ', ['span', { class:'numeric-information' }, wonFrame !== 0 ? (wonFrame/60).toFixed(2) + 's' : '—']],
+                                    ],
+                                    ['div', { style:'clear:both' }],
+                                ],
+                                toUI(x[k]),
+                            ], ['hr'])
+                        }
                         children.pop()
-                        return ['div', x !== tree ? { style:'padding-left: 1em' } : null, ...children] // TODO: Make it collapsible. Smoothly (probably by, on attachment, setting CSS props --width and --height, then un/collapsing with CSS).
+                        return ['div', x !== tree ? { style:'padding-left: 1em' } : null, ...children] // TODO: Make it collapsible. Smoothly (probably by, on attachment, setting CSS props --width and --height, then un/collapsing with CSS). (If not novel, collapse by default, else expand.)
+                        //   ...How do we set those props though... When?
                     }
                 }
             })
