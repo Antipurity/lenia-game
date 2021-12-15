@@ -118,6 +118,10 @@ Actors. Agents. Entities. Particles. Thingies.
 
 ---
 
+`onLoad: string`: what to do when the agent is first loaded.
+
+---
+
 `emitRadius=10`: actors can emit Lenia colors, and this determines the radius of that emittance.
 
 ---
@@ -199,13 +203,13 @@ For example, specifying `onLost: "setTimeout(() => api.levelLoad(level.url), 100
 
 ---
 
-`api.read(actorName)`: syncs in-GPU state to our in-CPU actor object, namely, position+speed. After this, writing can proceed safely.
-
-(Yes, actors are updated in-GPU, so the engine can handle hundreds of thousands of actors.)
+`api.read(actorName)`: syncs in-GPU speed to our in-CPU actor object: position, speed, health, score. Usually useless, because they are intermittently synchronized anyway for other needs.
 
 ---
 
 `api.write(actorName)`: after changing an actor object's props, call this to sync changes to in-GPU state.
+
+(Yes, actors are updated in-GPU, so the engine can handle hundreds of thousands of actors.)
 
 ---
 
@@ -218,6 +222,14 @@ For example, specifying `onLost: "setTimeout(() => api.levelLoad(level.url), 100
 
 When the user clicks, all active windows take 2 less seconds to disappear. Click repeatedly to skip the story.
 
+If `posMomentum` is `0`, the window is centered on the element, instead of daintily following it. Otherwise, the closer it is to `1`, the slower the window follows.
+
 `content` can be of the format shown in the example `['div', { style:'color:red', onclick() { api.levelLoad() } }, 'Click to ', ['span', { style:'color:blue' }, 'reload'], ' the level']`, for convenience.
+
+---
+
+`api.levelSelection()`: a menu for selecting a level to go to. Perfect `content` for a `window`.
+
+`api.levelSelection(true)`: returns how many novel (non-won, but in storage) levels we are currently aware of.
 
 ---

@@ -5,7 +5,7 @@
     "winScore": null,
     "winUnlocks": [],
 
-    "onLoad":"api.window(api.levelSelection(), null, null)",
+    "onLoad": "api.levelSuggest('levels/1.json')",
 
     "iColorMatrix": [
         1, 0, 0, 0,
@@ -28,8 +28,9 @@
     "iGrowthCenter": [0.4, 0.2, 0.4], "iGrowthWidth": [0.08, 0.04, 0.1],
     "iOffset": [-2,0], "iKernelOffset": [-2,0],
 
-    "actors": [
-      {"pos":[0.5, 0.75], "emitRadius": 50, "emit":"blue", "emittance":0.3, "dhealth":{"Bg":-50}},
-      {"pos":[0.5, 0.25, 0, 0], "emitRadius": 50, "emit":"green", "emittance":{"B1":-100, "Bhealth":100, "Br":50}, "dhealth":{"B1":-0.1, "Bhealth":0.1, "Br":-1}}
-    ]
+    "TODO:": "Name those actors something coherent, so that injection can know where to put its windows.",
+    "actors": {
+      "title": {"pos":[0.5, 0.75], "emitRadius": 50, "emit":"blue", "emittance":0.3, "dhealth":{"Bg":-50}},
+      "levels": {"pos":[0.5, 0.25, 0, 0], "emitRadius": 50, "emit":"green", "emittance":{"B1":-100, "Bhealth":100, "Br":50}, "dhealth":{"B1":-0.1, "Bhealth":0.1, "Br":-1}}
+    }
 }
