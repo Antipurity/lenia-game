@@ -268,12 +268,9 @@ void main() {
 
 
 
-// TODO: API for actor JS to use.
 // TODO: `api.notify(string | DOMelem, timeoutSec=10)=>Promise<void>`.
-//   TODO: An absolutely-positioned elem for notifications, in the lower-left corner.
-//   TODO: Make losing the level (and timeouts) clear notifications.
-// TODO: `api.window(string | DOMelem, atActorName, timeoutSec=10, posMomentum=.99)=>Promise<void>`: creates an absolutely-positioned elem, with an edge at the actor's position.
-//   TODO: Make losing the level (and timeouts) clear windows.
+//   TODO: One `window` for notifications, into which we put notifications, hidden by CSS when the timeout runs out.
+//   TODO: A flexbox, inverting the display order. (So that we could put a checkbox at the top, and show all with CSS only.)
 // TODO: Document the JS API.
 
 // TODO: The main menu, with "start" (first level) and "continue" (using the save file from localStorage, with at least the unlocked levels; select the level, with a hierarchical view).
@@ -358,7 +355,7 @@ void main() {
 //   TODO: Each frame, communicate x/y/dx/dy of the actor's target to actors. Use gl.drawElements, and gl.ELEMENT_ARRAY_BUFFER, to select from actor positions.
 //   TODO: If >100 actors, only execute & update a random contiguous subset each frame. (The index buffer is GPU-side, and updates are efficient.)
 
-// TODO: Make note of browser compatibility, according to the APIs that we use: WebGL2, Object.values, object destructuring.
+// TODO: Make note of browser compatibility, according to the APIs that we use: WebGL2, Object.values, object destructuring, element.append(…).
 // TODO: With a direct-link library, expose data & surroundings & individual-mouse-position of all agents with `displayRadius` with sound. This might be the coolest application that I can think of: controlling a swarm.
 
 
@@ -382,7 +379,7 @@ addEventListener('contextmenu', evt => evt.preventDefault())
 loop(document.getElementById('main'))
 function loop(canvas) {
     // For actors' JS.
-    const api = self.api = { // TODO: Don't leak the API as a global, this is just for debugging.
+    const api = self.api = { // TODO: Don't leak the API as a global, this is just for debugging. (No easy invincibility exploits, please.)
         _level: null, _url: null,
         levelLoad(url = api._url) {
             // Goes to a level. `url` must point to a JSON file of the level.
@@ -390,6 +387,7 @@ function loop(canvas) {
             loadLevel(url).then(L => {
                 L.url = url
                 api._level = L
+                api.window(null)
                 glState.leniaFrames = null
                 if (L.isMenu) storeSet('menu', url)
                 else {
@@ -429,7 +427,7 @@ function loop(canvas) {
         },
         read(actorName) {
             // Syncs GPU state to our CPU actor object, namely, position+speed. After this, writing can proceed safely.
-            // Kinda slow.
+            // Can be called slow.
             const data = new Float32Array(4), L = api._level, s = glState
             const a = L.actors[actorName]
             if (!a) throw new Error("Nonexistent actor "+actorName)
@@ -443,6 +441,48 @@ function loop(canvas) {
             if (!a) throw new Error("Nonexistent actor "+actorName)
             updateActor(L, a)
             updateActorWebGLData(L, a.i)
+        },
+        window(content, actorName = null, timeoutSec = 10, posMomentum = .9) {
+            // Given a string or a DOM element, and the actor name, positions a window near the actor.
+            // Given a string or a DOM element, positions a free-floating window in the bottom-left corner.
+            // To not fade away after `timeoutSec`, pass `timeoutSec = null`.
+            // Given `null`, clears every window instantly. (Level load does this)
+            if (!document.body) return
+            if (content == null) {
+                for (let el of document.querySelectorAll('.window')) {
+                    el.classList.add('removed')
+                    el.remove()
+                }
+                return
+            }
+            if (typeof content == 'string') { const el = document.createElement('div');  el.append(content);  content = el }
+            content.classList.add('window')
+            if (actorName) {
+                let actor = api._level.actors[actorName], x, y
+                if (!actor) throw new Error("Nonexistent actor "+actorName)
+                requestAnimationFrame(moveWindow)
+                function moveWindow() {
+                    api.read(actorName)
+                    const p = posMomentum
+                    const [x2, y2] = actor.pos
+                    const width = content.offsetWidth / innerWidth, height = content.offsetHeight / innerHeight
+                    const x3 = x == null ? x2 : x2-width/2 < x ? x2 : x2-width/2 > x ? x2-width : x
+                    const y3 = y == null ? y2 : y2-height/2 < y ? y2 : y2-height/2 > y ? y2-height : y
+                    x = x != null ? p*x + (1-p)*x3 : x3 - Math.random()*width
+                    y = y != null ? p*y + (1-p)*y3 : y3 - Math.random()*height
+                    content.style.left = x*innerWidth + 'px'
+                    content.style.top = (1-y - height)*innerHeight + 'px'
+                    if (!content.classList.contains('removed')) requestAnimationFrame(moveWindow)
+                }
+            } else
+                // Bottom-left.
+                content.style.left = content.style.bottom = 0
+            document.body.append(content)
+            if (timeoutSec != null)
+                setTimeout(() => {
+                    content.classList.add('removed')
+                    setTimeout(() => content.remove(), 5000)
+                }, timeoutSec*1000)
         },
     }
     // The main drawing loop.
