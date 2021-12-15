@@ -266,9 +266,6 @@ void main() {
 
 // TODO: Why does display fail when zoom is 75% or less... (Simulation is still going, but animation just stops.)
 
-// TODO: Also allow hash URLs to dictate the opened level, so that levels can be easily shared. (Cause otherwise, how are users going to discover user campaigns?)
-//   TODO: `api.share(url = api._level.url)`, returning the base URL with a location hash.
-
 
 // TODO: ...With the means to make a story and go across levels, come up with concrete levels.
 // Levels, the meat of the game, allowing dynamic discoveries of whole different worlds of complexity.
@@ -455,6 +452,7 @@ function loop(canvas, exports) {
                     let actor = api._level.actors[actorName], x, y
                     requestAnimationFrame(moveWindow)
                     function moveWindow() { // Reasonable amount of code for tracking actors.
+                        if (!api._level.actors[actorName] || actor !== api._level.actors[actorName]) return
                         api.read(actorName)
                         const p = posMomentum
                         const [x2, y2] = actor.pos
@@ -602,6 +600,11 @@ function loop(canvas, exports) {
                 }
             })
         },
+        share(url = api._url) { // Returns a URL that would open this level's URL in the site when opened.
+            const u = new URL(location)
+            u.hash = encodeURIComponent(url)
+            return ''+u
+        },
         _windowsAreShorterNow(bySeconds) {
             if (typeof bySeconds != 'number') bySeconds = 2
             api._windowShorteners.forEach(f => f(bySeconds))
@@ -634,7 +637,10 @@ function loop(canvas, exports) {
     }
     const Boutputs = ['speed', 'emittance', 'dhealth', 'dscore'], empty = Object.create(null)
 
-    api.levelExit()
+    if (!location.hash)
+        api.levelExit()
+    else
+        api.levelLoad(decodeURIComponent(location.hash).slice(1))
     setup()
     draw()
 

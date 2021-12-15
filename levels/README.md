@@ -190,6 +190,10 @@ For example, specifying `onLost: "setTimeout(() => api.levelLoad(level.url), 100
 
 ---
 
+`api.share()`: returns a URL that opens the current level when navigated to.
+
+---
+
 `api.levelSuggest(url, winLose = {lost:0})`: remembers information about a level.
 - Given `url`, remembers it, to recommend to the user later. 🌟 Preferred 🌟
 - Given `url` and `{ won:level.frame, lost:level.score }`, may update the min stored time.
