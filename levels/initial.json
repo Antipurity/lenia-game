@@ -5,6 +5,8 @@
     "winScore": null,
     "winUnlocks": [],
 
+    "onLoad":"api.window(api.levelSelection(), null, null)",
+
     "iColorMatrix": [
         1, 0, 0, 0,
       0.4, 1, 0, 0,

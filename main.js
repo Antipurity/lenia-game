@@ -1,5 +1,5 @@
 const R = 5 // Convolution-kernel radius. 2*R+1 is the kernel resolution.
-const initialLevel = 'levels/2.json'
+const initialLevel = 'levels/initial.json'
 
 
 
@@ -254,7 +254,7 @@ varying vec4 emitRadius;
 void main() {
     vec4 distances = length(gl_FragCoord.xy - center * iDisplay.xy) / (emitRadius + 1.) * 2. / iDisplay.z;
     float minD = min(distances.r, min(distances.g, distances.b));
-    // float dist = distances.g;//length(distances.rgb);
+    // float dist = distances.g;//length(distances.rgb); // TODO: Why is either display or emit screwed up, and makes the main menu create a negative green circle...
     if (minD < 1.) {
         vec4 inner = sign((.6 - distances) + abs(.6 - distances));
         vec4 outer = sign((1. - distances) + abs(1. - distances));
@@ -267,10 +267,12 @@ void main() {
 
 // TODO: The main menu, with "start" (if nothing is won and 1 is lost, then go to that level; else display the hierarchy).
 //   TODO: ...How to, given a hierarchy (`urlsToHierarchy`), fetch ALL the JSONs, forcing the cache, and display descriptions as they arrive?...
-//   TODO: ...How to compose `api.levelSuggest()=>{won,lost}` into actual DOM elements, with smooth collapsing, and highlighting of novel elems and their parents... And display completion times (or max scores for ) on the right, with parents adding up completion times of children...
+//   TODO: ...How to compose `api.levelSuggest()=>{won,lost}` into actual DOM elements, with smooth collapsing, and highlighting of novel elems and their parents... And display completion times (or max scores for non-completed levels) on the right, with parents adding up completion times of children...
 //     Should we take smoothness from Conceptual?
 //   TODO: And "settings", which at least prompts whether to make this level the main-menu default. (Or maybe on visit.)
 //   TODO: Make the first main menu `api.levelSuggest(firstLevel)`.
+
+// TODO: Also allow hash URLs to dictate the opened level, so that levels can be easily shared.
 
 
 // TODO: ...With the means to make a story and go across levels, come up with concrete levels.
@@ -334,6 +336,9 @@ void main() {
 
 // TODO: A system for overriding level props. Mainly events, but also `iColorMatrix`.
 //   TODO: In settings, a checkbox for overriding `onWon`+`onLost` with `setTimeout(api.loadLevel, 1000)`, for speedruns. (They're fun.)
+//   TODO: If .isMenu, inject actors that summon the title and the "Start" button.
+//     TODO: Make `api.window` have a centered mode, which moves the window's center to the agent's position (rather than making the window follow lazily along).
+//     TODO: Have actors' `.onLoad`.
 
 // TODO: Make note of browser compatibility, according to the APIs that we use: WebGL2, Object.values, object destructuring, element.append(…), pointer events.
 // TODO: With a direct-link library, expose data & surroundings & individual-mouse-position of all agents with `displayRadius` with sound. This might be the coolest application that I can think of: controlling a swarm.
@@ -425,88 +430,135 @@ function loop(canvas, exports) {
             // Given nothing, clears every window instantly. (Level load does this.)
             // Returns a promise, which resolves when the timeout has passed.
             if (!document.body) return
-            if (content == null) {
-                for (let el of document.querySelectorAll('.window')) {
-                    el.classList.add('removed')
-                    el.remove()
-                }
-                return
-            }
-            if (typeof content == 'string') { const el = document.createElement('div');  el.append(content);  content = el }
-            if (Array.isArray(content)) { // Ex: ['div', { style:'color:red', onclick() { api.levelLoad() } }, 'Click to reload the level']
-                content = (function arrayTreeToDOM(x) {
-                    if (x instanceof Promise) {
-                        const el = document.createElement('div')
-                        x.then(x => el.replaceWith(arrayTreeToDOM(x)), err => el.textContent = '<Error>')
-                        el.classList.add('promise')
-                        return el
-                    } else if (Array.isArray(x)) {
-                        const el = document.createElement(x[0])
-                        for (let i = 1; i < x.length; ++i)
-                            if (x[i] && !Array.isArray(x[i]) && typeof x[i] == 'object' && !(x[i] instanceof Promise))
-                                for (let k of Object.keys(x[i])) {
-                                    const v = el[k] = x[i][k]
-                                    if (typeof v == 'string' || typeof v == 'number' || typeof v == 'boolean')
-                                        el.setAttribute(k, v)
-                                }
-                            else el.append(arrayTreeToDOM(x[i]))
-                        return el
-                    } else return document.createTextNode(''+x)
-                })(content)
-            }
-            content.classList.add('window')
-            if (actorName) {
-                const margin = 6 // Personal space, buddy.
-                let actor = api._level.actors[actorName], x, y
-                if (!actor) throw new Error("Nonexistent actor "+actorName)
-                requestAnimationFrame(moveWindow)
-                function moveWindow() { // Reasonable amount of code for tracking actors.
-                    api.read(actorName)
-                    const p = posMomentum
-                    const [x2, y2] = actor.pos
-                    const w = innerWidth, h = innerHeight, m = margin
-                    const width = content.offsetWidth / w, height = content.offsetHeight / h
-                    const boxX = content.offsetLeft / w, boxY = 1 - content.offsetTop / h
-                    const distX = Math.min(Math.hypot(x2-boxX+m/w, y2-boxY+height/2), Math.hypot(x2-boxX-width-m/w, y2-boxY+height/2))
-                    const distY = Math.min(Math.hypot(y2-boxY-m/h, x2-boxX-width/2), Math.hypot(y2-boxY+height+m/h, x2-boxX-width/2))
-                    const [leftX, rightX, topY, bottomY] = distX < distY ? [width/2, width/2, -m/h, height + m/h] : [-m/w, width + m/w, height/2, height/2]
-                    const x3 = x == null ? x2 : x2-leftX < x ? x2 + m/w : x2-rightX > x ? x2-width - m/w : x
-                    const y3 = y == null ? y2 : y2-topY < y ? y2 + m/h : y2-bottomY > y ? y2-height - m/h : y
-                    x = x != null ? p*x + (1-p)*x3 : x3 - Math.random()*width
-                    y = y != null ? p*y + (1-p)*y3 : y3 - Math.random()*height
-                    x = Math.max(0, Math.min(x, 1-width))
-                    y = Math.max(0, Math.min(y, 1-height))
-                    content.style.left = x*w + 'px'
-                    content.style.top = (1-y - height)*h + 'px'
-                    if (!content.classList.contains('removed')) requestAnimationFrame(moveWindow)
-                }
-            } else
-                // Bottom-left.
-                content.style.left = content.style.bottom = 0
-            document.body.append(content)
-            return new Promise((resolve, reject) => {
-                if (timeoutSec != null) {
-                    const start = performance.now()
-                    let duration = timeoutSec*1000, timeout = setTimeout(disappear, duration)
-                    api._windowShorteners.add(content._windowShortener = sec => { // On click, take 2 seconds less to disappear.
-                        clearTimeout(timeout)
-                        duration -= sec*1000
-                        timeout = setTimeout(disappear, duration - (performance.now() - start))
-                    })
-                    function disappear() {
-                        api._windowShorteners.delete(content._windowShortener)
-                        content.classList.contains('removed') ? reject('windows were cleared, do not proceed') : resolve('proceed')
-                        content.classList.add('removed')
-                        setTimeout(() => content.remove(), 5000)
+            return Promise.resolve(content).then(content => {
+                if (content == null) {
+                    for (let el of document.querySelectorAll('.window')) {
+                        el.classList.add('removed')
+                        el.remove()
                     }
-                } else resolve()
+                    return
+                }
+                if (typeof content == 'string') { const el = document.createElement('div');  el.append(content);  content = el }
+                if (Array.isArray(content)) { // Ex: ['div', { style:'color:red', onclick() { api.levelLoad() } }, 'Click to reload the level']
+                    content = (function arrayTreeToDOM(x) {
+                        if (x instanceof Promise) {
+                            const el = document.createElement('div')
+                            x.then(x => el.replaceWith(arrayTreeToDOM(x)), err => el.textContent = '<Error>')
+                            el.classList.add('promise')
+                            return el
+                        } else if (Array.isArray(x)) {
+                            const el = document.createElement(x[0])
+                            for (let i = 1; i < x.length; ++i)
+                                if (x[i] && !Array.isArray(x[i]) && typeof x[i] == 'object' && !(x[i] instanceof Promise))
+                                    for (let k of Object.keys(x[i])) {
+                                        const v = el[k] = x[i][k]
+                                        if (typeof v == 'string' || typeof v == 'number' || typeof v == 'boolean')
+                                            el.setAttribute(k, v)
+                                    }
+                                else if (x[i] != null) el.append(arrayTreeToDOM(x[i]))
+                            return el
+                        } else return document.createTextNode(''+x)
+                    })(content)
+                }
+                content.classList.add('window')
+                if (actorName) {
+                    const margin = 6 // Personal space, buddy.
+                    let actor = api._level.actors[actorName], x, y
+                    if (!actor) throw new Error("Nonexistent actor "+actorName)
+                    requestAnimationFrame(moveWindow)
+                    function moveWindow() { // Reasonable amount of code for tracking actors.
+                        api.read(actorName)
+                        const p = posMomentum
+                        const [x2, y2] = actor.pos
+                        const w = innerWidth, h = innerHeight, m = margin
+                        const width = content.offsetWidth / w, height = content.offsetHeight / h
+                        const boxX = content.offsetLeft / w, boxY = 1 - content.offsetTop / h
+                        const distX = Math.min(Math.hypot(x2-boxX+m/w, y2-boxY+height/2), Math.hypot(x2-boxX-width-m/w, y2-boxY+height/2))
+                        const distY = Math.min(Math.hypot(y2-boxY-m/h, x2-boxX-width/2), Math.hypot(y2-boxY+height+m/h, x2-boxX-width/2))
+                        const [leftX, rightX, topY, bottomY] = distX < distY ? [width/2, width/2, -m/h, height + m/h] : [-m/w, width + m/w, height/2, height/2]
+                        const x3 = x == null ? x2 : x2-leftX < x ? x2 + m/w : x2-rightX > x ? x2-width - m/w : x
+                        const y3 = y == null ? y2 : y2-topY < y ? y2 + m/h : y2-bottomY > y ? y2-height - m/h : y
+                        x = x != null ? p*x + (1-p)*x3 : x3 - Math.random()*width
+                        y = y != null ? p*y + (1-p)*y3 : y3 - Math.random()*height
+                        x = Math.max(0, Math.min(x, 1-width))
+                        y = Math.max(0, Math.min(y, 1-height))
+                        content.style.left = x*w + 'px'
+                        content.style.top = (1-y - height)*h + 'px'
+                        if (!content.classList.contains('removed')) requestAnimationFrame(moveWindow)
+                    }
+                } else
+                    // Bottom-left.
+                    content.style.left = content.style.bottom = 0
+                document.body.append(content)
+                return new Promise((resolve, reject) => {
+                    if (timeoutSec != null) {
+                        const start = performance.now()
+                        let duration = timeoutSec*1000, timeout = setTimeout(disappear, duration)
+                        api._windowShorteners.add(content._windowShortener = sec => { // On click, take 2 seconds less to disappear.
+                            clearTimeout(timeout)
+                            duration -= sec*1000
+                            timeout = setTimeout(disappear, duration - (performance.now() - start))
+                        })
+                        function disappear() {
+                            api._windowShorteners.delete(content._windowShortener)
+                            content.classList.contains('removed') ? reject('windows were cleared, do not proceed') : resolve('proceed')
+                            content.classList.add('removed')
+                            setTimeout(() => content.remove(), 5000)
+                        }
+                    } else resolve()
+                })
             })
+        },
+        levelSelection(reportNovel = false) {
+            // Given nothing, returns (a promise of) the DOM element for level-selection, suitable for `api.window`'s `content`.
+            // Given `true`, returns (a promise of) how many levels are not-won (are novel).
+            return api.levelSuggest().then(({ won, lost }) => {
+                if (reportNovel) return Object.keys(lost).length
+                // Create a hierarchy containing `[url, wonFrame, lostScore]`.
+                const data = Object.create(null)
+                for (let k in lost) data[k] = [k, 0, lost[k]]
+                for (let k in won) data[k] = [k, won[k], data[k] ? data[k][1] : 0]
+                const tree = urlsToHierarchy(data)
+                // TODO: Also augment intermediate nodes with sum-of-best-times, and sum-of-best-scores, and with do-we-have-lost-children.
+                return toUI(tree)
+                function toUI(x) {
+                    if (Array.isArray(x)) { // A concrete level.
+                        const [url, wonFrame, lostScore] = x
+                        return ['div', // TODO: Also highlight novel elements (CSS class .novel? Highlighed with a bluer-to-the-right gradient?).
+                            ['div',
+                                { style:'float:right; clear:right; display:inline-block; text-align:right' },
+                                ['button', { url, onclick() { api.levelLoad(this.url) } }, 'Visit'],
+                                wonFrame !== 0 ? ['div', 'Time ', ['span', { class:'numeric-information' }, (wonFrame/60).toFixed(2) + 's']] : null,
+                                lostScore !== 0 ? ['div', 'Score ', ['span', { class:'numeric-information' }, lostScore.toFixed(2)]] : null,
+                            ],
+                            // TODO: Also actual level descriptions, fetched asynchronously, with cache forced.
+                            //   First line displayed here, the rest is collapsed.
+                            ['div',
+                                { style:'text-indent:.6em' },
+                                'Some text goes here it clearly is a masterpiece great just swell keep reading it yes', // TODO: How to make this collapsible too (beyond the first line)?
+                            ],
+                            ['div', { style:'clear:both' }],
+                        ]
+                    } else { // A parent node.
+                        const children = []
+                        const keys = Object.keys(x).sort((a,b) => {
+                            // Sort keys in lexicographic order, but ensure that `9 < 10`.
+                            return a.replace(/[0-9]+/g, s => String.fromCodePoint(+s)).localeCompare(b.replace(/[0-9]+/g, s => String.fromCodePoint(+s)))
+                        })
+                        for (let k of keys) children.push(['div', ['div', k], toUI(x[k])], ['hr']) // TODO: Also display sum-of-best-times and sum-of-best-scores, and add .novel if needed.
+                        children.pop()
+                        return ['div', x !== tree ? { style:'padding-left: 1em' } : null, ...children] // TODO: Make it collapsible. Smoothly (probably by, on attachment, setting CSS props --width and --height, then un/collapsing with CSS).
+                    }
+                }
+            })
+            // TODO: Test api.window(api.levelSelection(), null, null).
         },
         _windowsAreShorterNow(bySeconds) {
             if (typeof bySeconds != 'number') bySeconds = 2
             api._windowShorteners.forEach(f => f(bySeconds))
         },
     }
+    // TODO: (Document api.levelSelection.)
     addEventListener('pointerdown', api._windowsAreShorterNow, {passive:true})
     // The main drawing loop.
     if (!canvas.gl)
@@ -1038,6 +1090,7 @@ function urlsToHierarchy(urls) {
         const v = urls[k], parts = new URL(k, location).pathname.slice(1).split('/')
         parts.length && (parts[parts.length-1] = parts[parts.length-1].replace('.json', ''))
         for (let i = 0, o = result; i < parts.length; ++i)
+            parts[i] = (parts[i][0].toUpperCase() + parts[i].slice(1)).replace(/\-\_/g, ' '),
             o = o[parts[i]] = i < parts.length-1 ? (o[parts[i]] || Object.create(null)) : v
     }
     return mergeSingles(result)
@@ -1052,7 +1105,7 @@ function urlsToHierarchy(urls) {
         const keys2 = Object.keys(x[k]), k2 = keys2[0]
         if (keys2.length != 1) return x
         const r = Object.create(null)
-        r[k + '/' + k2] = x[k][k2]
+        r[k + ' / ' + k2] = x[k][k2]
         return mergeSingles(r, true)
     }
 }

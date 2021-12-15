@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 <body>
-<div id=status>
+<div id=status class=numeric-information>
   <div id=time></div>
   <div id=score></div>
 </div>
@@ -24,8 +24,10 @@ canvas { display: block;  width: 100%;  height: 100% }
   font-size: 3em;
   color: white;
   text-shadow: 0 0 0.3em black;
-  font-family: monospace, monospace;
   opacity: .85;
+}
+.numeric-information {
+  font-family: monospace, monospace;
 }
 #time {
   float: left;
@@ -48,13 +50,25 @@ canvas { display: block;  width: 100%;  height: 100% }
   user-select: none;
   font-size: 1.2em;
   animation: fadein .42s;
-  max-width: 50%;
+  max-width: 75%;
   padding: .6em;
-  text-indent: .6em;
   opacity: .85;
+}
+.window, button {
   clip-path: polygon(0 5%, 5% 0, 95% 0, 100% 5%, 100% 95%, 95% 100%, 5% 100%, 0 95%);
   clip-path: polygon(0 .3em, .3em 0, calc(100% - .3em) 0, 100% .3em, 100% calc(100% - .3em), calc(100% - .3em) 100%, .3em 100%, 0 calc(100% - .3em));
 }
+button {
+  border: none;
+  padding: .6em 1.5em;
+  width: 100%;
+  font-size: .9em;
+  letter-spacing: 1px;
+  background-color: gainsboro;
+  transition: all .3s;
+}
+button:hover { background-color: blanchedalmond; }
+button:active { background-color: gold; }
 .removed {
   animation: fadeout .97s forwards;
 }
@@ -62,6 +76,10 @@ canvas { display: block;  width: 100%;  height: 100% }
 @keyframes fadeout { to { opacity:0;  visibility:hidden } }
 .promise {
   /* TODO: Some placeholder here. */
+  /* TODO: Have a test where we can see the placeholder, and make it look not-terrible. */
+}
+.novel {
+  /* TODO: Gradient to #b0d2ff. */
 }
 </style>
 </body>
