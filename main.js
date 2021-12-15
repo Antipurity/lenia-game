@@ -268,9 +268,6 @@ void main() {
 
 
 
-// TODO: `api.notify(string | DOMelem, timeoutSec=10)=>Promise<void>`.
-//   TODO: One `window` for notifications, into which we put notifications, hidden by CSS when the timeout runs out.
-//   TODO: A flexbox, inverting the display order. (So that we could put a checkbox at the top, and show all with CSS only.)
 // TODO: Document the JS API.
 
 // TODO: The main menu, with "start" (first level) and "continue" (using the save file from localStorage, with at least the unlocked levels; select the level, with a hierarchical view).
@@ -442,7 +439,7 @@ function loop(canvas) {
             updateActor(L, a)
             updateActorWebGLData(L, a.i)
         },
-        window(content, actorName = null, timeoutSec = 10, posMomentum = .9) {
+        window(content, actorName = null, timeoutSec = 100, posMomentum = .9) {
             // Given a string or a DOM element, and the actor name, positions a window near the actor.
             // Given a string or a DOM element, positions a free-floating window in the bottom-left corner.
             // To not fade away after `timeoutSec`, pass `timeoutSec = null`.
@@ -458,20 +455,26 @@ function loop(canvas) {
             if (typeof content == 'string') { const el = document.createElement('div');  el.append(content);  content = el }
             content.classList.add('window')
             if (actorName) {
+                const margin = 6 // Personal space, buddy.
                 let actor = api._level.actors[actorName], x, y
                 if (!actor) throw new Error("Nonexistent actor "+actorName)
                 requestAnimationFrame(moveWindow)
-                function moveWindow() {
+                function moveWindow() { // Reasonable amount of code for tracking actors.
                     api.read(actorName)
                     const p = posMomentum
                     const [x2, y2] = actor.pos
-                    const width = content.offsetWidth / innerWidth, height = content.offsetHeight / innerHeight
-                    const x3 = x == null ? x2 : x2-width/2 < x ? x2 : x2-width/2 > x ? x2-width : x
-                    const y3 = y == null ? y2 : y2-height/2 < y ? y2 : y2-height/2 > y ? y2-height : y
+                    const w = innerWidth, h = innerHeight, m = margin
+                    const width = content.offsetWidth / w, height = content.offsetHeight / h
+                    const boxX = content.offsetLeft / w, boxY = 1 - content.offsetTop / h
+                    const distX = Math.min(Math.hypot(x2-boxX+m/w, y2-boxY+height/2), Math.hypot(x2-boxX-width-m/w, y2-boxY+height/2))
+                    const distY = Math.min(Math.hypot(y2-boxY-m/h, x2-boxX-width/2), Math.hypot(y2-boxY+height+m/h, x2-boxX-width/2))
+                    const [leftX, rightX, topY, bottomY] = distX < distY ? [width/2, width/2, -m/h, height + m/h] : [-m/w, width + m/w, height/2, height/2]
+                    const x3 = x == null ? x2 : x2-leftX < x ? x2 + m/w : x2-rightX > x ? x2-width - m/w : x
+                    const y3 = y == null ? y2 : y2-topY < y ? y2 + m/h : y2-bottomY > y ? y2-height - m/h : y
                     x = x != null ? p*x + (1-p)*x3 : x3 - Math.random()*width
                     y = y != null ? p*y + (1-p)*y3 : y3 - Math.random()*height
-                    content.style.left = x*innerWidth + 'px'
-                    content.style.top = (1-y - height)*innerHeight + 'px'
+                    content.style.left = x*w + 'px'
+                    content.style.top = (1-y - height)*h + 'px'
                     if (!content.classList.contains('removed')) requestAnimationFrame(moveWindow)
                 }
             } else
