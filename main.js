@@ -395,6 +395,7 @@ void main() {
             // Can be called slow.
             const L = api._level, a = L.actors[actorName]
             if (!a) throw new Error("Nonexistent actor "+actorName)
+            if (!glState.leniaFrames) return
             updateActorCPUData(L, 1, a.i)
         },
         write(actorName) {
@@ -445,10 +446,11 @@ void main() {
                 if (actorName && api._level.actors[actorName]) {
                     const margin = 6 // Personal space, buddy.
                     let actor = api._level.actors[actorName], x, y
-                    requestAnimationFrame(moveWindow)
+                    moveWindow()
                     function moveWindow() { // Reasonable amount of code for tracking actors.
                         if (!api._level.actors[actorName] || actor !== api._level.actors[actorName]) return
-                        api.read(actorName)
+                        if (!content.classList.contains('removed')) requestAnimationFrame(moveWindow)
+                        if (document.visibilityState === 'hidden') return
                         const p = posMomentum
                         const [x2, y2] = actor.pos
                         const w = innerWidth, h = innerHeight, m = margin
@@ -469,7 +471,6 @@ void main() {
                         y = Math.max(0, Math.min(y, 1-height))
                         content.style.left = x*w + 'px'
                         content.style.top = (1-y - height)*h + 'px'
-                        if (!content.classList.contains('removed')) requestAnimationFrame(moveWindow)
                     }
                 } else // Bottom-left when no actor or a non-existent actor is given.
                     content.style.left = content.style.bottom = 0
@@ -639,7 +640,7 @@ void main() {
     setup()
     draw()
 
-    canvas.addEventListener('webglcontextlost', evt => evt.preventDefault()) // Allow restoring.
+    canvas.addEventListener('webglcontextlost', evt => { evt.preventDefault(), api._level && (api._level._webglLost = true) }) // Allow restoring.
     canvas.addEventListener('webglcontextrestored', setup)
     function setup() {
         const s = glState
@@ -704,9 +705,13 @@ void main() {
         ]})
         s.posBuffer = initBuffer(gl, new Float32Array([-1,1, 1,1, -1,-1, 1,-1]), 2)
         gl.clearColor(0,0,0,1)
+        api._level && (api._level._webglLost = false)
+        s.leniaFrames = null
     }
     function handleLevelLoaded(s, L) {
         // This is separated from `setup` and called in `draw` after init, because it depends on the level `L`.
+        if (s.leniaFrames) return
+        L._webglLost = false
         s.leniaFrames = { // This might leak memory.
             prev:initTexture(gl, L.width, L.height),
             next:initTexture(gl, L.width, L.height), // The Lenia loop modifies Lenia state.
@@ -821,6 +826,7 @@ void main() {
         // This sync GPU->CPU transfer may slow the game down.
         const s = glState
         const data = new Float32Array(len * 4)
+        if (L._webglLost) return data
         gl.bindBuffer(gl.ARRAY_BUFFER, s.posSpeed.prev.buf)
         gl.getBufferSubData(gl.ARRAY_BUFFER, start*4*4, data, 0, len*4)
         for (let i = start; i < start + len; ++i) {
@@ -832,6 +838,7 @@ void main() {
         return data
     }
     function handleExtraData(L, len = 16, start = Math.random() * (L._actorNames.length - len + 1) | 0) { // Health & score.
+        if (!glState.leniaFrames) return
         if (typeof L.winScore != 'number') return
         if (len > L._actorNames.length) len = L._actorNames.length, start = 0
         const data = updateActorCPUData(L, len, start)
@@ -883,12 +890,12 @@ void main() {
     }
     function draw() {
         requestAnimationFrame(draw)
+        if (document.visibilityState === 'hidden') return
         maybeResize(canvas, canvas)
         gl.clear(gl.COLOR_BUFFER_BIT)
         if (!api._level) return
         const s = glState, L = api._level, p1 = s.lenia, p2 = s.actors, p3 = s.displayLenia, p4 = s.displayActors, rect = s.posBuffer
-        if (!s.leniaFrames)
-            handleLevelLoaded(s, L)
+        handleLevelLoaded(s, L)
         if (p1 !== null) { // Lenia.
             const u = p1.uniform, a = p1.attrib
             gl.useProgram(p1.program)
