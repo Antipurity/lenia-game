@@ -2,9 +2,9 @@
     "description": "TODO: What are we doing? What's the level, even?",
     "isMenu": false,
 
-    "onLoad": "(async function() { const at='pointer';  await api.window([`Here, human senses have no power.\n\nThis interface links to thought.\n\nLink green to blue.`, [{tag:'i', style:'font-size:.85em'}, `\n\n    (Click repeatedly to skip text.)`]], at, 6) })()",
+    "onLoad": "0&&(async function() { const at='pointer';  await api.window([`Here, human senses have no power.\n\nThis interface links to thought.\n\nLink green to blue.`, [{tag:'i', style:'font-size:.85em'}, `\n\n    (Click repeatedly to skip text.)`]], at, 6) })()",
     "winScore": 100,
-    "onWon": "(async function() { const at='pointer';  api.levelSuggest('levels/tutorial/2.json');  await api.window('Wonderful.', at, 3);  await api.window('You can hear me then.', at, 3);  await api.window(`You may experience dizziness and hallucinations in your vision and hearing.\n\nThis is normal, as your senses are currently repurposed for information.\n\nTry to get used to it.`, at);  await api.window(`Let's run through a couple exercises.\n\nThey are not complicated, but mastery of basics will serve you well.`, at);  await api.window([{tag:'button'}, 'Go'], at, 2);  api.levelLoad('levels/tutorial/2.json') })()",
+    "onWon": "0&&(async function() { const at='pointer';  api.levelSuggest('levels/tutorial/2.json');  await api.window('Wonderful.', at, 3);  await api.window('You can hear me then.', at, 3);  await api.window(`You may experience dizziness and hallucinations in your vision and hearing.\n\nThis is normal, as your senses are currently repurposed for information.\n\nTry to get used to it.`, at);  await api.window(`Let's run through a couple exercises.\n\nThey are not complicated, but mastery of basics will serve you well.`, at);  await api.window([{tag:'button'}, 'Go'], at, 2);  api.levelLoad('levels/tutorial/2.json') })()",
   
     "onLost": "const n = api['tutorial1 lost'] = api['tutorial1 lost']+1 || 0 \n api.window([`What? Are you lost, then?\n\nBraindead?\n\nNo. Try again.`, `Stop fooling around.\n\nYou have to actually try to not put green into blue. This is so easy.`, `GET. IT. IN. THERE.`, `Yes. Very funny joke. We are all very impressed, and laughing at your wit, hard as steel.\n\nNow do this normally.`, `We have a tutorial to go through. There will be time for pretty green colors later.`][n % 5]) \n setTimeout(api.levelLoad, 3000)",
 
@@ -15,7 +15,7 @@
         0, 0, 0, 1
     ],
 
-    "width": 512, "height": 512,
+    "width": 1024, "height": 1024,
     "iSlowdown": 5,
     "iMixing": [
      1.07, 0.0,    0,
@@ -30,7 +30,8 @@
     "iOffset": [0,0], "iKernelOffset": [0,0],
 
     "actors": {
-      "pointer": {"displayRadius":[0,15,0], "pos":[0.5, 0.5], "emitRadius":6, "emit":"green", "emittance":1, "speed":{"Bmouse":0.001, "Bb":0.003, "Bspeed":0.99}, "dhealth":{"B1":-0.0005, "Bb":1}, "trackLost":true},
-      "target": {"pos":[0.5, 0.8], "emitRadius":50, "emit":"blue", "emittance":{"B1":0.5, "Btime":0.5, "BtimeFrequency":0.5}, "speed":{"Bb":0.0003}, "dscore":{"Bg":0.1}, "TODO:": "Die when there's green here. When dead, initiate the level-end sequence --- or maybe add score when health is not full. Or just add score directly.."}
+      "pointer": {"displayRadius":[0,15,0], "pos":[0.25, 0.25], "emitRadius":6, "emit":"green", "emittance":1, "speed":{"Bmouse":0.003, "Bb":0.001, "Bspeed":0.95}, "dhealth":{"B1":0.005, "Br":-0.2}, "trackLost":true},
+      "target": {"pos":[0.75, 0.75], "emitRadius":50, "emit":"blue", "emittance":{"B1":0.5, "Btime":0.5, "BtimeFrequency":0.5}, "speed":{"Br":-0.03, "Bg":-0.03, "Bb":0.005, "Bspeed":0.95}, "dscore":{"Bg":0.1}, "TODO:": "Die when there's green here. When dead, initiate the level-end sequence --- or maybe add score when health is not full. Or just add score directly.."},
+      "1": {"displayRadius":[0,0,0], "pos":[0.5, 0.5], "emitRadius":64, "emit":"red", "emittance":1, "target":"pointer", "speed":{"Btarget":0.01}}
     }
 }

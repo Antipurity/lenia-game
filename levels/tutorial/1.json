@@ -31,6 +31,6 @@
 
     "actors": {
       "pointer": {"displayRadius":[0,15,0], "pos":[0.5, 0.5], "emitRadius":6, "emit":"green", "emittance":1, "speed":{"Bmouse":0.001, "Bb":0.003, "Bspeed":0.99}, "dhealth":{"B1":-0.0005, "Bb":1}, "trackLost":true},
-      "target": {"pos":[0.5, 0.8], "emitRadius":50, "emit":"blue", "emittance":{"B1":0.5, "Btime":0.5, "BtimeFrequency":0.5}, "dscore":{"Bg":0.1}, "TODO:": "Die when there's green here. When dead, initiate the level-end sequence --- or maybe add score when health is not full. Or just add score directly.."}
+      "target": {"pos":[0.5, 0.8], "emitRadius":50, "emit":"blue", "emittance":{"B1":0.5, "Btime":0.5, "BtimeFrequency":0.5}, "dscore":{"Bg":0.1}}
     }
 }

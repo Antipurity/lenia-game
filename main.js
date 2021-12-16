@@ -857,7 +857,8 @@ void main() {
         const gravity = L._buffers.gravity
         for (let i = 0; i < len; ++i) {
             const name = L._actorNames[start+i], a = L.actors[name]
-            L.score -= (a.score || 0) - (a.score = data[i*4+1])
+            if (L._trackedLost == null || L._trackedLost)
+                L.score -= (a.score || 0) - (a.score = data[i*4+1])
 
             // Update target positions. (May be slow to propagate, but much better than WebGL-only "targets are impossible to implement unless we forego attributes and do everything through textures".)
             gravity[(start+i)*4+2] = a._targetActor ? a._targetActor.pos[0] : .5
@@ -873,7 +874,7 @@ void main() {
                 const wasOk = !!L._trackedLost
                 const diff = a._health<=0 && a.health>0 ? 1 : a._health>0 && a.health<=0 ? -1 : 0
                 if (a.trackLost && L._trackedLost != null) L._trackedLost += diff
-                if (wasOk && !L._trackedLost) { // Lost the level, possibly after winnig.
+                if (wasOk && !L._trackedLost) { // Lost the level, possibly after winning.
                     if (L.score < L.winScore) { // Did not win.
                         try {
                             if (typeof L.onLost == 'string') L.onLost = new Function('api,level', L.onLost)
