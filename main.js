@@ -348,6 +348,7 @@ void main() {
         _level: null, _url: null, _windowShorteners: new Set,
         levelLoad(url = api._url) {
             // Goes to a level. `url` must point to a JSON file of the level.
+            if (api._level && !api._level.isMenu) api.levelSuggest(api._level.url, { lost:api._level.score })
             api._url = url
             loadLevel(url).then(L => {
                 L.url = url
@@ -362,10 +363,10 @@ void main() {
                 exports.level = L
             }).catch(e => (error(e), api.levelLoad(initialLevel)))
         },
-        levelSuggest(url, winLose = {lost:0}) {
+        levelSuggest(url, winLose = { lost:0 }) {
             // Given `url`, remembers it, to recommend to the user later. 🌟
-            // Given `url` and `{won:L.frame, lost:L.score}`, may update the min stored time.
-            // Given `url` and `{lost:L.score}`, such as on level lose or end, may update the max stored score.
+            // Given `url` and `{ won:L.frame, lost:L.score }`, may update the min stored time.
+            // Given `url` and `{ lost:L.score }`, such as on level lose or end, may update the max stored score.
             // Given nothing, fetches `{ won:{url:time}, lost:{url:score} }` for all URLs. Won levels are in both, non-won ones are in `lost`.
             // Given `url` and `{}`, forgets the level's data.
             const prev = api._levelSuggestLock // No data races.
@@ -394,6 +395,7 @@ void main() {
         },
         levelExit() {
             // Returns to the last-visited main menu.
+            if (api._level && !api._level.isMenu) api.levelSuggest(api._level.url, { lost:api._level.score })
             storeGet('menu').then(url => api.levelLoad(url || initialLevel))
         },
         read(actorName) {
@@ -404,7 +406,7 @@ void main() {
             if (!glState.leniaFrames) return
             updateActorCPUData(L, 1, a.i)
         },
-        write(actorName, prevHealth = 1) { // TODO:
+        write(actorName) {
             // After changing an actor object's props, call this to sync changes to GPU.
             const L = api._level, a = L.actors[actorName]
             if (!a) throw new Error("Nonexistent actor "+actorName)
@@ -543,7 +545,6 @@ void main() {
                             ],
                             fetch(url, { mode:'cors', cache:'force-cache' }).then(r => r.json()).then(level => {
                                 return [{tag:'div'},
-                                    { style:'text-indent:.6em' },
                                     typeof level.description == 'string' ? level.description : 'No description. Cringe.',
                                 ]
                             }),
@@ -651,6 +652,7 @@ void main() {
     canvas.addEventListener('webglcontextlost', evt => { evt.preventDefault(), api._level && (api._level._webglLost = true) }) // Allow restoring.
     canvas.addEventListener('webglcontextrestored', setup)
     function setup() {
+        api.window(null)
         const s = glState
         s.lenia = initShaders(gl, leniaSource.split('====='), { uniforms:[
             // Simulation parameters.

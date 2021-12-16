@@ -1,12 +1,12 @@
 {
-    "description": "TODO: What are we doing? What's the level, even?",
+    "description": "So many targets.\nPulsing with fear.\nDo they yearn for death?\nMake this level all clear.\nPeople's wishes held dear.",
     "isMenu": false,
 
-    "onLoad": "0&&(async function() { const at='pointer';  await api.window([`These worlds function by their rules, and you impose your will on them through your `, [{tag:'i'}, `actors`], `.\n\nYou can tell which are yours.`], at, 6);  await api.window([`Like everything, actors have structural integrity.\n\nWhen all is lost, you lose.\n\nDon't.`], at, 6);  api.window(`Avoid this.`, 'hunter1', 4), api.window(`Chase this.`, 'target', 4) })()",
-    "winScore": 10000,
-    "onWon": "0&&(async function() { const at='pointer';  api.levelSuggest('levels/tutorial/3.json'); 'TODO: Also suggest a few non-tutorial levels. Once we have them.'  await api.window('You did it.', at, 3);  await api.window(`There is nothing more to know, and everything to experience.`, at, 6); api.window([{tag:'button', onclick:`api.levelExit()`}, `Click this to return to menu.`]);  await api.window(`Care to test your mettle, perhaps?\n\nWish for a challenge, maybe?\n\nOvercome an obstacle to a number going up, perchance?\n\nGames are such joyful things.\n    To accomplish what the world tells you to is joyful.\n        Accept the numbers given to you as your reward.\n\n(Look, this interface can't plug in to your pleasure centers directly, so to perform on par with AI, you need to believe that this hollow world has meaning.)`, at, 32);  api.levelLoad('levels/tutorial/3.json') })()",
+    "onLoad": "(async function() { for (let k in level.actors) if (k.slice(0,6) === 'target') api.window(`Chase this.`, k, 1) })()",
+    "winScore": 200,
+    "onWon": "(async function() { const lost = api['tutorial3 lost'] || 0;  api.window([{tag:'button', onclick:`api.levelExit()`}, `Finish the tutorial.`], null, null), api.window([{tag:'button', onclick:`api.levelLoad()`}, `Redo this level.`], 'bottomRight', null, 0);  await api.window(level.frame < 20*60 ? 'Oh, a speedrunner. May your roads be rife with shortcuts.' : lost < 1 ? 'Yes, very good, very good. First try.' : lost < 17 ? 'You passed the test. You can return to the hub.' : 'Thank you, for muddling your way through this last test.', 'pointer', 16, .9) })()",
   
-    "onLost": "console.log('LOST TODO: Where is it? Why does api.write not lose the level?');  const n = api['tutorial3 lost'] = api['tutorial3 lost']+1 || 0 \n api.window([`TODO: Come up with something.`][n % 1]) \n setTimeout(api.levelLoad, 3000)",
+    "onLost": "const n = api['tutorial3 lost'] = api['tutorial3 lost']+1 || 0 \n api.window([`Oof.`, `Owie.`, `Ouch.`, `eeeeeeee`, `Having trouble? Want hints?`, `First, like always,\nfind out what's possible,\nthen think of how that can be used.`, `Flicking at exactly the right speed would leave a red trail.`, `A red trail would deflect the green ray. Maybe you can direct it to targets?`, `Did it work?`, `If you go up to a target right before it flares up, it will get infected with red for a short while, possibly earning a few points. Perchance do so?`, `Maybe you can push targets to their green doom?`, `If you push a target into a corner and trap it, it will give a massive point boost while it bounces wildly and escapes.`, `If you circle a target, especially several targets, you can ensnare them and trap them in red.`, `Now, you should have all the pieces for the ultimate technique.`, `The ultimate technique.`, `You must want it bad, since you keep killing yourself for it.\n\nCome up with your own, you have a mind, you don't need murder to evolve.`, `If you start with ensnaring all targets, you can get 100 points easily, 200 if you're lucky.`, `Emergent gameplay is very nice for the programmer.`][n % 18]) \n setTimeout(api.levelLoad, 3000)",
 
     "iColorMatrix": [
         1, 0, 0, 0,
@@ -18,20 +18,30 @@
     "width": 1024, "height": 1024,
     "iSlowdown": 5,
     "iMixing": [
-     1.07, 0.0,    0,
+     1.07, 0.0,  0.3,
        -1, 2.5,  0.5,
-       -2,-0.1,  1.3
+       -2,-0.1,  1.2
     ],
     "kernel":{
       "center": [0.5, 0.5, 0.5],
       "width": [0.1, 0.14, 0.14]
     },
-    "iGrowthCenter": [0.5, 1.65, 0.4], "iGrowthWidth": [0.0793, 0.4, 0.045],
+    "iGrowthCenter": [0.5, 1.65, 0.4], "iGrowthWidth": [0.0775, 0.4, 0.045],
     "iOffset": [0,0], "iKernelOffset": [0,0],
 
     "actors": {
-      "pointer":{"displayRadius":[16,0,0], "pos":[0.5, 0.5], "emitRadius":8, "emit":"red", "emittance":3, "speed":{"Bmouse":0.01, "Bg": -0.01, "Bb":-0.03, "Bspeed":0.7}, "dhealth":{"Br":0.05, "Bg":-2, "Bb":-0.5}, "trackLost":true},
-      "target": {"pos":[0.75, 0.75], "emitRadius":50, "emit":"blue", "emittance":{"B1":0.5, "Btime":0.5, "BtimeFrequency":0.5}, "speed":{"Br":-0.3, "Bg":-0.003, "Bb":0.005, "Bspeed":0.95}, "dscore":{"Bg":1}},
-      "servant":{"displayRadius":[0,16,0], "pos":[0.5, 0.2], "emitRadius":6, "emit":"green", "emittance":1, "speed":{"Bmouse":0.0001, "Br": -0.003, "Bg": -0.003, "Bb":0.003}, "dhealth":{"B1":-0.001, "Bb":1, "Bspeed":1}, "onLost":"const p = level.actors.pointer, prev = p.health;  console.log('health TODO:', prev);  p.health = 0, api.write('pointer'), p.health = prev", "TODO:":"Die when speed is too low. On death, kill 'pointer'."}
+      "pointer":{"displayRadius":[16,0,0], "pos":[0.5, 0.5], "emitRadius":6, "emit":"red", "emittance":3, "speed":{"Bmouse":0.01, "Bg": -0.01, "Bb":-0.03, "Bspeed":0.7}, "dhealth":{"Br":0.02, "Bg":-1, "Bb":-0.5}, "trackLost":true},
+      "target11": {"displayRadius":[0,0,12], "pos":[0.70, 0.70], "emitRadius":50, "emit":"blue", "emittance":{"B1":0.5, "Btime":0.5, "BtimeFrequency":0.5}, "speed":{"Br":-0.03, "Bg":-0.03, "Bb":0.005, "Bspeed":0.95}, "dscore":{"Br":2, "Bg":2}},
+      "target12": {"pos":[0.70, 0.65], "like":"target11", "emittance":{"BtimeFrequency":0.53}},
+      "target13": {"pos":[0.70, 0.60], "like":"target11", "emittance":{"BtimeFrequency":0.56}},
+      "target21": {"pos":[0.65, 0.70], "like":"target11", "emittance":{"BtimeFrequency":0.53}},
+      "target22": {"pos":[0.65, 0.65], "like":"target11", "emittance":{"BtimeFrequency":0.56}},
+      "target23": {"pos":[0.65, 0.60], "like":"target11", "emittance":{"BtimeFrequency":0.59}},
+      "target31": {"pos":[0.60, 0.70], "like":"target11", "emittance":{"BtimeFrequency":0.56}},
+      "target32": {"pos":[0.60, 0.65], "like":"target11", "emittance":{"BtimeFrequency":0.59}},
+      "target33": {"pos":[0.60, 0.60], "like":"target11", "emittance":{"BtimeFrequency":0.62}},
+      "servant":{"pos":[0.20, 0.20], "emitRadius":6, "emit":"green", "emittance":1, "speed":{"Bmouse":0.0001, "Br": -0.003, "Bg": -0.003, "Bb":0.0003}},
+
+      "bottomRight":{"pos":[0.999,0]}
     }
 }

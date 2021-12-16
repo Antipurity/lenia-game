@@ -4,7 +4,7 @@
 
     "onLoad": "(async function() { const at='pointer';  await api.window([`These worlds function by their rules, and you impose your will on them through your `, [{tag:'i'}, `actors`], `.\n\nYou can tell which are yours.`], at, 6);  await api.window([`Like everything, actors have structural integrity.\n\nWhen all is lost, you lose.\n\nDon't.`], at, 6);  api.window(`Avoid this.`, 'hunter1', 4, .9), api.window(`Chase this.`, 'target', 4, .9) })()",
     "winScore": 100,
-    "onWon": "(async function() { const at='pointer';  api.levelSuggest('levels/tutorial/3.json'); 'TODO: Also suggest a few non-tutorial levels. Once we have them.';  await api.window('You did it.', at, 3);  await api.window(`There is nothing more to know, and everything to experience.`, at, 6);  api.window([{tag:'button', onclick:`api.levelExit()`}, `Click this to return to menu.`], null, null);  await api.window(`Care to test your mettle, perhaps? Overcome an obstacle, maybe?\n\nWhen the end is never the end, why should you care?\n\nGames are such joyful things.\n    To accomplish what the world tells you to is joyful. To fail is to suffer.\n        Accept the numbers given to you as your reward.\n\n(Look, this interface can't plug in to your pleasure centers directly, so to perform on par with AI, you need to believe that this hollow world has meaning.)`, at, 32);  api.levelLoad('levels/tutorial/3.json') })()",
+    "onWon": "(async function() { const at='pointer';  api.levelSuggest('levels/tutorial/3.json'); 'TODO: Also suggest a few non-tutorial levels. Once we have them.';  await api.window('You did it.', at, 3);  await api.window(`There is nothing more to know, and everything to experience.`, at, 6);  api.window([{tag:'button', onclick:`api.levelExit()`}, `Click this to return to menu.`], null, null);  await api.window(`Care to test your mettle, perhaps? Overcome an obstacle, maybe?\n\n…No?\n\nAlright. So. When the end is never the end, why should you care?\n\nGames are such joyful things.\n    To accomplish what the world tells you to is joyful. To fail is to suffer.\n        Accept the numbers given to you as your reward.\n\n(Look, this interface can't plug in to your pleasure centers directly, so to perform on par with AI, you need to believe that this hollow world has meaning. It's how all computer games work. Accept it.)`, at, 24);  await api.window(`Yes. A challenge.`, at, 3);  api.levelLoad('levels/tutorial/3.json') })()",
   
     "onLost": "const n = api['tutorial2 lost'] = api['tutorial2 lost']+1 || 0 \n api.window([`See what happens when you are lost.`, `When you are lost, you find another you, and keep going.`, `Get back to the fight, soldier.`, `You can do it. So get to it.`, `That score? Your reward. Maximize it.`, `Over and over.`, `Over and over and over.`, `Over and over and over and over.`, `Over and over and over and over and over.\n\nImmortality.`, `Not through lack of death, but death unendingly irrelevant.`][n % 10]) \n setTimeout(api.levelLoad, 3000)",
 
@@ -18,7 +18,7 @@
     "width": 1024, "height": 1024,
     "iSlowdown": 5,
     "iMixing": [
-     1.07, 0.0,    0,
+     1.07, 0.0,  0.3,
        -1, 2.5,  1.1,
        -2,-0.1,  1.3
     ],
@@ -26,12 +26,12 @@
       "center": [0.5, 0.5, 0.5],
       "width": [0.1, 0.14, 0.14]
     },
-    "iGrowthCenter": [0.5, 1.65, 0.4], "iGrowthWidth": [0.077, 0.4, 0.045],
+    "iGrowthCenter": [0.5, 1.65, 0.4], "iGrowthWidth": [0.0775, 0.4, 0.045],
     "iOffset": [0,0], "iKernelOffset": [0,0],
 
     "actors": {
       "pointer": {"displayRadius":[0,15,0], "pos":[0.25, 0.25], "emitRadius":6, "emit":"green", "emittance":1, "speed":{"Bmouse":0.003, "Bb":0.001, "Bspeed":0.95}, "dhealth":{"B1":0.005, "Br":-0.2}, "trackLost":true},
-      "target": {"pos":[0.75, 0.75], "emitRadius":50, "emit":"blue", "emittance":{"B1":0.5, "Btime":0.5, "BtimeFrequency":0.5}, "speed":{"Br":-0.03, "Bg":-0.03, "Bb":0.005, "Bspeed":0.95}, "dscore":{"Bg":1}},
+      "target": {"pos":[0.75, 0.75], "emitRadius":50, "emit":"blue", "emittance":{"B1":0.5, "Btime":0.5, "BtimeFrequency":0.5}, "speed":{"Br":-0.03, "Bg":-0.03, "Bb":0.005, "Bspeed":0.95}, "dscore":{"Br":0.5, "Bg":1}},
       "hunter1": {"pos":[0.5, 0.5], "emitRadius":64, "emit":"red", "emittance":1, "target":"pointer", "speed":{"Btarget":0.01}}
     }
 }
