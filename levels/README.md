@@ -228,7 +228,7 @@ When the user clicks, all active windows take 2 less seconds to disappear. Click
 
 If `posMomentum` is `0`, the window is centered on the element, instead of daintily following it. Otherwise, the closer it is to `1`, the slower the window follows.
 
-`content` can be of the format shown in the example `['div', { style:'color:red', onclick() { api.levelLoad() } }, 'Click to ', ['span', { style:'color:blue' }, 'reload'], ' the level']`, for convenience.
+`content` can be of the format shown in the example `[{ tag:'div', style:'color:red', onclick() { api.levelLoad() } }, 'Click to ', [{ style:'color:blue' }, 'reload'], ' the level']`, for convenience.
 
 ---
 

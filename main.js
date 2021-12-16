@@ -368,22 +368,28 @@ void main() {
             // Given `url` and `{lost:L.score}`, such as on level lose or end, may update the max stored score.
             // Given nothing, fetches `{ won:{url:time}, lost:{url:score} }` for all URLs. Won levels are in both, non-won ones are in `lost`.
             // Given `url` and `{}`, forgets the level's data.
-            const novel = storeGet('novel')
-            return storeGet('won').then(won => novel.then(novel => {
-                // (Can potentially cause a data race, but no one cares.)
-                won = won && JSON.parse(won) || {}
-                novel = novel && JSON.parse(novel) || {}
-                if (!url) return { won, lost:novel }
-                if (typeof winLose.won == 'number') { // Won a level. Remember min time.
-                    won[url] = won[url] !== undefined ? Math.min(won[url], winLose.won) : winLose.won, storeSet('won', JSON.stringify(won))
-                }
-                if (typeof winLose.lost == 'number') { // Lost a level. Remember max score.
-                    novel[url] = Math.max(novel[url] || 0, winLose.lost), storeSet('novel', JSON.stringify(novel))
-                }
-                if (typeof winLose.won != 'number' && typeof winLose.lost != 'number') { // Forget about Freeman.
-                    delete novel[url], storeSet('novel', JSON.stringify(novel))
-                    delete won[url], storeSet('won', JSON.stringify(won))
-                }
+            const prev = api._levelSuggestLock // No data races.
+            return api._levelSuggestLock = new Promise(((resolve, reject) => {
+                Promise.resolve(prev).then(() => {
+                    const novel = storeGet('novel')
+                    return storeGet('won').then(won => novel.then(novel => {
+                        won = won && JSON.parse(won) || {}
+                        novel = novel && JSON.parse(novel) || {}
+                        if (!url) return resolve({ won, lost:novel })
+                        const waitFor = []
+                        if (typeof winLose.won == 'number') { // Won a level. Remember min time.
+                            won[url] = won[url] !== undefined ? Math.min(won[url], winLose.won) : winLose.won, waitFor.push(storeSet('won', JSON.stringify(won)))
+                        }
+                        if (typeof winLose.lost == 'number') { // Lost a level. Remember max score.
+                            novel[url] = Math.max(novel[url] || 0, winLose.lost), waitFor.push(storeSet('novel', JSON.stringify(novel)))
+                        }
+                        if (typeof winLose.won != 'number' && typeof winLose.lost != 'number') { // Forget about Freeman.
+                            delete novel[url], waitFor.push(storeSet('novel', JSON.stringify(novel)))
+                            delete won[url], waitFor.push(storeSet('won', JSON.stringify(won)))
+                        }
+                        Promise.all(waitFor).then(resolve).catch(reject)
+                    })).catch(reject)
+                }).catch(reject)
             }))
         },
         levelExit() {
@@ -421,7 +427,7 @@ void main() {
                     return
                 }
                 if (typeof content == 'string') { const el = document.createElement('div');  el.append(content);  content = el }
-                if (Array.isArray(content)) { // Ex: ['div', { style:'color:red', onclick() { api.levelLoad() } }, 'Click to reload the level']
+                if (Array.isArray(content)) { // Ex: [{ tag:'div', style:'color:red', onclick() { api.levelLoad() } }, 'Click to reload the level']
                     content = (function arrayTreeToDOM(x) {
                         if (x instanceof Promise) {
                             const el = document.createElement('div')
@@ -429,8 +435,10 @@ void main() {
                             el.classList.add('promise')
                             return el
                         } else if (Array.isArray(x)) {
-                            const el = document.createElement(x[0])
-                            for (let i = 1; i < x.length; ++i)
+                            let tag = 'span'
+                            for (let i = 0; i < x.length; ++i) if (x[i] && typeof x[i].tag == 'string') tag = x[i].tag
+                            const el = document.createElement(tag)
+                            for (let i = 0; i < x.length; ++i)
                                 if (x[i] && !Array.isArray(x[i]) && typeof x[i] == 'object' && !(x[i] instanceof Promise))
                                     for (let k of Object.keys(x[i])) {
                                         const v = el[k] = x[i][k]
@@ -526,20 +534,20 @@ void main() {
                 function toUI(x, depth=0) {
                     if (Array.isArray(x)) { // A concrete level. Show description and an invitation.
                         const [url, wonFrame, lostScore] = x
-                        return ['div',
+                        return [{tag:'div'},
                             wonFrame !== 0 ? { style:'height:0px' } : null, // Only uncollapse novel levels.
                             { class:'hidable' },
-                            ['div',
+                            [{tag:'div'},
                                 { style:'float:right; clear:right; display:inline-block; text-align:right; font-size:.9em' },
-                                ['button', { url, onclick() { api.levelLoad(this.url) } }, 'Go'],
+                                [{ tag:'button', url, onclick() { api.levelLoad(this.url) } }, 'Go'],
                             ],
                             fetch(url, { mode:'cors', cache:'force-cache' }).then(r => r.json()).then(level => {
-                                return ['div',
+                                return [{tag:'div'},
                                     { style:'text-indent:.6em' },
                                     typeof level.description == 'string' ? level.description : 'No description. Cringe.',
                                 ]
                             }),
-                            ['div', { style:'clear:both' }],
+                            [{tag:'div'}, { style:'clear:both' }],
                         ]
                     } else { // A parent node.
                         const children = []
@@ -549,9 +557,9 @@ void main() {
                         })
                         for (let k of keys) {
                             const [novel, wonFrame, lostScore] = Array.isArray(x[k]) ? [x[k][1] === 0, x[k][1], x[k][2]] : x[k].__summary
-                            children.push(['div',
+                            children.push([{tag:'div'},
                                 { class: 'level-container' },
-                                ['div',
+                                [{tag:'div'},
                                     novel ? { class:'novel-header' } : null,
                                     { onclick() { // Un/collapse the contents on click.
                                         const el = this.nextSibling, shown = !isHidden(el)
@@ -576,19 +584,19 @@ void main() {
                                             el._height = el.offsetHeight
                                         }
                                     } },
-                                    ['span', { style:'vertical-align:middle; line-height:1.7em' }, k],
-                                    ['div',
+                                    [{ style:'vertical-align:middle; line-height:1.7em' }, k],
+                                    [{tag:'div'},
                                         { style:'float:right; clear:right; display:inline-block; text-align:left; font-size:.75em; margin-left:1.2em; line-height:1.1em' },
-                                        ['div', 'Score  ', ['span', { class:'numeric-information' }, lostScore !== 0 ? lostScore.toFixed(2) : '—']],
-                                        ['div', 'Time   ', ['span', { class:'numeric-information' }, wonFrame !== 0 ? (wonFrame/60).toFixed(2) + 's' : '—']],
+                                        [{tag:'div'}, 'Score  ', [{ class:'numeric-information' }, lostScore !== 0 ? lostScore.toFixed(2) : '—']],
+                                        [{tag:'div'}, 'Time   ', [{ class:'numeric-information' }, wonFrame !== 0 ? (wonFrame/60).toFixed(2) + 's' : '—']],
                                     ],
-                                    ['div', { style:'clear:both' }],
+                                    [{ tag:'div', style:'clear:both' }],
                                 ],
                                 toUI(x[k], depth+1),
                             ])
                         }
-                        return ['div',
-                            { class:'hidable' },
+                        return [
+                            { tag:'div', class:'hidable' },
                             depth ? { style:['padding-left:1em', x.__summary[0] && depth > 1 ? '' : 'height:0px'].join(';') } : null,
                             ...children,
                         ]
@@ -751,8 +759,10 @@ void main() {
         for (let name of L._actorNames) {
             const a = actors[name]
             updateActor(L, a)
-            if (typeof a.onLoad == 'string') a.onLoad = new Function('api,level,actorName', a.onLoad)
-            if (typeof a.onLoad == 'function') a.onLoad(api, L, name)
+            try {
+                if (typeof a.onLoad == 'string') a.onLoad = new Function('api,level,actorName', a.onLoad)
+                if (typeof a.onLoad == 'function') a.onLoad(api, L, name)
+            } catch (err) { console.error(err) }
         }
         if (!L._trackedLost) L._trackedLost = null
         s.posSpeed = twice(() => initBuffer(gl, pos, 4))
@@ -761,14 +771,16 @@ void main() {
         s.displayRadius = initBuffer(gl, displayRadius, 4)
         s.behavior = { keys: B.keys }
         for (let k of B.keys) s.behavior[k] = initBuffer(gl, B[k], 4)
-        if (typeof L.onLoad == 'string') L.onLoad = new Function('api,level', L.onLoad)
-        if (typeof L.onLoad == 'function') L.onLoad(api, L)
+        try {
+            if (typeof L.onLoad == 'string') L.onLoad = new Function('api,level', L.onLoad)
+            if (typeof L.onLoad == 'function') L.onLoad(api, L)
+        } catch (err) { console.error(err) }
 
         // If at the main menu, display UI.
         if (L.isMenu) {
             storeGet('menu').then(_ => {
                 setTimeout(() => {
-                    api.window(['div', {style:'font-size:2em; letter-spacing:2px; text-align:center'}, 'LENIA GAME'], 'title', null, 0)
+                    api.window([{style:'font-size:2em; letter-spacing:2px; text-align:center'}, 'LENIA GAME'], 'title', null, 0)
                     api.window(api.levelSelection(), 'levels', null, 0)
                 }, 100) // This is for first-time visitors, waiting until `api.levelSuggest` is *probably* done.
             })
@@ -854,15 +866,19 @@ void main() {
             const health = data[i*4+0]
             if (a.health > 0 && health <= 0) {
                 a.health = health
-                if (typeof a.onLost == 'string') a.onLost = new Function('api,level,actorName', a.onLost)
-                if (typeof a.onLost == 'function') a.onLost(api, L, name)
+                try {
+                    if (typeof a.onLost == 'string') a.onLost = new Function('api,level,actorName', a.onLost)
+                    if (typeof a.onLost == 'function') a.onLost(api, L, name)
+                } catch (err) { console.error(err) }
                 const wasOk = !!L._trackedLost
                 const diff = a._health<=0 && a.health>0 ? 1 : a._health>0 && a.health<=0 ? -1 : 0
                 if (a.trackLost && L._trackedLost != null) L._trackedLost += diff
                 if (wasOk && !L._trackedLost) { // Lost the level, possibly after winnig.
                     if (L.score < L.winScore) { // Did not win.
-                        if (typeof L.onLost == 'string') L.onLost = new Function('api,level', L.onLost)
-                        if (typeof L.onLost == 'function') L.onLost(api, L)
+                        try {
+                            if (typeof L.onLost == 'string') L.onLost = new Function('api,level', L.onLost)
+                            if (typeof L.onLost == 'function') L.onLost(api, L)
+                        } catch (err) { console.error(err) }
                     }
                     if (!L.isMenu) api.levelSuggest(L.url, { lost:L.score })
                 }
@@ -872,8 +888,10 @@ void main() {
         updateActorWebGLGravity(L, start, start+len)
         // Update the displayed score.
         if (L.score >= L.winScore && !L._didWin) { // Won the level.
-            if (typeof L.onWon == 'string') L.onWon = new Function('api,level', L.onWon)
-            if (typeof L.onWon == 'function') L.onWon(api, L)
+            try {
+                if (typeof L.onWon == 'string') L.onWon = new Function('api,level', L.onWon)
+                if (typeof L.onWon == 'function') L.onWon(api, L)
+            } catch (err) { console.error(err) }
             if (!L.isMenu) api.levelSuggest(L.url, { won:L.frame, lost:L.score })
             L._didWin = true
         }
@@ -1149,7 +1167,7 @@ void main() {
         function bell(x, m, s) { return Math.exp(-(x-m)*(x-m)/(s*s*2.)) }
     }
 
-    function storeSet(key, value) { localStorage[key] = value }
+    function storeSet(key, value) { return localStorage[key] = value, Promise.resolve() }
     function storeGet(key) { return Promise.resolve(localStorage[key]) }
 
     function urlsToHierarchy(urls) {

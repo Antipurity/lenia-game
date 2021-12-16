@@ -3,9 +3,8 @@
     "isMenu": true,
 
     "winScore": null,
-    "winUnlocks": [],
 
-    "onLoad": "api.levelSuggest('levels/1.json')",
+    "onLoad": "api.levelSuggest('levels/tutorial/1.json')",
 
     "iColorMatrix": [
         1, 0, 0, 0,
