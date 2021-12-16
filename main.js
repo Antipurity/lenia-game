@@ -404,14 +404,14 @@ void main() {
             if (!glState.leniaFrames) return
             updateActorCPUData(L, 1, a.i)
         },
-        write(actorName) {
+        write(actorName, prevHealth = 1) { // TODO:
             // After changing an actor object's props, call this to sync changes to GPU.
             const L = api._level, a = L.actors[actorName]
             if (!a) throw new Error("Nonexistent actor "+actorName)
             updateActor(L, a)
             updateActorWebGLData(L, a.i)
         },
-        window(content, actorName = null, timeoutSec = 16, posMomentum = .9) {
+        window(content, actorName = null, timeoutSec = 16, posMomentum = .98) {
             // Given a string or a DOM element or an array tree, and the actor name, positions a window that follows the actor.
             // Given a string or a DOM element or an array tree, positions a free-floating window in the bottom-left corner.
             // To not fade away after `timeoutSec`, pass `timeoutSec = null`.
@@ -803,10 +803,7 @@ void main() {
         const color = a.emit || a2.emit
         extra[i*4+3] = color==='blue' ? 2 : color==='green' ? 1 : 0
         a._health = a._health || 0
-        if (a.trackLost) {
-            const diff = a._health<=0 && a.health>0 ? 1 : a._health>0 && a.health<=0 ? -1 : 0
-            L._trackedLost += diff
-        }
+        updateActorHealth(L, a)
         a._health = a.health
         for (let Bout = 0; Bout < Boutputs.length; ++Bout) {
             const kOut = Boutputs[Bout]
@@ -849,9 +846,22 @@ void main() {
         gl.getBufferSubData(gl.ARRAY_BUFFER, start*4*4, data, 0, len*4)
         return data
     }
+    function updateActorHealth(L, a) {
+        const wasOk = !!L._trackedLost
+        const diff = a._health<=0 && a.health>0 ? 1 : a._health>0 && a.health<=0 ? -1 : 0
+        if (a.trackLost && L._trackedLost != null) L._trackedLost += diff
+        if (wasOk && !L._trackedLost) { // Lost the level, possibly after winning.
+            if (L.score < L.winScore) { // Did not win.
+                try {
+                    if (typeof L.onLost == 'string') L.onLost = new Function('api,level', L.onLost)
+                    if (typeof L.onLost == 'function') L.onLost(api, L)
+                } catch (err) { console.error(err) }
+            }
+            if (!L.isMenu) api.levelSuggest(L.url, { lost:L.score })
+        }
+    }
     function handleExtraData(L, len = 16, start = Math.random() * (L._actorNames.length - len + 1) | 0) { // Health & score.
         if (!glState.leniaFrames) return
-        if (typeof L.winScore != 'number') return
         if (len > L._actorNames.length) len = L._actorNames.length, start = 0
         const data = updateActorCPUData(L, len, start)
         const gravity = L._buffers.gravity
@@ -871,18 +881,7 @@ void main() {
                     if (typeof a.onLost == 'string') a.onLost = new Function('api,level,actorName', a.onLost)
                     if (typeof a.onLost == 'function') a.onLost(api, L, name)
                 } catch (err) { console.error(err) }
-                const wasOk = !!L._trackedLost
-                const diff = a._health<=0 && a.health>0 ? 1 : a._health>0 && a.health<=0 ? -1 : 0
-                if (a.trackLost && L._trackedLost != null) L._trackedLost += diff
-                if (wasOk && !L._trackedLost) { // Lost the level, possibly after winning.
-                    if (L.score < L.winScore) { // Did not win.
-                        try {
-                            if (typeof L.onLost == 'string') L.onLost = new Function('api,level', L.onLost)
-                            if (typeof L.onLost == 'function') L.onLost(api, L)
-                        } catch (err) { console.error(err) }
-                    }
-                    if (!L.isMenu) api.levelSuggest(L.url, { lost:L.score })
-                }
+                updateActorHealth(L, a)
             }
             a._health = a.health = health
         }
