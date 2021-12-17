@@ -1,3 +1,5 @@
+// ...I keep encountering those cool animations. Too bad I don't have a means to make them into DOM elements, for portraits in story mode.
+
 // TODO: ...With the means to make a story and go across levels, come up with concrete levels.
 // Levels, the meat of the game, allowing dynamic discoveries of whole different worlds of complexity.
 //   Eye of the storm, 512×512 (blue must hurt, red can heal):
@@ -76,6 +78,21 @@
 //        -1., 2.02,  -1.,
 //        -8.,   .8,   1./**/
 // );
+// TODO: ...Are all the levels above worthless?
+// Glider-shooting (kinda hard, but possible, and gliders neither widen nor shrink): level.iMixing = [-0.14, -0.28, 0.95, -0.15, 0.47, -2, -1.03, 0.43, 0.54]
+// Green/red glider shooting: {"iMixing":[1.05,-3,0.95,0.246,0.47,-2,-3,0.43,0.54],"kernel":{"center":[0.5,0.5,0.5],"width":[0.14,0.14,0.14]},"iGrowthCenter":[0.4,0.2,0.4],"iGrowthWidth":[0.08,0.142,0.1]}
+//   Few primary green gliders: "pointer": {"displayRadius":[0,8,0], "pos":[0.5, 0.25], "emitRadius":8, "emit":"green", "emittance":1, "speed":{"Bmouse":0.01, "Bspeed": 0.93}}
+//   Many secondary red gliders: "pointer": {"displayRadius":[0,8,0], "pos":[0.5, 0.25], "emitRadius":8, "emit":"green", "emittance":1, "speed":{"Bmouse":0.01, "Bspeed": 0.93}}
+//   Could be fun trying to create green waves to hit enemies without creating red waves to hit friends. Especially with a multi-pointer chain.
+//   Attractions:
+//     G stdev = .142: pointer movement creates bizarre smooth repeating trails. Like pretty magic barriers. (.143 makes these trails never go away.)
+// Blue strings with a cybernetic texture when in blobs: {"iMixing":[0.5,0.58,0,-3,0.42,0.49,0,0.568,0.86],"kernel":{"center":[0.5,0.5,0.5],"width":[0.1,0.1,0.1]},"iGrowthCenter":[0.5,0.5,0.5],"iGrowthWidth":[0.1,0.1,0.1]}
+// Beautiful fireballs (emittance 3) with almost no waste, sometimes the bombs left behind explode colorfully, but rarely the byproducts decide to replicate and fill the whole screen: {"iMixing":[0.5,0.58,0.23,-3,0.42,0.49,-0.816,0.568,0.855],"kernel":{"center":[0.5,0.5,0.5],"width":[0.1,0.1,0.1]},"iGrowthCenter":[0.5,0.5,0.5],"iGrowthWidth":[0.1,0.1,0.15]}
+//   Attractions:
+//     Much more frequent and better-looking infestations: {"iMixing":[0.5,0.58,0.23,3,0.42,0.49,-0.816,0.754,0.798],"kernel":{"center":[0.5,0.5,0.5],"width":[0.1,0.1,0.1]},"iGrowthCenter":[0.5,0.5,0.5],"iGrowthWidth":[0.1,0.1,0.15]}
+// Slowly-dissipating thorny trails: {"iMixing":[-2.513,1.083,0.23,1.974,0.176,0.402,-0.816,-1.509,0.756],"kernel":{"center":[0.5,0.5,0.5],"width":[0.1,0.1,0.1]},"iGrowthCenter":[0.5,0.5,0.5],"iGrowthWidth":[0.176,0.1,0.15]}
+// Weird road construction simulator: {"iMixing":[0.883,-0.575,-0.774,0.12,-0.376,0.615,0.16,0.572,-0.051],"kernel":{"center":[0.8,0.5,0.5],"width":[0.01,0.1,0.1]},"iGrowthCenter":[0.5,0.5,0.5],"iGrowthWidth":[0.6,0.2,0.2]}
+// Leisurely swirly maze (eye of the storm, but the eyes don't ever actually change location) (...But a black init is bad...): {"iMixing":[0.756,-0.575,-0.774,0.12,-0.376,0.615,0.16,-0.762,0.968],"kernel":{"center":[0.502,0.5,0.5],"width":[0.09,0.1,0.1]},"iGrowthCenter":[0.5,0.5,0.5],"iGrowthWidth":[0.303,0.2,0.2]}
 
 // TODO: Make note of browser compatibility, according to the APIs that we use: WebGL2, Object.values, object destructuring, element.append(…), pointer events.
 // TODO: With a direct-link library, expose data & surroundings & individual-mouse-position of all agents with `displayRadius` with sound. This might be the coolest application that I can think of: controlling a swarm.
@@ -409,9 +426,12 @@ void main() {
         write(actorName) {
             // After changing an actor object's props, call this to sync changes to GPU.
             const L = api._level, a = L.actors[actorName]
-            if (!a) throw new Error("Nonexistent actor "+actorName)
-            updateActor(L, a)
-            updateActorWebGLData(L, a.i)
+            if (actorName != null) { // Update an actor.
+                if (!a) throw new Error("Nonexistent actor "+actorName)
+                updateActor(L, a)
+                updateActorWebGLData(L, a.i)
+            } else // Update the level.
+                updateLevelWebGLData(L)
         },
         window(content, actorName = null, timeoutSec = 16, posMomentum = .98) {
             // Given a string or a DOM element or an array tree, and the actor name, positions a window that follows the actor.
@@ -441,7 +461,7 @@ void main() {
                             for (let i = 0; i < x.length; ++i) if (x[i] && typeof x[i].tag == 'string') tag = x[i].tag
                             const el = document.createElement(tag)
                             for (let i = 0; i < x.length; ++i)
-                                if (x[i] && !Array.isArray(x[i]) && typeof x[i] == 'object' && !(x[i] instanceof Promise))
+                                if (x[i] && !Array.isArray(x[i]) && typeof x[i] == 'object' && !(x[i] instanceof Promise) && !(x[i] instanceof Node))
                                     for (let k of Object.keys(x[i])) {
                                         const v = el[k] = x[i][k]
                                         if (typeof v == 'string' || typeof v == 'number' || typeof v == 'boolean')
@@ -449,7 +469,8 @@ void main() {
                                     }
                                 else if (x[i] != null) el.append(arrayTreeToDOM(x[i]))
                             return el
-                        } else return document.createTextNode(''+x)
+                        } else if (x instanceof Node) return x
+                        else return document.createTextNode(''+x)
                     })(content)
                 }
                 content.classList.add('window')
@@ -611,7 +632,7 @@ void main() {
             return ''+u
         },
         _windowsAreShorterNow(bySeconds) {
-            if (typeof bySeconds != 'number') bySeconds = 2
+            if (typeof bySeconds != 'number') bySeconds = 4
             api._windowShorteners.forEach(f => f(bySeconds))
         },
     }
@@ -720,29 +741,15 @@ void main() {
     }
     function handleLevelLoaded(s, L) {
         // This is separated from `setup` and called in `draw` after init, because it depends on the level `L`.
+        // This might leak memory, since we don't manually dispose anything.
         if (s.leniaFrames) return
         L._webglLost = false
-        s.leniaFrames = { // This might leak memory.
+        s.leniaFrames = {
             prev:initTexture(gl, L.width, L.height),
             next:initTexture(gl, L.width, L.height), // The Lenia loop modifies Lenia state.
             extra:initTexture(gl, L.width, L.height), // Actors modify Lenia state too.
         }
-        if (L.kernel.center)
-            s.leniaKernel = leniaKernel(gl, R, L.kernel.center, L.kernel.width, L.iKernelOffset)
-        else {
-            // Collage .r/.g/.b into one array.
-            const sz = 2*R+1, pixels = new Float32Array(4 * sz * sz)
-            const rgb = [L.kernel.r || [], L.kernel.g || [], L.kernel.b || []]
-            const totals = [0,0,0,1]
-            for (let y = -R; y <= R; ++y)
-                for (let x = -R; x <= R; ++x) {
-                    const index = (y+R) * sz + (x+R)
-                    for (let c=0; c < 3; ++c)
-                        pixels[4*index + c] = rgb[c][index] || 0,
-                        totals[c] = Math.max(totals[c], rgb[c][index] || 0)
-                }
-            s.leniaKernel = leniaKernel(gl, R, null, null, null, pixels, totals)
-        }
+        updateLevelWebGLData(L)
 
         // Load actors.
         const actors = L.actors
@@ -832,6 +839,25 @@ void main() {
         s.displayRadius.set(gl, i, b.displayRadius.subarray(n, m))
         for (let k of s.behavior.keys)
             s.behavior[k].set(gl, i, b.B[k].subarray(n, m))
+    }
+    function updateLevelWebGLData(L) {
+        const s = glState
+        if (L.kernel.center)
+            s.leniaKernel = leniaKernel(gl, R, L.kernel.center, L.kernel.width, L.iKernelOffset)
+        else {
+            // Collage .r/.g/.b into one array.
+            const sz = 2*R+1, pixels = new Float32Array(4 * sz * sz)
+            const rgb = [L.kernel.r || [], L.kernel.g || [], L.kernel.b || []]
+            const totals = [0,0,0,1]
+            for (let y = -R; y <= R; ++y)
+                for (let x = -R; x <= R; ++x) {
+                    const index = (y+R) * sz + (x+R)
+                    for (let c=0; c < 3; ++c)
+                        pixels[4*index + c] = rgb[c][index] || 0,
+                        totals[c] = Math.max(totals[c], rgb[c][index] || 0)
+                }
+            s.leniaKernel = leniaKernel(gl, R, null, null, null, pixels, totals)
+        }
     }
     function updateActorCPUData(L, len, start) { // Returns `[…, health, score, _, _, …]`, with `len*4` numbers.
         // This sync GPU->CPU transfer may slow the game down.

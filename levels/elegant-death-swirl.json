@@ -1,0 +1,36 @@
+{
+    "description": "TODO: Well, this is a good level. So use it somewhere.",
+
+    "onLoad": "function f(s,i, a = level.iMixing, f = () => json.textContent = localStorage['level-editor '+level.url] = JSON.stringify({iMixing:level.iMixing, kernel:level.kernel, iGrowthCenter:level.iGrowthCenter, iGrowthWidth:level.iGrowthWidth})) { return [s+':', [{tag:'input', title:a[i], type:'range', min:-3, max:3, step:0.001, value:a[i], oninput() { a[i] = +this.value, this.nextSibling.textContent = this.title = this.value, f(), api.write() }}], a[i], [{tag:'br'}]] }                let json = document.createElement('textarea');   json.style.resize='none', json.readOnly = true;   const saved = json.textContent = localStorage['level-editor '+level.url]; if (saved) Object.assign(level, JSON.parse(saved));                           const gc=level.iGrowthCenter, gw=level.iGrowthWidth, kc=level.kernel.center, kw=level.kernel.width;        api.window([json, [{tag:'details'}, [{tag:'summary'}, 'Pointer'], f('Emittance 1', 'emittance', level.actors.pointer, x => api.write('pointer')), f('Emittance 2', 'emittance', level.actors.pointer2, x => api.write('pointer2')), f('Emittance 3', 'emittance', level.actors.pointer3, x => api.write('pointer3'))], [{tag:'details'}, [{tag:'summary'}, 'Kernel'], f('R mean', 0, kc), f('G mean', 1, kc), f('B mean', 2, kc), f('R stdev', 0, kw), f('G stdev', 1, kw), f('B stdev', 2, kw)], [{tag:'details'}, [{tag:'summary'}, 'Growth'], f('R mean', 0, gc), f('G mean', 1, gc), f('B mean', 2, gc), f('R stdev', 0, gw), f('G stdev', 1, gw), f('B stdev', 2, gw)], [{tag:'details'}, [{tag:'summary'}, 'Mixing'], f('R→R', 0), f('R→G', 3), f('R→B', 6), f('G→R', 1), f('G→G', 4), f('G→B', 7), f('B→R', 2), f('B→G', 5), f('B→B', 8)]], null, null) \n ",
+    "winScore": 200,
+    "onLost": "setTimeout(api.levelLoad, 3000)",
+
+    "iColorMatrix": [
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1, 0,
+        0, 0, 0, 1
+    ],
+
+    "width": 1024, "height": 1024,
+    "iSlowdown": 2,
+    "iMixing": [
+        0.75,   -1,  0.95,
+        -1.0,  3.0,   -2,
+          -2,  1.3,    1
+    ],
+    "kernel":{
+      "center": [0.5, 0.5, 0.5],
+      "width": [0.1, 0.14, 0.14]
+    },
+    "iGrowthCenter": [0.4, 0.2, 0.4], "iGrowthWidth": [0.08, 0.04, 0.1],
+    "iOffset": [0,0], "iKernelOffset": [0,0],
+
+    "actors": {
+      "pointer": {"displayRadius":[0,16,0], "pos":[0.5, 0.25], "emitRadius":16, "emit":"green", "emittance":0.2, "speed":{"Bmouse":0.01, "Bg":-0.007, "Bb":-0.007, "Bspeed": 0.93}, "dhealth":{"B1":0.003, "Bg":-0.08}, "dscore":{"B1":0.025}, "trackLost":true},
+      "pointer2": {"displayRadius":[0,0,0], "pos":[0.5, 0.25], "emitRadius":8, "emit":"green", "emittance":0, "speed":{"Btarget":0.01, "Bg":-0.003, "Bb":-0.003, "Bspeed": 0.93}, "target":"pointer"},
+      "pointer3": {"displayRadius":[0,0,0], "pos":[0.5, 0.25], "emitRadius":8, "emit":"green", "emittance":0, "speed":{"Btarget":0.01, "Bg":-0.003, "Bb":-0.003, "Bspeed": 0.93}, "target":"pointer2"},
+      "emitter1": {"pos":[0.45, 0.75, 0, 0.004], "emitRadius":50, "emit":"blue", "emittance":1, "target":"emitter2", "speed":{"Btarget":0.0001, "Bspeed":1}},
+      "emitter2": {"pos":[0.55, 0.75, 0, -0.004], "emitRadius":50, "emit":"red", "emittance":0, "target":"emitter1", "speed":{"Btarget":0.0001, "Bspeed":1}}
+    }
+}

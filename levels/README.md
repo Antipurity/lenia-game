@@ -215,6 +215,8 @@ For example, specifying `onLost: "setTimeout(() => api.levelLoad(level.url), 100
 
 (Yes, actors are updated in-GPU, so the engine can handle hundreds of thousands of actors.)
 
+`api.write()`: for updating the kernel. (But not the actor list. Actors never disappear and never appear.)
+
 ---
 
 `api.window(content, actorName = null, timeoutSec = 32, posMomentum = .9)`: creates a window, near an actor. For STORY.
@@ -224,7 +226,7 @@ For example, specifying `onLost: "setTimeout(() => api.levelLoad(level.url), 100
 - Given nothing, clears every window instantly. (Level load does this.)
 - Returns a promise, which resolves when the timeout has passed.
 
-When the user clicks, all active windows take 2 less seconds to disappear. Click repeatedly to skip the story.
+When the user clicks, all active windows take 4 less seconds to disappear. Click repeatedly to skip the story.
 
 If `posMomentum` is `0`, the window is centered on the element, instead of daintily following it. Otherwise, the closer it is to `1`, the slower the window follows.
 
