@@ -1,0 +1,34 @@
+{
+    "description": "Eternal bullet hell: shifting war fronts. Green must hurt.",
+    "isMenu": false,
+
+    "winScore": null,
+
+    "onLoad": "api.levelSuggest('levels/tutorial/1.json')",
+
+    "iColorMatrix": [
+        1, 0, 0, 0,
+      0.4, 1, 0, 0,
+      0.1, 0, 1, 0,
+        0, 0, 0, 1
+    ],
+
+    "width": 512, "height": 512,
+    "iSlowdown": 3,
+    "iMixing": [
+      0.9,  -5,  0.5,
+      0.1,   1, -1.1,
+       -5, 0.5,  1
+    ],
+    "kernel":{
+      "center": [1.2, 0.5, 0.5],
+      "width": [0.1, 0.14, 0.14]
+    },
+    "iGrowthCenter": [0.4, 0.2, 0.4], "iGrowthWidth": [0.08, 0.04, 0.1],
+    "iOffset": [0,-3], "iKernelOffset": [0,0],
+
+    "actors": {
+      "title": {"pos":[0.5, 0.75], "emitRadius": 50, "emit":"blue", "emittance":0.3, "dhealth":{"Bg":-50}, "speed":{"Bmouse":0.01, "Bspeed":0.95}},
+      "levels": {"pos":[0.5, 0.25, 0, 0], "emitRadius": 50, "emit":"green", "emittance":{"B1":-100, "Bhealth":100, "Br":50}, "dhealth":{"B1":0.1, "Bhealth":0.1, "Br":-1}}
+    }
+}

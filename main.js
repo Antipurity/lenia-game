@@ -2,18 +2,6 @@
 
 // TODO: ...With the means to make a story and go across levels, come up with concrete levels.
 // Levels, the meat of the game, allowing dynamic discoveries of whole different worlds of complexity.
-//   Eye of the storm, 512×512 (blue must hurt, red can heal):
-//     `offset=(0,-2)`: dripping shifting platforms: red space, blue supports, green grass.
-//     `offset=(0,3)`: eternal bullet-hell, with diagonal blue bullets in a sea of red, and green explosions.
-//     `offset=(0,4)`: green becomes a self-regenerating eternal wave; if the player can burst blue for a bit, it burns away the green.
-//     `offset=kernelOffset=(0,-2)`:
-//       Blue: a really cool animation. Could be good for the title screen.
-//       Green+blue: violently-shifting platforms, too hard to climb, but cool visually.
-//     `offset=kernelOffset=(0,-3)`:
-//       Blue: blue gliders with red wings, fighting for the right to become a platform.
-//       Green: first a green field with blue sparkles, then slowly-shifting screen-wide platforms, too hard to climb.
-//     `offset=kernelOffset=(0,-4)`:
-//       Blue: glacial blue gliders held up by red flames, which sometimes flare up and destroy other gliders; gliders sometimes split off.
 //   Self-eating waves, 1024×1024:
 //     `rgb.rgb += vec3(.0, .2, .0)` green circles, of radii such as 10/50/100/500:
 //       Init:
@@ -78,7 +66,7 @@
 //        -1., 2.02,  -1.,
 //        -8.,   .8,   1./**/
 // );
-// TODO: ...Are all the levels above worthless?
+// TODO: ...Are all the levels above worthless? ...Eye-of-the-storm (menu's level) seemed accurate.
 // Glider-shooting (kinda hard, but possible, and gliders neither widen nor shrink): level.iMixing = [-0.14, -0.28, 0.95, -0.15, 0.47, -2, -1.03, 0.43, 0.54]
 // Green/red glider shooting: {"iMixing":[1.05,-3,0.95,0.246,0.47,-2,-3,0.43,0.54],"kernel":{"center":[0.5,0.5,0.5],"width":[0.14,0.14,0.14]},"iGrowthCenter":[0.4,0.2,0.4],"iGrowthWidth":[0.08,0.142,0.1]}
 //   Few primary green gliders: "pointer": {"displayRadius":[0,8,0], "pos":[0.5, 0.25], "emitRadius":8, "emit":"green", "emittance":1, "speed":{"Bmouse":0.01, "Bspeed": 0.93}}
@@ -92,7 +80,18 @@
 //     Much more frequent and better-looking infestations: {"iMixing":[0.5,0.58,0.23,3,0.42,0.49,-0.816,0.754,0.798],"kernel":{"center":[0.5,0.5,0.5],"width":[0.1,0.1,0.1]},"iGrowthCenter":[0.5,0.5,0.5],"iGrowthWidth":[0.1,0.1,0.15]}
 // Slowly-dissipating thorny trails: {"iMixing":[-2.513,1.083,0.23,1.974,0.176,0.402,-0.816,-1.509,0.756],"kernel":{"center":[0.5,0.5,0.5],"width":[0.1,0.1,0.1]},"iGrowthCenter":[0.5,0.5,0.5],"iGrowthWidth":[0.176,0.1,0.15]}
 // Weird road construction simulator: {"iMixing":[0.883,-0.575,-0.774,0.12,-0.376,0.615,0.16,0.572,-0.051],"kernel":{"center":[0.8,0.5,0.5],"width":[0.01,0.1,0.1]},"iGrowthCenter":[0.5,0.5,0.5],"iGrowthWidth":[0.6,0.2,0.2]}
-// Leisurely swirly maze (eye of the storm, but the eyes don't ever actually change location) (...But a black init is bad...): {"iMixing":[0.756,-0.575,-0.774,0.12,-0.376,0.615,0.16,-0.762,0.968],"kernel":{"center":[0.502,0.5,0.5],"width":[0.09,0.1,0.1]},"iGrowthCenter":[0.5,0.5,0.5],"iGrowthWidth":[0.303,0.2,0.2]}
+// Leisurely swirly maze (eye of the storm, but the eyes don't ever actually change location): {"iMixing":[0.756,-0.575,-0.774,0.12,-0.376,0.615,0.16,-0.762,0.968],"kernel":{"center":[0.502,0.5,0.5],"width":[0.09,0.1,0.1]},"iGrowthCenter":[0.5,0.5,0.5],"iGrowthWidth":[0.303,0.2,0.2]}
+// Planting the infection: {"iMixing":[3,0.062,3,2.356,2.384,-1.915,1.308,3,0.161],"kernel":{"center":[0.5,0.5,0.5],"width":[0.1,0.1,0.1]},"iGrowthCenter":[0.757,0.658,0.8],"iGrowthWidth":[0.048,0.123,0.09]}
+// Solid-coloring game (green stays, blue fades, red only stays if not small; green blocks red, but blue easily paints over green, and blue encourages red to follow in strings, so circling red with blue can fill the level — need JS to switch sides in one level to keep it interesting): {"iMixing":[1.183,-3,0.416,-0.023,0.685,-0.745,0.076,1.079,2.087],"kernel":{"center":[0.5,0.5,0.5],"width":[0.1,0.1,0.1]},"iGrowthCenter":[0.757,0.658,2.414],"iGrowthWidth":[0.176,0.289,1.025]}
+//   Attractions:
+//     Blue eats at green with pretty patterns at entry/exit points, stays much longer, and is eaten by red: {"iMixing":[1.183,-1.701,0.416,0.275,0.685,-0.745,-0.433,1.079,2.087],"kernel":{"center":[0.5,0.5,0.5],"width":[0.1,0.1,0.1]},"iGrowthCenter":[0.757,0.701,3],"iGrowthWidth":[0.176,0.332,1.572]}
+// Red wants-to-be-a-square tumor (its inside can become staticy), blue holey painting, and when they intersect, they both get infected with green maggots: {"iMixing":[1.261,-1.701,0.416,0.36,3,0.529,-0.433,-1.043,1.025],"kernel":{"center":[0.5,0.5,0.5],"width":[0.2,0.1,0.1]},"iGrowthCenter":[0.757,0.701,0.757],"iGrowthWidth":[0.176,0.077,0.218]}
+//   Attractions:
+//     Green eats at blue but not at red: {"iMixing":[1.261,-1.701,0.416,0.36,1.833,0.529,-0.433,-1.043,1.025],"kernel":{"center":[0.5,0.5,0.5],"width":[0.2,0.1,0.1]},"iGrowthCenter":[0.757,0.701,0.757],"iGrowthWidth":[0.176,0.077,0.218]}
+//     Contact is usually more damaging to red, but interactions are complex: {"iMixing":[1.261,-1.701,0.416,0.505,1.833,0.275,-0.433,-1.043,1.025],"kernel":{"center":[0.5,0.5,0.5],"width":[0.2,0.1,0.1]},"iGrowthCenter":[0.757,0.701,0.757],"iGrowthWidth":[0.176,0.077,0.218]}
+//     Interactions are much more damaging to red: {"iMixing":[1.261,-1.701,0.416,0.55,1.833,0.275,-0.433,-1.043,1.025],"kernel":{"center":[0.5,0.5,0.5],"width":[0.2,0.1,0.1]},"iGrowthCenter":[0.757,0.701,0.757],"iGrowthWidth":[0.176,0.077,0.218]}
+
+// (Guess Lenia is more boring than I though.)
 
 // TODO: Make note of browser compatibility, according to the APIs that we use: WebGL2, Object.values, object destructuring, element.append(…), pointer events.
 // TODO: With a direct-link library, expose data & surroundings & individual-mouse-position of all agents with `displayRadius` with sound. This might be the coolest application that I can think of: controlling a swarm.
