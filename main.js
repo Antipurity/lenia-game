@@ -457,7 +457,7 @@ void main() {
                             return el
                         } else if (Array.isArray(x)) {
                             let tag = 'span'
-                            for (let i = 0; i < x.length; ++i) if (x[i] && typeof x[i].tag == 'string') tag = x[i].tag
+                            for (let i = 0; i < x.length; ++i) if (x[i] && !(x[i] instanceof Node) && typeof x[i].tag == 'string') tag = x[i].tag
                             const el = document.createElement(tag)
                             for (let i = 0; i < x.length; ++i)
                                 if (x[i] && !Array.isArray(x[i]) && typeof x[i] == 'object' && !(x[i] instanceof Promise) && !(x[i] instanceof Node))
