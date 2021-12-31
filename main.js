@@ -463,7 +463,7 @@ void main() {
                                 if (x[i] && !Array.isArray(x[i]) && typeof x[i] == 'object' && !(x[i] instanceof Promise) && !(x[i] instanceof Node))
                                     for (let k of Object.keys(x[i])) {
                                         const v = el[k] = x[i][k]
-                                        if (typeof v == 'string' || typeof v == 'number' || typeof v == 'boolean')
+                                        if (k !== 'tag' && (typeof v == 'string' || typeof v == 'number' || typeof v == 'boolean'))
                                             el.setAttribute(k, v)
                                     }
                                 else if (x[i] != null) el.append(arrayTreeToDOM(x[i]))
