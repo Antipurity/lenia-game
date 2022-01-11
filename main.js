@@ -91,7 +91,7 @@
 //     Contact is usually more damaging to red, but interactions are complex: {"iMixing":[1.261,-1.701,0.416,0.505,1.833,0.275,-0.433,-1.043,1.025],"kernel":{"center":[0.5,0.5,0.5],"width":[0.2,0.1,0.1]},"iGrowthCenter":[0.757,0.701,0.757],"iGrowthWidth":[0.176,0.077,0.218]}
 //     Interactions are much more damaging to red: {"iMixing":[1.261,-1.701,0.416,0.55,1.833,0.275,-0.433,-1.043,1.025],"kernel":{"center":[0.5,0.5,0.5],"width":[0.2,0.1,0.1]},"iGrowthCenter":[0.757,0.701,0.757],"iGrowthWidth":[0.176,0.077,0.218]}
 
-// (Guess Lenia is more boring than I though.)
+// (Guess Lenia is more boring than I thought.)
 
 // TODO: Make note of browser compatibility, according to the APIs that we use: WebGL2, Object.values, object destructuring, element.append(…), pointer events.
 // TODO: With a direct-link library, expose data & surroundings & individual-mouse-position of all agents with `displayRadius` with sound. This might be the coolest application that I can think of: controlling a swarm.
@@ -254,16 +254,18 @@ void main() {
     vec2 nextPos = mod(at + dPos, 1.);
     outPosSpeed = vec4(nextPos, dPos);
 
+    float speedL = length(speed), mouseVecL = length(mouseVec), targetVecL = length(targetVec);
+
     if (extraState.x > 0.) {
-        float dhealth = B1.z + length(speed)*Bspeed.z + length(mouseVec)*Bmouse.z + length(targetVec)*Btarget.z + health*Bhealth.z + near.r*Br.z + near.g*Bg.z + near.b*Bb.z + sin(BtimeFrequency.z * iTime*TAU) * Btime.z;
-        float dscore  = B1.w + length(speed)*Bspeed.w + length(mouseVec)*Bmouse.w + length(targetVec)*Btarget.w + health*Bhealth.w + near.r*Br.w + near.g*Bg.w + near.b*Bb.w + sin(BtimeFrequency.w * iTime*TAU) * Btime.w;
+        float dhealth = B1.z + speedL*Bspeed.z + mouseVecL*Bmouse.z + targetVecL*Btarget.z + health*Bhealth.z + near.r*Br.z + near.g*Bg.z + near.b*Bb.z + sin(BtimeFrequency.z * iTime*TAU) * Btime.z;
+        float dscore  = B1.w + speedL*Bspeed.w + mouseVecL*Bmouse.w + targetVecL*Btarget.w + health*Bhealth.w + near.r*Br.w + near.g*Bg.w + near.b*Bb.w + sin(BtimeFrequency.w * iTime*TAU) * Btime.w;
         outExtraState = vec4(clamp(extraState.x + dhealth, 0., 1.), extraState.y + dscore, extraState.zw);
     } else
         outExtraState = vec4(0., extraState.y, extraState.zw);
 
     float emitRadius = extraState.z;
     vec3 color = extraState.w<.5 ? vec3(1.,0.,0.) : extraState.w<1.5 ? vec3(0.,1.,0.) : vec3(0.,0.,1.);
-    float emittance = B1.y + length(speed)*Bspeed.y + length(mouseVec)*Bmouse.y + length(targetVec)*Btarget.y + health*Bhealth.y + near.r*Br.y + near.g*Bg.y + near.b*Bb.y + sin(BtimeFrequency.y * iTime*TAU) * Btime.y;
+    float emittance = B1.y + speedL*Bspeed.y + mouseVecL*Bmouse.y + targetVecL*Btarget.y + health*Bhealth.y + near.r*Br.y + near.g*Bg.y + near.b*Bb.y + sin(BtimeFrequency.y * iTime*TAU) * Btime.y;
     emit = vec4(emittance * color, emitRadius);
 
     gl_Position = vec4(outPosSpeed.xy * 2. - 1., 0., 1.);
@@ -825,7 +827,7 @@ void main() {
     function updateActorWebGLGravity(L, start, end) {
         const s = glState, b = L._buffers
         const i = start*4*4, n = start*4, m = end*4
-        s.gravity.set(gl, i, b.gravity.subarray(n, m))
+        s.gravity.set(gl, i, b.gravity.subarray(n, m)) // TODO: Also count overflows!
     }
     function updateActorWebGLData(L, start, end = start+1) {
         // Intended to be called after `updateActor`, with `actor.i` as `start`.
@@ -863,15 +865,19 @@ void main() {
         // This sync GPU->CPU transfer may slow the game down.
         const s = glState
         const data = new Float32Array(len * 4)
+        const maxLen = L._actorNames.length, firstLen = Math.min(len, maxLen - start)
         if (L._webglLost) return data
         gl.bindBuffer(gl.ARRAY_BUFFER, s.posSpeed.prev.buf)
-        gl.getBufferSubData(gl.ARRAY_BUFFER, start*4*4, data, 0, len*4)
-        for (let i = start; i < start + len; ++i) {
-            const a = L.actors[L._actorNames[i]], p = a.pos, j = i-start
+        gl.getBufferSubData(gl.ARRAY_BUFFER, start*4*4, data, 0, firstLen*4)
+        firstLen && gl.getBufferSubData(gl.ARRAY_BUFFER, (firstLen+start)%maxLen*4*4, data, firstLen*4)
+        for (let I = start; I < start + len; ++I) {
+            const i = I % maxLen
+            const a = L.actors[L._actorNames[i]], p = a.pos, j = I-start
             p[0] = data[j*4 + 0], p[1] = data[j*4 + 1], p[2] = data[j*4 + 2], p[3] = data[j*4 + 3]
         }
         gl.bindBuffer(gl.ARRAY_BUFFER, s.extraState.prev.buf)
-        gl.getBufferSubData(gl.ARRAY_BUFFER, start*4*4, data, 0, len*4)
+        gl.getBufferSubData(gl.ARRAY_BUFFER, start*4*4, data, 0, firstLen*4)
+        firstLen && gl.getBufferSubData(gl.ARRAY_BUFFER, (firstLen+start)%maxLen*4*4, data, firstLen*4)
         return data
     }
     function updateActorHealth(L, a) {
@@ -888,21 +894,23 @@ void main() {
             if (!L.isMenu) api.levelSuggest(L.url, { lost:L.score })
         }
     }
-    function handleExtraData(L, len = 128, start = Math.random() * (L._actorNames.length - len + 1) | 0) { // Health & score.
+    function handleExtraData(L, len = 256, start = Math.random() * L._actorNames.length | 0) { // Health & score.
         if (!glState.leniaFrames) return
-        if (len > L._actorNames.length) len = L._actorNames.length, start = 0
+        const maxLen = L._actorNames.length
+        if (len > maxLen) len = maxLen, start = 0
         const data = updateActorCPUData(L, len, start)
         const gravity = L._buffers.gravity
-        for (let i = 0; i < len; ++i) {
-            const name = L._actorNames[start+i], a = L.actors[name]
+        for (let I = 0; I < len; ++I) {
+            const i = (start+I) % maxLen
+            const name = L._actorNames[i], a = L.actors[name]
             if (L._trackedLost == null || L._trackedLost)
-                L.score -= (a.score || 0) - (a.score = data[i*4+1])
+                L.score -= (a.score || 0) - (a.score = data[I*4+1])
 
             // Update target positions. (May be slow to propagate, but much better than WebGL-only "targets are impossible to implement unless we forego attributes and do everything through textures".)
-            gravity[(start+i)*4+2] = a._targetActor ? a._targetActor.pos[0] : .5
-            gravity[(start+i)*4+3] = a._targetActor ? a._targetActor.pos[1] : .5
+            gravity[i*4+2] = a._targetActor ? a._targetActor.pos[0] : .5
+            gravity[i*4+3] = a._targetActor ? a._targetActor.pos[1] : .5
 
-            const health = data[i*4+0]
+            const health = data[I*4+0]
             if (a.health > 0 && health <= 0) {
                 a.health = health
                 try {
@@ -913,7 +921,8 @@ void main() {
             }
             a._health = a.health = health
         }
-        updateActorWebGLGravity(L, start, start+len)
+        updateActorWebGLGravity(L, start, Math.min(start+len, maxLen))
+        start+len > maxLen && updateActorWebGLGravity(L, 0, start+len - maxLen)
         // Update the displayed score.
         if (L.score >= L.winScore && !L._didWin) { // Won the level.
             try {

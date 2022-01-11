@@ -1,5 +1,5 @@
 {
-    "description": "Oi, fairy, sprinkle some fairy dust here.",
+    "description": "Oi, fairy, sprinkle some o' yo' dust here.",
 
     "onLoad": "(async function() { const at=null;  await api.window([`Oi oi oi.`], at, 4);  await api.window([`What's this, a fairy? What?`], at, 6);  await api.window([`Is it gonna sprinkle some dust on 'em?`], at, 6);  await api.window([`OI. Spirit. Great and powerful. And esteemed.`], at, 6);  await api.window([`Anyway. Can you kill those abominations? Payment negotiable.`], at, 6);  await api.window([`Look how ugly they are, anyway! Anyone would want them dead, right?`], at, 6);  for (let k in level.actors) if (k.slice(0,6) === 'target') api.window(`UGLY`, k, 1) })()",
     "winScore": 100,
