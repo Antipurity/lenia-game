@@ -750,6 +750,11 @@ void main() {
         }
         updateLevelWebGLData(L)
 
+        try {
+            if (typeof L.onLoad == 'string') L.onLoad = new Function('api,level', L.onLoad)
+            if (typeof L.onLoad == 'function') L.onLoad(api, L)
+        } catch (err) { console.error(err) }
+
         // Load actors.
         const actors = L.actors
         L.score = L.score || 0, L.winScore = typeof L.winScore == 'number' ? L.winScore : 1, L.frame = 0, L._trackedLost = 0
@@ -779,10 +784,6 @@ void main() {
         s.displayRadius = initBuffer(gl, displayRadius, 4)
         s.behavior = { keys: B.keys }
         for (let k of B.keys) s.behavior[k] = initBuffer(gl, B[k], 4)
-        try {
-            if (typeof L.onLoad == 'string') L.onLoad = new Function('api,level', L.onLoad)
-            if (typeof L.onLoad == 'function') L.onLoad(api, L)
-        } catch (err) { console.error(err) }
 
         // If at the main menu, display UI.
         if (L.isMenu) {
@@ -887,7 +888,7 @@ void main() {
             if (!L.isMenu) api.levelSuggest(L.url, { lost:L.score })
         }
     }
-    function handleExtraData(L, len = 16, start = Math.random() * (L._actorNames.length - len + 1) | 0) { // Health & score.
+    function handleExtraData(L, len = 128, start = Math.random() * (L._actorNames.length - len + 1) | 0) { // Health & score.
         if (!glState.leniaFrames) return
         if (len > L._actorNames.length) len = L._actorNames.length, start = 0
         const data = updateActorCPUData(L, len, start)

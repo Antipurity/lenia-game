@@ -1,0 +1,38 @@
+{
+    "description": "Scaling dynamics in local-neighborhood transformers: wall of flesh.",
+
+    "onLoad": "new Array(10000).fill().forEach((_,i) => level.actors['target'+(i+100)] = {like:'target1', pos:[Math.random(), Math.random()], onLost() {level.score += 100/10000}}); \n (async function() { const at=null;  await api.window([`…Anyway, I'll let you deal with this one, mighty spirit.`], at, 8); })()",
+    "winScore": 200,
+    "onWon": "(async function() { const at=null;  api.levelSuggest('levels/x1/4.json');  await api.window(`Oh! You're done!`, at, 4);  await api.window(`Fairies beat demons.`, at, 4);  await api.window(`I'll admit: that bunch was the most terrifying thing I've ever seen.\nI'm only human.\nAnd a gun doesn't help even against one o' these, let alone ten thousand.\nI thought hope is lost.`, at, 8);  await api.window(`But you… brought it back.`, at, 4);  api.levelLoad('levels/x1/4.json') })()",
+
+    "onLost": "api.window([`(But nobody came.)`][0]);  setTimeout(api.levelLoad, 3000)",
+
+    "iColorMatrix": [
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1, 0,
+        0, 0, 0, 1
+    ],
+
+    "width": 512, "height": 512,
+    "iSlowdown": 5,
+    "iMixing": [
+        1.15,   -2,  0.95,
+       0.246, 0.47,   -2,
+          -3, 0.43,  0.54
+    ],
+    "kernel":{
+      "center": [0.5, 0.5, 0.5],
+      "width": [0.1, 0.14, 0.14]
+    },
+    "iGrowthCenter": [0.4, 0.2, 0.4], "iGrowthWidth": [0.08, 0.04, 0.1],
+    "iOffset": [0,0], "iKernelOffset": [0,0],
+
+    "actors": {
+      "pointer1": {"displayRadius":[0,10,0], "pos":[0.5, 0.25], "emitRadius":8, "emit":"green", "emittance":1, "speed":{"Bmouse":0.01, "Bspeed": 0.93}, "trackLost":true},
+      "pointer2": {"displayRadius":[0,0,0], "pos":[0.5, 0.25], "emitRadius":8, "emit":"green", "emittance":0, "speed":{"Btarget":0.01, "Bspeed": 0.93}, "target":"pointer1"},
+      "pointer3": {"displayRadius":[0,0,0], "pos":[0.5, 0.25], "emitRadius":8, "emit":"green", "emittance":0, "speed":{"Btarget":0.01, "Bspeed": 0.93}, "target":"pointer2"},
+      "target1": {"displayRadius":[10,0,0], "pos":[0.5, 0.77], "dscore":{"B1":0.003, "Bhealth":-0.003, "Br":-0.0001, "Bg":0.00002}, "dhealth":{"B1":0.1, "Br":1, "Bg":-1}, "speed":{"Br":0.01, "Bb":0.007, "Bg":-0.007}, "emitRadius":2, "emit":"green", "emittance":{"B1":0.5, "Bhealth":-0.4}, "gravity":[0,-0.0002]},
+      "annoyance1": {"pos":[0.9, 0.5], "emitRadius":16, "emit":"blue", "emittance":0.0, "speed":{"Bb":0.05}}
+    }
+}
