@@ -1,0 +1,48 @@
+{
+    "description": "Whipping hounds of Tartatus.",
+
+    "onLoad": "(async function() { const at=null;  await api.window([`Anyway. Let's negotiate. What do you want?`], at, 8);  await api.window([` · · · `], at, 8);  await api.window([`No, like, seriously. Whatever you want. It's the least I can do for you saving my life.`], at, 8);  await api.window([` · · · `], at, 8);  await api.window([`…Spirit?`], at, 8);  await api.window([` · · · `], at, 8);  await api.window([`…SPIRIT?`], at, 8);  await api.window([` · · · `], at, 8);  await api.window([`Never knew that even magical spirits can be mute.\nOh, oh, oh, you're too busy to respond. Nevermind.\nOkay, we'll talk later.`], at, 8);  await api.window([` · · · `], at, 8);  await api.window([`These things are even uglier than the last ones.\nJust look at these slimy tentacles, slow, but deadly.\nTheir purple skin that just undulates oddly.\nDemons, really.\nThese 'Wintech Facilities' seem a tad ominous.`], at, 16); })()",
+    "winScore": 100,
+    "onWon": "(async function() { const at=null;  api.levelSuggest('levels/x1/3.json');  await api.window(`Okay, uh, nice job petting them?`, at, 4);  await api.window(`Petting. To death.`, at, 4);  await api.window(`No, I shouldn't question magic.`, at, 4);  await api.window(`Hold on, I think there's more.`, at, 4);  api.levelLoad('levels/x1/3.json') })()",
+
+    "onLost": "api.window([`I guess, not so great and powerful. Ah, nevermind. It was a nice thought.`, `Pffft. Yeah. Should have expected that.`, `Damn it.`, `Ooh, you wittle faiwy. Sprinkling your faiwy dust awound like you know what you're doing. Yeah, there are no fairytales in this world, should have known.`, `Yeah, maybe try petting the enemy, dumbass.`, `Ah geez. What am I gonna do now?`, `You dead? Great. Now what am I gonna do? Should I run? They're kinda slow, maybe I can walk.`, `…SPIRIT?`][Math.random()*8|0]);  setTimeout(api.levelLoad, 3000)",
+
+    "iColorMatrix": [
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1, 0,
+        0, 0, 0, 1
+    ],
+
+    "width": 512, "height": 512,
+    "iSlowdown": 5,
+    "iMixing": [
+        1.05,   -2,  0.95,
+       0.246, 0.47,   -2,
+          -3, 0.43,  0.54
+    ],
+    "kernel":{
+      "center": [0.5, 0.5, 0.5],
+      "width": [0.1, 0.14, 0.14]
+    },
+    "iGrowthCenter": [0.4, 0.2, 0.4], "iGrowthWidth": [0.08, 0.04, 0.1],
+    "iOffset": [0,0], "iKernelOffset": [0,0],
+
+    "actors": {
+      "pointer1": {"displayRadius":[0,10,0], "pos":[0.5, 0.25], "emitRadius":8, "emit":"green", "emittance":1, "speed":{"Bmouse":0.01, "Bspeed": 0.93}, "dhealth":{"Br":-1, "Bg":0.01}, "trackLost":true},
+      "pointer2": {"displayRadius":[0,0,0], "pos":[0.5, 0.25], "emitRadius":8, "emit":"green", "emittance":0, "speed":{"Btarget":0.01, "Bspeed": 0.93}, "target":"pointer1"},
+      "pointer3": {"displayRadius":[0,0,0], "pos":[0.5, 0.25], "emitRadius":8, "emit":"green", "emittance":0, "speed":{"Btarget":0.01, "Bspeed": 0.93}, "target":"pointer2"},
+      "target1": {"displayRadius":[10,0,0], "pos":[0.5, 0.77], "dscore":{"Br":-0.1, "Bg":0.02}, "speed":{"Br":0.01, "Bb":0.007, "Bg":-0.007}, "emitRadius":1, "emit":"green", "emittance":1},
+      "target2": {"like":"target1", "pos":[0.505, 0.775]},
+      "target3": {"like":"target1", "pos":[0.495, 0.775]},
+      "target4": {"like":"target1", "pos":[0.5, 0.76]},
+      "target5": {"like":"target1", "pos":[0.505, 0.765]},
+      "target6": {"like":"target1", "pos":[0.495, 0.765]},
+      "target7": {"like":"target1", "pos":[0.5, 0.75]},
+      "target8": {"like":"target1", "pos":[0.505, 0.755]},
+      "target9": {"like":"target1", "pos":[0.495, 0.755]},
+      "target10": {"like":"target1", "pos":[0.5, 0.78]},
+      "annoyance1": {"pos":[0.9, 0.5], "emitRadius":16, "emit":"blue", "emittance":0.3, "speed":{"Bb":0.05}},
+      "annoyance2": {"like":"annoyance1", "pos":[0.1, 0.5]}
+    }
+}

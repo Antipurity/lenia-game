@@ -1,0 +1,46 @@
+{
+    "description": "Oi, fairy, sprinkle some fairy dust here.",
+
+    "onLoad": "(async function() { const at=null;  await api.window([`Oi oi oi.`], at, 4);  await api.window([`What's this, a fairy? What?`], at, 6);  await api.window([`Is it gonna sprinkle some dust on 'em?`], at, 6);  await api.window([`OI. Spirit. Great and powerful. And esteemed.`], at, 6);  await api.window([`Anyway. Can you kill those abominations? Payment negotiable.`], at, 6);  await api.window([`Look how ugly they are, anyway! Anyone would want them dead, right?`], at, 6);  for (let k in level.actors) if (k.slice(0,6) === 'target') api.window(`UGLY`, k, 1) })()",
+    "winScore": 100,
+    "onWon": "(async function() { const at=null;  api.levelSuggest('levels/x1/2.json');  await api.window(`OOOUUUUHH what a strong fairy you are. Spirit, I mean.`, at, 4);  await api.window([`Alright. You did the deed. I owe you. Now let's talk about `, [{tag:'i'}, `what`], ` I can do for ya.`], at, 4);  api.levelLoad('levels/x1/2.json') })()",
+
+    "onLost": "api.window([`I guess, not so great and powerful. Ah, nevermind. It was a nice thought.`, `Pffft. Yeah. Should have expected that.`][Math.random()*2|0]);  setTimeout(api.levelLoad, 3000)",
+
+    "iColorMatrix": [
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1, 0,
+        0, 0, 0, 1
+    ],
+
+    "width": 512, "height": 512,
+    "iSlowdown": 5,
+    "iMixing": [
+        1.05,   -2,  0.95,
+       0.246, 0.47,   -2,
+          -3, 0.43,  0.54
+    ],
+    "kernel":{
+      "center": [0.5, 0.5, 0.5],
+      "width": [0.1, 0.14, 0.14]
+    },
+    "iGrowthCenter": [0.4, 0.2, 0.4], "iGrowthWidth": [0.08, 0.04, 0.1],
+    "iOffset": [0,0], "iKernelOffset": [0,0],
+
+    "actors": {
+      "pointer1": {"displayRadius":[0,8,0], "pos":[0.5, 0.25], "emitRadius":8, "emit":"green", "emittance":1, "speed":{"Bmouse":0.01, "Bspeed": 0.93}, "dhealth":{"Br":-0.01}, "trackLost":true},
+      "pointer2": {"displayRadius":[0,0,0], "pos":[0.5, 0.25], "emitRadius":8, "emit":"green", "emittance":0, "speed":{"Btarget":0.01, "Bspeed": 0.93}, "target":"pointer1"},
+      "pointer3": {"displayRadius":[0,0,0], "pos":[0.5, 0.25], "emitRadius":8, "emit":"green", "emittance":0, "speed":{"Btarget":0.01, "Bspeed": 0.93}, "target":"pointer2"},
+      "target1": {"displayRadius":[8,0,0], "pos":[0.5, 0.87], "dscore":{"Br":-0.1, "Bg":0.1, "Bb":-0.1}},
+      "target2": {"displayRadius":[8,0,0], "pos":[0.505, 0.875], "dscore":{"Br":-0.1, "Bg":0.1, "Bb":-0.1}},
+      "target3": {"displayRadius":[8,0,0], "pos":[0.495, 0.875], "dscore":{"Br":-0.1, "Bg":0.1, "Bb":-0.1}},
+      "target4": {"displayRadius":[8,0,0], "pos":[0.5, 0.86], "dscore":{"Br":-0.1, "Bg":0.1, "Bb":-0.1}},
+      "target5": {"displayRadius":[8,0,0], "pos":[0.505, 0.865], "dscore":{"Br":-0.1, "Bg":0.1, "Bb":-0.1}},
+      "target6": {"displayRadius":[8,0,0], "pos":[0.495, 0.865], "dscore":{"Br":-0.1, "Bg":0.1, "Bb":-0.1}},
+      "target7": {"displayRadius":[8,0,0], "pos":[0.5, 0.85], "dscore":{"Br":-0.1, "Bg":0.1, "Bb":-0.1}},
+      "target8": {"displayRadius":[8,0,0], "pos":[0.505, 0.855], "dscore":{"Br":-0.1, "Bg":0.1, "Bb":-0.1}},
+      "target9": {"displayRadius":[8,0,0], "pos":[0.495, 0.855], "dscore":{"Br":-0.1, "Bg":0.1, "Bb":-0.1}},
+      "target10": {"displayRadius":[8,0,0], "pos":[0.5, 0.88], "dscore":{"Br":-0.1, "Bg":0.1, "Bb":-0.1}}
+    }
+}
