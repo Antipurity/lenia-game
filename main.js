@@ -866,7 +866,7 @@ void main() {
         }
     }
     function updateActorCPUData(L, len, start) { // Returns `[…, health, score, _, _, …]`, with `len*4` numbers.
-        // This sync GPU->CPU transfer may slow the game down.
+        // This sync GPU->CPU transfer may slow the game down. (But doesn't, in practice.)
         const s = glState
         const data = new Float32Array(len * 4)
         const maxLen = L._actorNames.length, firstLen = Math.min(len, maxLen - start)
@@ -1039,6 +1039,7 @@ void main() {
         swap(s.leniaFrames, 'prev', 'extra')
         gl.flush()
 
+        updateSensors(L)
         handleExtraData(L)
     }
     function swap(a, k1='prev', k2='next') { [a[k1], a[k2]] = [a[k2], a[k1]] }
@@ -1254,8 +1255,10 @@ void main() {
     function initHandlers() {
         if (typeof sn == 'undefined' || api._handlers) return
         api._handlers = [
-            new sn.Transform.Time({}),
-            new sn.Handler.Sound({volume:.3,minFrequency:0,maxFrequency:999999999}),
+            // new sn.Transform.Time({}), // TODO:
+            new sn.Handler.Sound({volume:1,minFrequency:0,maxFrequency:999999999, nameImportance:0}),
+            // TODO: ...Can we make `Sound` have the option to not play sound when in a background tab?
+            new sn.Handler({ onValues(then) { console.log('z'), then() } }) // TODO:
         ]
     }
     function initSensors(L) {
@@ -1263,25 +1266,63 @@ void main() {
         if (typeof sn == 'undefined') return
         if (api._sensors && api._sensors.level === L) return
         api._sensors && api._sensors.sensors.forEach(s => s.pause())
-        const s = api._sensors = {level:L, sensors:[], points:[], canvas:null}
-        const c = s.canvas = document.createElement('canvas');  c.width = L.width, c.height = L.height
+        const s = api._sensors = {level:L, sensors:[], points:[], tracked:null, canvas:null, ctx:null}
         const tracked = Object.values(L.actors).filter(a => {
             const a2 = typeof a.like == 'string' && L.actors[a.like]
             return Array.isArray(a.displayRadius) && a.trackLost || a2 && (Array.isArray(a2.displayRadius) && a2.trackLost)
         })
+        s.tracked = tracked
         if (!tracked.length) return
+        const c = s.canvas = document.createElement('canvas');  c.width = L.width, c.height = L.height
+        s.ctx = c.getContext('2d', {alpha:false, desynchronized:true}) // TODO: Maybe, also no alpha, for POTENTIAL speed?
+        // document.body.append(c) // TODO:
+        // c.style.position = 'absolute', c.style.left=0, c.style.top=0, c.style.zIndex=1000 // TODO:
         for (let a of tracked) {
             const p = { x:0, y:0, data:[], actor:a }
             s.points.push(p)
         }
         const ps = s.points
         s.sensors.push(
-            new sn.Sensor.Video({monochrome:false, tiling:1, zoomSteps:3, zoomStep:4, source:c, targets:s.points}),
-            new sn.Sensor.Pointer({pointers:ps.length, targets:ps}),
+            new sn.Sensor.Video({monochrome:false, tiling:1, zoomSteps:3, zoomStep:4, source:c, targets:ps}), // TODO: Can we allow specifying zoomSteps as [start, end] in Video, and here, specify [0,1]? (Because that constant drilling is a bit annoying.)
+            // new sn.Sensor.Pointer({pointers:ps.length, targets:ps}), // TODO: ...Do we even want to expose this to humans? It sounds awful...
         )
     }
-    // TODO: ...How do we update the data to display?... Do we want another function? Yeah: `updateSensors`.
-    // TODO: With a direct-link library, expose surroundings (the display, since just reading from a texture is quite hard) & {x,y,data:[targetX, targetY, health, emitColor]} per-actor position (target is mouse if no target) of all agents with `displayRadius`, into sound. This might be the coolest application that I can think of: controlling a swarm.
-    //   ...How, exactly? I guess, on level load, we want to (pause previous sensors and) create a sensor for each actor with `displayRadius`...
-    //   TODO: Have a hidden canvas, sized the same as physics, into which we draw our real canvas (resized), and from which we sense video.
+    function updateSensors(L) {
+        // TODO: ...Why does this halve our FPS?... (And, does it really display the right data?)
+        //   Are our performance issues (and the constant sound skips) caused by loops fundamentally not agreeing?...
+        //     ...How would we fix that?...
+        //     I don't think that's quite the case: running this update very rarely recovers most of our FPS.
+        //       This func is 75% of the CPU time (though it might just be stalling for most of it).
+        //   ...Our unnevenness compensation is simply terrible (AKA non-existent), so there are SO MANY audio skips...
+        //     (With a better GPU, it all actually sounds quite lovely.)
+        //     Maybe make `sn.Handler.Sound` measure the avg skip-duration and retur that much earlier?...
+        if (!api._sensors || !api._sensors.canvas) return
+        // if (Math.random()>.1) return // TODO: ...So should we do this? Is resizing an image really THAT expensive?
+        const s = api._sensors
+
+        // Update the video canvas.
+        const main = document.getElementById('main')
+        s.ctx.drawImage(main, 0, 0, L.width, L.height) // TODO: Why is this line so slow?
+        // TODO: Why is the video so slow, way slower than it was in canvas-reading tests...
+        //   Even halving the target resolution doesn't help.
+
+        // TODO: Why do the things below lose us a couple frames?
+        // Update the points to look at.
+        for (let i = 0; i < s.points.length; ++i) {
+            const p = s.points[i], a = p.actor, d = p.data, t = a._targetActor
+            const tx = t ? t.pos[0] : mouse.x
+            const ty = t ? t.pos[1] : mouse.y
+            const a2 = a.like != null && L.actors[a.like], e = a.emit || a2 && a2.emit
+            p.x = a.pos[0], p.y = 1 - a.pos[1]
+            ;[d[0], d[1], d[2], d[3], d[4], d[5], d[6], d[7]] = [
+                // dx, dy, targetX, targetY, health, red, green, blue
+                retarget(a.pos[2] || 0), retarget(a.pos[3] || 0),
+                retarget(tx), retarget(ty),
+                retarget(a.health || 0), e === 'red' ? 1 : 0, e === 'green' ? 1 : 0, e === 'blue' ? 1 : 0,
+            ]
+        }
+        function retarget(x) { // From 0…1 to -1…1, with clamping.
+            return Math.max(-1, Math.min(x*2-1, 1))
+        }
+    }
 })(document.getElementById('main'), self)
