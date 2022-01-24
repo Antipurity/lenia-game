@@ -1,3 +1,5 @@
+// Do `localStorage.debug=true` in JS console to be able to reload levels that you are changing.
+
 // ...I keep encountering those cool animations. Too bad I don't have a means to make them into DOM elements, for portraits in story mode.
 
 // TODO: ...With the means to make a story and go across levels, come up with concrete levels.
@@ -93,8 +95,10 @@
 
 // (Guess Lenia is more boring than I thought.)
 
-// TODO: Make note of browser compatibility, according to the APIs that we use: WebGL2, Object.values, object destructuring, element.append(…), pointer events.
-// TODO: With a direct-link library, expose data & surroundings & individual-mouse-position of all agents with `displayRadius` with sound. This might be the coolest application that I can think of: controlling a swarm.
+// TODO: Have a README.md.
+    // TODO: Make note of browser compatibility, according to the APIs that we use: WebGL2, Object.values, object destructuring, element.append(…), pointer events.
+// TODO: With a direct-link library, expose surroundings (the display, since just reading from a texture is quite hard) & {x,y,data:[targetX, targetY, health, emitColor]} per-actor position (target is mouse if no target) of all agents with `displayRadius`, into sound. This might be the coolest application that I can think of: controlling a swarm.
+//   ...How, exactly? I guess, on level load, we want to (pause previous sensors and) create a sensor for each actor with `displayRadius`...
 // TODO: A license notice in this file.
 
 
@@ -364,6 +368,7 @@ void main() {
     // For actors' JS.
     const api = exports.api = {
         _level: null, _url: null, _windowShorteners: new Set,
+        _soundHandler: null,
         levelLoad(url = api._url) {
             // Goes to a level. `url` must point to a JSON file of the level.
             if (api._level && !api._level.isMenu) api.levelSuggest(api._level.url, { lost:api._level.score })
@@ -825,9 +830,10 @@ void main() {
         }
     }
     function updateActorWebGLGravity(L, start, end) {
+        // Doesn't deal with end<start. But we don't use that anyway.
         const s = glState, b = L._buffers
         const i = start*4*4, n = start*4, m = end*4
-        s.gravity.set(gl, i, b.gravity.subarray(n, m)) // TODO: Also count overflows!
+        s.gravity.set(gl, i, b.gravity.subarray(n, m))
     }
     function updateActorWebGLData(L, start, end = start+1) {
         // Intended to be called after `updateActor`, with `actor.i` as `start`.
@@ -949,6 +955,7 @@ void main() {
         maybeResize(canvas, canvas)
         gl.clear(gl.COLOR_BUFFER_BIT)
         if (!api._level) return
+        initSound()
         const s = glState, L = api._level, p1 = s.lenia, p2 = s.actors, p3 = s.displayLenia, p4 = s.displayActors, rect = s.posBuffer
         handleLevelLoaded(s, L)
         if (p1 !== null) { // Lenia.
@@ -1170,7 +1177,10 @@ void main() {
 
     function loadLevel(url) {
         // Returns a promise of a level's object.
-        return fetch(url, {mode:'cors'}).then(response => response.json())
+        return fetch(url, {
+            mode:'cors',
+            cache: localStorage.debug == 'true' ? 'reload' : 'force-cache',
+        }).then(response => response.json())
     }
 
     function leniaKernel(gl, R, mus, sigmas, offsets, data=null, totals=[0,0,0,1]) {
@@ -1234,5 +1244,10 @@ void main() {
             r[k + ' / ' + k2] = x[k][k2]
             return mergeSingles(r, true)
         }
+    }
+
+    function initSound() {
+        if (typeof sn == 'undefined' || api._soundHandler) return
+        api._soundHandler = new sn.Handler.Sound({volume:.3,minFrequency:0,maxFrequency:999999999})
     }
 })(document.getElementById('main'), self)

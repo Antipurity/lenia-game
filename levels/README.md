@@ -2,6 +2,8 @@ Each level specifies, in JSON, all metadata and all simulation parameters and al
 
 Making a new level is best done by copying a pre-existing level and changing its simulation parameters.
 
+Levels are cached by default; to be able to reload levels that you are working on, do `localStorage.debug=true` in JS console (F12).
+
 ## Metadata
 
 `description: string`: Markdown, displayed in level-select.
