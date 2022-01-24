@@ -97,9 +97,6 @@
 
 // TODO: Have a README.md.
     // TODO: Make note of browser compatibility, according to the APIs that we use: WebGL2, Object.values, object destructuring, element.append(…), pointer events.
-// TODO: With a direct-link library, expose surroundings (the display, since just reading from a texture is quite hard) & {x,y,data:[targetX, targetY, health, emitColor]} per-actor position (target is mouse if no target) of all agents with `displayRadius`, into sound. This might be the coolest application that I can think of: controlling a swarm.
-//   ...How, exactly? I guess, on level load, we want to (pause previous sensors and) create a sensor for each actor with `displayRadius`...
-//   TODO: Have a hidden canvas, sized the same as physics, into which we draw our real canvas (resized), and from which we sense video.
 // TODO: A license notice in this file.
 
 
@@ -786,7 +783,6 @@ void main() {
             } catch (err) { console.error(err) }
         }
         if (!L._trackedLost) L._trackedLost = null
-        // TODO: Can we have an FPS counter?
         s.posSpeed = twice(() => initBuffer(gl, pos, 4, gl.DYNAMIC_READ))
         s.extraState = twice(() => initBuffer(gl, extra, 4, gl.DYNAMIC_READ))
         s.gravity = initBuffer(gl, gravity, 4)
@@ -875,9 +871,6 @@ void main() {
         const data = new Float32Array(len * 4)
         const maxLen = L._actorNames.length, firstLen = Math.min(len, maxLen - start)
         if (L._webglLost) return data
-        // TODO: OH NO: FF has actual useful hints, and its performance is quite bad, likely due to this…
-        //   TODO: How to read without causing pipeline stalls, incorporating FenceSync and copies?...
-        // TODO: ...No: why does commenting this out not change the FPS?...
         gl.bindBuffer(gl.ARRAY_BUFFER, s.posSpeed.prev.buf)
         gl.getBufferSubData(gl.ARRAY_BUFFER, start*4*4, data, 0, firstLen*4)
         firstLen && gl.getBufferSubData(gl.ARRAY_BUFFER, (firstLen+start)%maxLen*4*4, data, firstLen*4)
@@ -1288,5 +1281,7 @@ void main() {
         )
     }
     // TODO: ...How do we update the data to display?... Do we want another function? Yeah: `updateSensors`.
-    // TODO: ...Okay, we HAVE to fix Firefox performance.
+    // TODO: With a direct-link library, expose surroundings (the display, since just reading from a texture is quite hard) & {x,y,data:[targetX, targetY, health, emitColor]} per-actor position (target is mouse if no target) of all agents with `displayRadius`, into sound. This might be the coolest application that I can think of: controlling a swarm.
+    //   ...How, exactly? I guess, on level load, we want to (pause previous sensors and) create a sensor for each actor with `displayRadius`...
+    //   TODO: Have a hidden canvas, sized the same as physics, into which we draw our real canvas (resized), and from which we sense video.
 })(document.getElementById('main'), self)
