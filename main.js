@@ -505,8 +505,8 @@ void main() {
                         } else { // Instantly center.
                             x = x2 - width/2, y = y2 - height/2
                         }
-                        x = Math.max(0, Math.min(x, 1-width))
-                        y = Math.max(0, Math.min(y, 1-height))
+                        x = Math.min(Math.max(0, x), 1-width)
+                        y = Math.min(Math.max(0, y), 1-height)
                         content.style.left = x*w + 'px'
                         content.style.top = (1-y - height)*h + 'px'
                     }
