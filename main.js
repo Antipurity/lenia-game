@@ -99,6 +99,7 @@
     // TODO: Make note of browser compatibility, according to the APIs that we use: WebGL2, Object.values, object destructuring, element.append(…), pointer events.
 // TODO: With a direct-link library, expose surroundings (the display, since just reading from a texture is quite hard) & {x,y,data:[targetX, targetY, health, emitColor]} per-actor position (target is mouse if no target) of all agents with `displayRadius`, into sound. This might be the coolest application that I can think of: controlling a swarm.
 //   ...How, exactly? I guess, on level load, we want to (pause previous sensors and) create a sensor for each actor with `displayRadius`...
+//   TODO: Have a hidden canvas, sized the same as physics, into which we draw our real canvas (resized), and from which we sense video.
 // TODO: A license notice in this file.
 
 
@@ -368,7 +369,7 @@ void main() {
     // For actors' JS.
     const api = exports.api = {
         _level: null, _url: null, _windowShorteners: new Set,
-        _soundHandler: null,
+        _sensors: null, _handlers: null,
         levelLoad(url = api._url) {
             // Goes to a level. `url` must point to a JSON file of the level.
             if (api._level && !api._level.isMenu) api.levelSuggest(api._level.url, { lost:api._level.score })
@@ -785,8 +786,9 @@ void main() {
             } catch (err) { console.error(err) }
         }
         if (!L._trackedLost) L._trackedLost = null
-        s.posSpeed = twice(() => initBuffer(gl, pos, 4))
-        s.extraState = twice(() => initBuffer(gl, extra, 4))
+        // TODO: Can we have an FPS counter?
+        s.posSpeed = twice(() => initBuffer(gl, pos, 4, gl.DYNAMIC_READ))
+        s.extraState = twice(() => initBuffer(gl, extra, 4, gl.DYNAMIC_READ))
         s.gravity = initBuffer(gl, gravity, 4)
         s.displayRadius = initBuffer(gl, displayRadius, 4)
         s.behavior = { keys: B.keys }
@@ -873,6 +875,9 @@ void main() {
         const data = new Float32Array(len * 4)
         const maxLen = L._actorNames.length, firstLen = Math.min(len, maxLen - start)
         if (L._webglLost) return data
+        // TODO: OH NO: FF has actual useful hints, and its performance is quite bad, likely due to this…
+        //   TODO: How to read without causing pipeline stalls, incorporating FenceSync and copies?...
+        // TODO: ...No: why does commenting this out not change the FPS?...
         gl.bindBuffer(gl.ARRAY_BUFFER, s.posSpeed.prev.buf)
         gl.getBufferSubData(gl.ARRAY_BUFFER, start*4*4, data, 0, firstLen*4)
         firstLen && gl.getBufferSubData(gl.ARRAY_BUFFER, (firstLen+start)%maxLen*4*4, data, firstLen*4)
@@ -929,6 +934,11 @@ void main() {
         }
         updateActorWebGLGravity(L, start, Math.min(start+len, maxLen))
         start+len > maxLen && updateActorWebGLGravity(L, 0, start+len - maxLen)
+        // FPS, if debugging.
+        if (!L._lastFrame) L._lastFrame = performance.now(), L._fps = 0
+        const fps = Math.min(1000 / (performance.now() - L._lastFrame + 1e-6) || .01, L._fps*2+1)
+        L._fps = .9*L._fps + .1*fps
+        L._lastFrame = performance.now()
         // Update the displayed score.
         if (L.score >= L.winScore && !L._didWin) { // Won the level.
             try {
@@ -940,6 +950,7 @@ void main() {
         }
         const score = document.getElementById('score')
         score.textContent = !L.isMenu ? L.score.toFixed(2) + '/' + L.winScore.toFixed(0) : L.score ? L.score.toFixed(2) : ''
+        if (localStorage.debug) score.textContent = (L._fps|0) + ' ' + score.textContent
         if (!L.isMenu && L._lost) score.textContent += '\nbest ' + L._lost.toFixed(2)
         !L.isMenu && score.classList.toggle('win', !!L._didWin)
         score.classList.toggle('lost', L._trackedLost != null && !L._trackedLost)
@@ -955,7 +966,8 @@ void main() {
         maybeResize(canvas, canvas)
         gl.clear(gl.COLOR_BUFFER_BIT)
         if (!api._level) return
-        initSound()
+        initHandlers()
+        initSensors(api._level)
         const s = glState, L = api._level, p1 = s.lenia, p2 = s.actors, p3 = s.displayLenia, p4 = s.displayActors, rect = s.posBuffer
         handleLevelLoaded(s, L)
         if (p1 !== null) { // Lenia.
@@ -1246,8 +1258,35 @@ void main() {
         }
     }
 
-    function initSound() {
-        if (typeof sn == 'undefined' || api._soundHandler) return
-        api._soundHandler = new sn.Handler.Sound({volume:.3,minFrequency:0,maxFrequency:999999999})
+    function initHandlers() {
+        if (typeof sn == 'undefined' || api._handlers) return
+        api._handlers = [
+            new sn.Transform.Time({}),
+            new sn.Handler.Sound({volume:.3,minFrequency:0,maxFrequency:999999999}),
+        ]
     }
+    function initSensors(L) {
+        // Each new level has its own data sensors, for positions & surroundings of all actors with .displayRadius and .trackLost.
+        if (typeof sn == 'undefined') return
+        if (api._sensors && api._sensors.level === L) return
+        api._sensors && api._sensors.sensors.forEach(s => s.pause())
+        const s = api._sensors = {level:L, sensors:[], points:[], canvas:null}
+        const c = s.canvas = document.createElement('canvas');  c.width = L.width, c.height = L.height
+        const tracked = Object.values(L.actors).filter(a => {
+            const a2 = typeof a.like == 'string' && L.actors[a.like]
+            return Array.isArray(a.displayRadius) && a.trackLost || a2 && (Array.isArray(a2.displayRadius) && a2.trackLost)
+        })
+        if (!tracked.length) return
+        for (let a of tracked) {
+            const p = { x:0, y:0, data:[], actor:a }
+            s.points.push(p)
+        }
+        const ps = s.points
+        s.sensors.push(
+            new sn.Sensor.Video({monochrome:false, tiling:1, zoomSteps:3, zoomStep:4, source:c, targets:s.points}),
+            new sn.Sensor.Pointer({pointers:ps.length, targets:ps}),
+        )
+    }
+    // TODO: ...How do we update the data to display?... Do we want another function? Yeah: `updateSensors`.
+    // TODO: ...Okay, we HAVE to fix Firefox performance.
 })(document.getElementById('main'), self)
