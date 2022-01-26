@@ -642,8 +642,7 @@ void main() {
     }
     addEventListener('pointerdown', api._windowsAreShorterNow, {passive:true})
     // The main drawing loop.
-    if (!canvas.gl)
-        canvas.gl = canvas.getContext('webgl2', {alpha:false, desynchronized:true})
+    canvas.gl = canvas.getContext('webgl2', {alpha:false, desynchronized:true})
     const gl = canvas.gl
     if (!gl) throw new Error("Failed to get a WebGL2 context.")
     canvas.width = canvas.height = 0
@@ -1258,7 +1257,6 @@ void main() {
             // new sn.Transform.Time({}), // TODO:
             new sn.Handler.Sound({volume:1,minFrequency:0,maxFrequency:999999999, nameImportance:0}),
             // TODO: ...Can we make `Sound` have the option to not play sound when in a background tab?
-            new sn.Handler({ onValues(then) { console.log('z'), then() } }) // TODO:
         ]
     }
     function initSensors(L) {
@@ -1274,39 +1272,35 @@ void main() {
         s.tracked = tracked
         if (!tracked.length) return
         const c = s.canvas = document.createElement('canvas');  c.width = L.width, c.height = L.height
-        s.ctx = c.getContext('2d', {alpha:false, desynchronized:true}) // TODO: Maybe, also no alpha, for POTENTIAL speed?
-        // document.body.append(c) // TODO:
-        // c.style.position = 'absolute', c.style.left=0, c.style.top=0, c.style.zIndex=1000 // TODO:
+        s.ctx = c.getContext('2d', {alpha:false, desynchronized:true})
+        s.ctx.imageSmoothingEnabled = false
         for (let a of tracked) {
             const p = { x:0, y:0, data:[], actor:a }
             s.points.push(p)
         }
         const ps = s.points
         s.sensors.push(
-            new sn.Sensor.Video({monochrome:false, tiling:1, zoomSteps:3, zoomStep:4, source:c, targets:ps}), // TODO: Can we allow specifying zoomSteps as [start, end] in Video, and here, specify [0,1]? (Because that constant drilling is a bit annoying.)
+            new sn.Sensor.Video({monochrome:false, tiling:2, zoomSteps:3, zoomStep:4, source:c, targets:ps}), // TODO: Allow specifying zoomSteps as [start, end] in Video, and here, specify [1,3]? (Because that constant drilling is a bit annoying.)
             // new sn.Sensor.Pointer({pointers:ps.length, targets:ps}), // TODO: ...Do we even want to expose this to humans? It sounds awful...
         )
     }
     function updateSensors(L) {
-        // TODO: ...Why does this halve our FPS?... (And, does it really display the right data?)
-        //   Are our performance issues (and the constant sound skips) caused by loops fundamentally not agreeing?...
-        //     ...How would we fix that?...
-        //     I don't think that's quite the case: running this update very rarely recovers most of our FPS.
-        //       This func is 75% of the CPU time (though it might just be stalling for most of it).
-        //   ...Our unnevenness compensation is simply terrible (AKA non-existent), so there are SO MANY audio skips...
+        //  TODO: ...Our unnevenness compensation is simply terrible (AKA non-existent), so there are SO MANY audio skips...
         //     (With a better GPU, it all actually sounds quite lovely.)
         //     Maybe make `sn.Handler.Sound` measure the avg skip-duration and retur that much earlier?...
         if (!api._sensors || !api._sensors.canvas) return
-        // if (Math.random()>.1) return // TODO: ...So should we do this? Is resizing an image really THAT expensive?
         const s = api._sensors
 
         // Update the video canvas.
-        const main = document.getElementById('main')
-        s.ctx.drawImage(main, 0, 0, L.width, L.height) // TODO: Why is this line so slow?
-        // TODO: Why is the video so slow, way slower than it was in canvas-reading tests...
-        //   Even halving the target resolution doesn't help.
+        if (!updateSensors.avgDur) updateSensors.avgDur = 0
+        if (updateSensors.avgDur <= 5 || Math.random() < 5 / updateSensors.avgDur) {
+            const main = document.getElementById('main')
+            const start = performance.now()
+            s.ctx.drawImage(main, 0, 0, L.width, L.height)
+            const duration = performance.now() - start
+            updateSensors.avgDur = .9 * updateSensors.avgDur + .1 * duration
+        }
 
-        // TODO: Why do the things below lose us a couple frames?
         // Update the points to look at.
         for (let i = 0; i < s.points.length; ++i) {
             const p = s.points[i], a = p.actor, d = p.data, t = a._targetActor
