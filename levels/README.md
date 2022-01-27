@@ -228,7 +228,7 @@ For example, specifying `onLost: "setTimeout(() => api.levelLoad(level.url), 100
 - Given nothing, clears every window instantly. (Level load does this.)
 - Returns a promise, which resolves when the timeout has passed.
 
-When the user clicks, all active windows take 4 less seconds to disappear. Click repeatedly to skip the story.
+When the user clicks, all active windows take 32 less seconds to disappear. Click repeatedly to skip the story. You monster.
 
 If `posMomentum` is `0`, the window is centered on the element, instead of daintily following it. Otherwise, the closer it is to `1`, the slower the window follows.
 

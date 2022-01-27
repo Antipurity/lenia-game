@@ -636,7 +636,7 @@ void main() {
             return ''+u
         },
         _windowsAreShorterNow(bySeconds) {
-            if (typeof bySeconds != 'number') bySeconds = 4
+            if (typeof bySeconds != 'number') bySeconds = 32
             api._windowShorteners.forEach(f => f(bySeconds))
         },
     }
