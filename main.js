@@ -1254,9 +1254,8 @@ void main() {
     function initHandlers() {
         if (typeof sn == 'undefined' || api._handlers) return
         api._handlers = [
-            // new sn.Transform.Time({}), // TODO:
-            new sn.Handler.Sound({volume:1,minFrequency:0,maxFrequency:999999999, nameImportance:0}),
-            // TODO: ...Can we make `Sound` have the option to not play sound when in a background tab?
+            new sn.Transform.Time({}),
+            new sn.Handler.Sound({volume:1,minFrequency:0,maxFrequency:999999999, nameImportance:0, foregroundOnly:true}),
         ]
     }
     function initSensors(L) {
@@ -1280,8 +1279,8 @@ void main() {
         }
         const ps = s.points
         s.sensors.push(
+            // new sn.Sensor.Pointer({pointers:ps.length, targets:ps}), // This sounds terrible. Unclean.
             new sn.Sensor.Video({monochrome:false, tiling:2, zoomSteps:3, zoomStepStart:1, zoomStep:4, source:c, targets:ps}),
-            // new sn.Sensor.Pointer({pointers:ps.length, targets:ps}), // TODO: ...Do we even want to expose this to humans? It sounds awful...
         )
     }
     function updateSensors(L) {
