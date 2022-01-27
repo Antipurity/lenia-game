@@ -1280,32 +1280,34 @@ void main() {
         }
         const ps = s.points
         s.sensors.push(
-            new sn.Sensor.Video({monochrome:false, tiling:2, zoomSteps:3, zoomStep:4, source:c, targets:ps}), // TODO: Allow specifying zoomSteps as [start, end] in Video, and here, specify [1,3]? (Because that constant drilling is a bit annoying.)
+            new sn.Sensor.Video({monochrome:false, tiling:2, zoomSteps:3, zoomStepStart:1, zoomStep:4, source:c, targets:ps}),
             // new sn.Sensor.Pointer({pointers:ps.length, targets:ps}), // TODO: ...Do we even want to expose this to humans? It sounds awful...
         )
     }
     function updateSensors(L) {
-        //  TODO: ...Our unnevenness compensation is simply terrible (AKA non-existent), so there are SO MANY audio skips...
-        //     (With a better GPU, it all actually sounds quite lovely.)
-        //     Maybe make `sn.Handler.Sound` measure the avg skip-duration and retur that much earlier?...
         if (!api._sensors || !api._sensors.canvas) return
         const s = api._sensors
 
         // Update the video canvas.
-        if (!updateSensors.avgDur) updateSensors.avgDur = 0
-        if (updateSensors.avgDur <= 5 || Math.random() < 5 / updateSensors.avgDur) {
+        //   Use the level's physics size for consistency, not the display size.
+        //   `.drawImage` may take very long, though, so skip it to maintain FPS.
+        //   Use a 5ms counter instead of a 5/duration redraw probability to make it smooth.
+        if (!updateSensors.avgDur) updateSensors.avgDur = 0, updateSensors.sumDur = 0
+        if (updateSensors.avgDur <= 5 || updateSensors.sumDur > updateSensors.avgDur) {
             const main = document.getElementById('main')
             const start = performance.now()
             s.ctx.drawImage(main, 0, 0, L.width, L.height)
             const duration = performance.now() - start
             updateSensors.avgDur = .9 * updateSensors.avgDur + .1 * duration
+            updateSensors.sumDur = 0
         }
+        updateSensors.sumDur += 5
 
         // Update the points to look at.
         for (let i = 0; i < s.points.length; ++i) {
             const p = s.points[i], a = p.actor, d = p.data, t = a._targetActor
             const tx = t ? t.pos[0] : mouse.x
-            const ty = t ? t.pos[1] : mouse.y
+            const ty = 1 - (t ? t.pos[1] : mouse.y)
             const a2 = a.like != null && L.actors[a.like], e = a.emit || a2 && a2.emit
             p.x = a.pos[0], p.y = 1 - a.pos[1]
             ;[d[0], d[1], d[2], d[3], d[4], d[5], d[6], d[7]] = [
