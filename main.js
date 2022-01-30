@@ -1316,7 +1316,6 @@ void main() {
         if (!tracked.length) return
         const c = s.canvas = document.createElement('canvas');  c.width = L.width/4, c.height = L.height/4
         s.ctx = c.getContext('2d', {alpha:false, desynchronized:true})
-        s.ctx.imageSmoothingEnabled = false
         for (let a of tracked) {
             const p = { x:0, y:0, data:[], actor:a }
             s.points.push(p)
@@ -1329,7 +1328,6 @@ void main() {
     }
     function updateSensors(L) {
         if (!api._sensors || !api._sensors.canvas) return
-        return // TODO:
         const s = api._sensors
 
         // Update the video canvas.
@@ -1337,16 +1335,16 @@ void main() {
         //   `.drawImage` may take very long, though, so skip it to maintain FPS.
         //   Use a 5ms counter instead of a 5/duration redraw probability to make it smooth.
         if (!updateSensors.avgDur) updateSensors.avgDur = 0, updateSensors.sumDur = 0
-        if (updateSensors.avgDur <= 3 || updateSensors.sumDur > updateSensors.avgDur) {
+        if (updateSensors.avgDur <= 4 || updateSensors.sumDur > updateSensors.avgDur) {
             const main = document.getElementById('main')
+            // Note: going through `await createImageBitmap(main)` doesn't seem to be any faster, just async and promise-allocating.
             const start = performance.now()
             s.ctx.drawImage(main, 0, 0, s.canvas.width, s.canvas.height)
             const duration = performance.now() - start
             updateSensors.avgDur = .9 * updateSensors.avgDur + .1 * duration
             updateSensors.sumDur = 0
-            console.log(duration) // TODO: Why is it so slow even with src-canvas-size being 1/16th the original?!
         }
-        updateSensors.sumDur += 3
+        updateSensors.sumDur += 4
 
         // Update the points to look at.
         for (let i = 0; i < s.points.length; ++i) {
