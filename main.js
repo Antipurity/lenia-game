@@ -348,16 +348,24 @@ void main() {
 
 
 
-    const mouse = { x:.5, y:.5, main:false, aux:false, update(evt) {
+    const mouse = { x:.5, y:.5, main:false, aux:false, keys:{}, update(evt) {
         mouse.x = ((evt.changedTouches ? evt.changedTouches[0] : evt).clientX + (evt.movementX || 0)) / innerWidth
         mouse.y = ((evt.changedTouches ? evt.changedTouches[0] : evt).clientY + (evt.movementY || 0)) / innerHeight
         mouse.main = evt.buttons & 1
         mouse.aux = evt.buttons & 2
-    } }
-    addEventListener('pointerdown', mouse.update, {passive:true})
-    addEventListener('touchmove', mouse.update, {passive:true})
-    addEventListener('pointermove', mouse.update, {passive:true})
-    addEventListener('pointerup', mouse.update, {passive:true})
+    }, key(evt) {
+        if (evt.key === 'ArrowLeft') mouse.keys.left = evt.type.indexOf('down')>=0
+        if (evt.key === 'ArrowRight') mouse.keys.right = evt.type.indexOf('down')>=0
+        if (evt.key === 'ArrowUp') mouse.keys.up = evt.type.indexOf('down')>=0
+        if (evt.key === 'ArrowDown') mouse.keys.down = evt.type.indexOf('down')>=0
+        if (evt.key === 'Shift') mouse.keys.shift = evt.type.indexOf('down')>=0
+    } }, passive = {passive:true}
+    addEventListener('pointerdown', mouse.update, passive)
+    addEventListener('touchmove', mouse.update, passive)
+    addEventListener('pointermove', mouse.update, passive)
+    addEventListener('pointerup', mouse.update, passive)
+    addEventListener('keydown', mouse.key, passive)
+    addEventListener('keyup', mouse.key, passive)
 
 
 
@@ -998,6 +1006,15 @@ void main() {
     function draw() {
         requestAnimationFrame(draw)
         if (document.visibilityState === 'hidden') return
+        { // Move with arrow keys.
+            const spd = mouse.keys.shift ? .01 : .001
+            if (mouse.keys.left) mouse.x -= spd
+            if (mouse.keys.right) mouse.x += spd
+            if (mouse.keys.up) mouse.y -= spd
+            if (mouse.keys.down) mouse.y += spd
+            mouse.x = Math.max(0, Math.min(mouse.x, 1))
+            mouse.y = Math.max(0, Math.min(mouse.y, 1))
+        }
         maybeResize(canvas, canvas)
         gl.clear(gl.COLOR_BUFFER_BIT)
         if (!api._level) return
