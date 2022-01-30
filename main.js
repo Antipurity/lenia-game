@@ -949,11 +949,16 @@ void main() {
         const data = updateActorCPUData(L, len, start)
         const gravity = L._buffers.gravity
         let gravityChanged = false
+        // TODO: ...Are we getting ridiculous scores because we're now delaying the read?... ...I don't think so... Then why; what changed...
+        let DSCORE = 0 // TODO:
         for (let I = 0; I < len; ++I) {
             const i = (start+I) % maxLen
             const name = L._actorNames[i], a = L.actors[name]
-            if (L._trackedLost == null || L._trackedLost)
-                L.score -= (a.score || 0) - (a.score = data[I*4+1])
+            if (L._trackedLost == null || L._trackedLost) {
+                const d = (a.score || 0) - (a.score = data[I*4+1])
+                L.score -= d
+                DSCORE -= d // TODO:
+            }
 
             // Update target positions. (May be slow to propagate, but much better than WebGL-only "targets are impossible to implement unless we forego attributes and do everything through textures".)
             const x1 = gravity[i*4+2], y1 = gravity[i*4+3]
@@ -973,6 +978,7 @@ void main() {
             }
             a._health = a.health = health
         }
+        if (DSCORE) console.log('DSCORE', DSCORE, 'len', len, 'start', start) // TODO: HOW IS IT 100 PER FRAME; it makes no sense, it should be .7 at most!...
         if (gravityChanged) {
             updateActorWebGLGravity(L, start, Math.min(start+len, maxLen))
             start+len > maxLen && updateActorWebGLGravity(L, 0, start+len - maxLen)
