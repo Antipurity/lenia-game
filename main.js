@@ -366,6 +366,7 @@ void main() {
     // For actors' JS.
     const api = exports.api = {
         _level: null, _url: null, _windowShorteners: new Set,
+        _windows: new Map, // DOMelem → [x,y,w,h]
         _sensors: null, _handlers: null,
         levelLoad(url = api._url) {
             // Goes to a level. `url` must point to a JSON file of the level.
@@ -447,6 +448,7 @@ void main() {
             return Promise.resolve(content).then(content => {
                 if (content == null) {
                     for (let el of document.querySelectorAll('.window')) {
+                        api._windows.delete(el)
                         el.classList.add('removed')
                         el.remove()
                     }
@@ -502,14 +504,34 @@ void main() {
                         } else { // Instantly center.
                             x = x2 - width/2, y = y2 - height/2
                         }
+                        api._windows.forEach(([x3,y3,width3,height3], win) => { // No intersections.
+                            if (win === content) return
+                            const left = x, right = x+width, top = y, bottom = y+height
+                            const left3 = x3, right3 = x3+width3, top3 = y3, bottom3 = y3+height3
+                            if (right <= left3 || right3 <= left) return
+                            if (bottom <= top3 || bottom3 <= top) return
+                            const p = .1
+                            if (right > left3 || right3 > left) {
+                                const mid = x+width/2, mid3 = x3+width3/2
+                                x = p*x + (1-p)*(mid < mid3 ? left3-width : right3)
+                            }
+                            if (bottom > top3 || bottom3 > top) {
+                                const mid = y+height/2, mid3 = y3+height3/2
+                                y = p*y + (1-p)*(mid < mid3 ? top3-height : bottom3)
+                            }
+                        })
                         x = Math.min(Math.max(0, x), 1-width)
                         y = Math.min(Math.max(0, y), 1-height)
                         content.style.left = x*w + 'px'
                         content.style.top = (1-y - height)*h + 'px'
+                        const a = api._windows.get(content)
+                        if (!a) return
+                        else [a[0], a[1], a[2], a[3]] = [x, y, width, height]
                     }
                 } else // Bottom-left when no actor or a non-existent actor is given.
                     content.style.left = content.style.bottom = 0
                 document.body.append(content)
+                api._windows.set(content, [0,0,0,0])
                 return new Promise((resolve, reject) => {
                     if (timeoutSec != null) {
                         const start = performance.now()
@@ -522,6 +544,7 @@ void main() {
                         function disappear() {
                             api._windowShorteners.delete(content._windowShortener)
                             content.classList.contains('removed') ? reject('windows were cleared, do not proceed') : resolve('proceed')
+                            api._windows.delete(content)
                             content.classList.add('removed')
                             setTimeout(() => content.remove(), 5000)
                         }
