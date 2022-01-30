@@ -42,7 +42,9 @@ Levels are cached by default; to be able to reload levels that you are working o
 
 ---
 
-`width: int` and `height: int`: Lenia physics are computed on a grid of this size, with kernel radius 5 for efficiency. Width/height must be powers of 2.
+`width: int` and `height: int` and `radius: int = 5`: Lenia physics are computed on a grid of this size, convolving with a kernel with this `radius` (diameter `radius*radius+1`).
+
+(Cannot be bothered to implement `Conv(X,Y) = IDFT(DFT(X) * DFT(Y))`, so computation cost is quadratic in both `radius` and `(width+height)/2`.)
 
 ---
 

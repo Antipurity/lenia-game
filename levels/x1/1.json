@@ -14,7 +14,7 @@
         0, 0, 0, 1
     ],
 
-    "width": 512, "height": 512,
+    "width": 512, "height": 512, "radius": 5,
     "iSlowdown": 5,
     "iMixing": [
         1.05,   -2,  0.95,

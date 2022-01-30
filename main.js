@@ -102,12 +102,13 @@
 
 
 ;(function loop(canvas, exports) {
-    const R = 5 // Convolution-kernel radius. 2*R+1 is the kernel resolution.
     const initialLevel = 'levels/initial.json'
 
 
 
-    const leniaSource = `
+    const leniaSources = R => { // Convolution-kernel radius. 2*R+1 is the kernel resolution.
+        return [
+            `
 attribute vec2 vertexPos;
 void main() { gl_Position = vec4(vertexPos, 0., 1.); }
 
@@ -162,34 +163,8 @@ void main() {
     vec3 rgb = lenia(leniaGrid, iMixing, coord);
 
     gl_FragColor = vec4(rgb, 1.);
-}`
-
-
-
-    const displayLeniaSource = `
-attribute vec2 vertexPos;
-void main() { gl_Position = vec4(vertexPos, 0., 1.); }
-
-=====
-
-precision highp float;
-uniform vec4 iDisplay;
-uniform vec4 iResolution;
-uniform sampler2D leniaGrid;
-uniform sampler2D leniaKernel;
-
-uniform mat4 iColorMatrix;
-
-void main() {
-    // STRETCH
-    gl_FragColor = texture2D(leniaGrid, gl_FragCoord.xy / iDisplay.xy) * iColorMatrix;
-    // gl_FragColor = texture2D(leniaKernel, gl_FragCoord.xy / iDisplay.xy) * iColorMatrix; // Visualize the kernel.
-}`
-
-
-
-    const actorSource = `
-precision highp float;
+}`,
+            `precision highp float;
 
 uniform float iTime;
 uniform vec4 iMouse;
@@ -291,8 +266,31 @@ void main() {
         gl_FragColor = vec4(emit.rgb, 1.) * (1. - distance);
     else
         discard;
-}
-`
+}`,
+        ]
+    }
+
+
+
+    const displayLeniaSource = `
+attribute vec2 vertexPos;
+void main() { gl_Position = vec4(vertexPos, 0., 1.); }
+
+=====
+
+precision highp float;
+uniform vec4 iDisplay;
+uniform vec4 iResolution;
+uniform sampler2D leniaGrid;
+uniform sampler2D leniaKernel;
+
+uniform mat4 iColorMatrix;
+
+void main() {
+    // STRETCH
+    gl_FragColor = texture2D(leniaGrid, gl_FragCoord.xy / iDisplay.xy) * iColorMatrix;
+    // gl_FragColor = texture2D(leniaKernel, gl_FragCoord.xy / iDisplay.xy) * iColorMatrix; // Visualize the kernel.
+}`
 
 
 
@@ -701,6 +699,36 @@ void main() {
     function setup() {
         api.window(null)
         const s = glState
+        s.displayLenia = initShaders(gl, displayLeniaSource.split('====='), { uniforms:[
+            'iColorMatrix',
+            'iDisplay',
+            'iResolution',
+            'leniaGrid',
+            'leniaKernel',
+        ], attribs:[
+            'vertexPos',
+        ]})
+        s.displayActors = initShaders(gl, displayActorsSource.split('====='), { uniforms:[
+            'iColorMatrix',
+            'iTime',
+            'iDisplay',
+            'leniaGrid',
+        ], attribs:[
+            'posSpeed',
+            'extraState',
+            'displayRadius',
+        ]})
+        s.posBuffer = initBuffer(gl, new Float32Array([-1,1, 1,1, -1,-1, 1,-1]), 2)
+        gl.clearColor(0,0,0,1)
+        api._level && (api._level._webglLost = false)
+        s.leniaFrames = null
+    }
+    function handleLevelLoaded(s, L) {
+        // This is separated from `setup` and called in `draw` after init, because it depends on the level `L`.
+        // This might leak memory, since we don't manually dispose anything.
+        if (s.leniaFrames) return
+        L._webglLost = false
+        const [leniaSource, actorSource] = leniaSources(L.radius || 5)
         s.lenia = initShaders(gl, leniaSource.split('====='), { uniforms:[
             // Simulation parameters.
             'iSlowdown',
@@ -741,35 +769,6 @@ void main() {
             'outPosSpeed',
             'outExtraState',
         ] })
-        s.displayLenia = initShaders(gl, displayLeniaSource.split('====='), { uniforms:[
-            'iColorMatrix',
-            'iDisplay',
-            'iResolution',
-            'leniaGrid',
-            'leniaKernel',
-        ], attribs:[
-            'vertexPos',
-        ]})
-        s.displayActors = initShaders(gl, displayActorsSource.split('====='), { uniforms:[
-            'iColorMatrix',
-            'iTime',
-            'iDisplay',
-            'leniaGrid',
-        ], attribs:[
-            'posSpeed',
-            'extraState',
-            'displayRadius',
-        ]})
-        s.posBuffer = initBuffer(gl, new Float32Array([-1,1, 1,1, -1,-1, 1,-1]), 2)
-        gl.clearColor(0,0,0,1)
-        api._level && (api._level._webglLost = false)
-        s.leniaFrames = null
-    }
-    function handleLevelLoaded(s, L) {
-        // This is separated from `setup` and called in `draw` after init, because it depends on the level `L`.
-        // This might leak memory, since we don't manually dispose anything.
-        if (s.leniaFrames) return
-        L._webglLost = false
         s.leniaFrames = {
             prev:initTexture(gl, L.width, L.height),
             next:initTexture(gl, L.width, L.height), // The Lenia loop modifies Lenia state.
@@ -871,9 +870,10 @@ void main() {
     function updateLevelWebGLData(L) {
         const s = glState
         if (L.kernel.center)
-            s.leniaKernel = leniaKernel(gl, R, L.kernel.center, L.kernel.width, L.iKernelOffset)
+            s.leniaKernel = leniaKernel(gl, L, L.kernel.center, L.kernel.width, L.iKernelOffset)
         else {
             // Collage .r/.g/.b into one array.
+            const R = L.radius || 5
             const sz = 2*R+1, pixels = new Float32Array(4 * sz * sz)
             const rgb = [L.kernel.r || [], L.kernel.g || [], L.kernel.b || []]
             const totals = [0,0,0,1]
@@ -884,7 +884,7 @@ void main() {
                         pixels[4*index + c] = rgb[c][index] || 0,
                         totals[c] = Math.max(totals[c], rgb[c][index] || 0)
                 }
-            s.leniaKernel = leniaKernel(gl, R, null, null, null, pixels, totals)
+            s.leniaKernel = leniaKernel(gl, L, null, null, null, pixels, totals)
         }
     }
     function updateActorCPUData(L, len, start) { // Returns `[…, health, score, _, _, …]`, with `len*4` numbers.
@@ -1174,13 +1174,13 @@ void main() {
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
 
         return { // Who needs JS classes when you have *objects*? What are we aiming for anyway, *efficiency* or something?
-            R: tex,
+            tex,
             W: null,
             width, height,
             _cache: Object.create(null),
             read(gl, i, uniformLocation) {
                 gl.activeTexture(this._cache[i] || (this._cache[i] = gl['TEXTURE'+i]))
-                gl.bindTexture(gl.TEXTURE_2D, this.R)
+                gl.bindTexture(gl.TEXTURE_2D, this.tex)
                 gl.uniform1i(uniformLocation, i)
             },
             write(gl) {
@@ -1191,7 +1191,7 @@ void main() {
                 gl.viewport(0,0, this.width, this.height)
             },
             copyTo(gl, texture) {
-                gl.bindTexture(gl.TEXTURE_2D, texture.R)
+                gl.bindTexture(gl.TEXTURE_2D, texture.tex)
                 gl.copyTexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 0, 0, this.width, this.height, 0)
             },
             resetWrite(gl) {
@@ -1211,9 +1211,10 @@ void main() {
         }).then(response => response.json())
     }
 
-    function leniaKernel(gl, R, mus, sigmas, offsets, data=null, totals=[0,0,0,1]) {
+    function leniaKernel(gl, L, mus, sigmas, offsets, data=null, totals=[0,0,0,1]) {
         // Pre-computes a Lenia kernel, with 3 colors.
         // The `result` can be given to `initTexture(gl, 2*R+1, 2*R+1, pixels)`.
+        const R = L.radius || 5
         const sz = 2*R+1, colors = 3
         if (!data) {
             data = new Float32Array(sz*sz * 4) // Pre-normalization.
