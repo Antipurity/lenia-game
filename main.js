@@ -819,6 +819,7 @@ void main() {
         s.extraState = twice(() => initBuffer(gl, extra, 4, gl.DYNAMIC_READ))
         s.posSpeedCopies = new Array(3).fill().map(() => initBuffer(gl, pos, 4, gl.DYNAMIC_READ))
         s.extraStateCopies = new Array(3).fill().map(() => initBuffer(gl, pos, 4, gl.DYNAMIC_READ))
+        L._framesUntilUpdatable = 3
         s.gravity = initBuffer(gl, gravity, 4, gl.DYNAMIC_DRAW)
         s.displayRadius = initBuffer(gl, displayRadius, 4)
         s.behavior = { keys: B.keys }
@@ -900,27 +901,32 @@ void main() {
             s.leniaKernel = leniaKernel(gl, L, null, null, null, pixels, totals)
         }
     }
-    function updateActorCPUData(L, len, start) { // Returns `[…, health, score, _, _, …]`, with `len*4` numbers.
+    function updateActorCPUData(L, len, start) { // Returns `[…, health, score, _, _, …]`, with `len*4` numbers, or `null`.
         const s = glState
-        const data = new Float32Array(len * 4)
+        const data = !L._framesUntilUpdatable ? new Float32Array(len * 4) : null
         const maxLen = L._actorNames.length, firstLen = Math.min(len, maxLen - start)
         if (L._webglLost) return data
         // Delay reading, by at least 3 frames, to reduce pipeline stalls.
-        copyBuf(gl, s.posSpeed.prev.buf, s.posSpeedCopies[0].buf, len*4*4)
+        copyBuf(gl, s.posSpeed.prev.buf, s.posSpeedCopies[0].buf, maxLen*4*4)
         s.posSpeedCopies.push(s.posSpeedCopies.shift())
-        gl.bindBuffer(gl.ARRAY_BUFFER, s.posSpeedCopies[0].buf)
-        gl.getBufferSubData(gl.ARRAY_BUFFER, start*4*4, data, 0, firstLen*4)
-        firstLen && gl.getBufferSubData(gl.ARRAY_BUFFER, (firstLen+start)%maxLen*4*4, data, firstLen*4)
-        for (let I = start; I < start + len; ++I) {
-            const i = I % maxLen
-            const a = L.actors[L._actorNames[i]], p = a.pos, j = I-start
-            p[0] = data[j*4 + 0], p[1] = data[j*4 + 1], p[2] = data[j*4 + 2], p[3] = data[j*4 + 3]
+        if (!L._framesUntilUpdatable) {
+            gl.bindBuffer(gl.ARRAY_BUFFER, s.posSpeedCopies[0].buf)
+            gl.getBufferSubData(gl.ARRAY_BUFFER, start*4*4, data, 0, firstLen*4)
+            firstLen && gl.getBufferSubData(gl.ARRAY_BUFFER, (firstLen+start)%maxLen*4*4, data, firstLen*4)
+            for (let I = start; I < start + len; ++I) {
+                const i = I % maxLen
+                const a = L.actors[L._actorNames[i]], p = a.pos, j = I-start
+                p[0] = data[j*4 + 0], p[1] = data[j*4 + 1], p[2] = data[j*4 + 2], p[3] = data[j*4 + 3]
+            }
         }
-        copyBuf(gl, s.extraState.prev.buf, s.extraStateCopies[0].buf, len*4*4)
+        copyBuf(gl, s.extraState.prev.buf, s.extraStateCopies[0].buf, maxLen*4*4)
         s.extraStateCopies.push(s.extraStateCopies.shift())
-        gl.bindBuffer(gl.ARRAY_BUFFER, s.extraStateCopies[0].buf)
-        gl.getBufferSubData(gl.ARRAY_BUFFER, start*4*4, data, 0, firstLen*4)
-        firstLen && gl.getBufferSubData(gl.ARRAY_BUFFER, (firstLen+start)%maxLen*4*4, data, firstLen*4)
+        if (!L._framesUntilUpdatable) {
+            gl.bindBuffer(gl.ARRAY_BUFFER, s.extraStateCopies[0].buf)
+            gl.getBufferSubData(gl.ARRAY_BUFFER, start*4*4, data, 0, firstLen*4)
+            firstLen && gl.getBufferSubData(gl.ARRAY_BUFFER, (firstLen+start)%maxLen*4*4, data, firstLen*4)
+        }
+        if (L._framesUntilUpdatable) --L._framesUntilUpdatable
         return data
     }
     function copyBuf(gl, from, to, size) {
@@ -946,39 +952,34 @@ void main() {
         if (!glState.leniaFrames) return
         const maxLen = L._actorNames.length
         if (len > maxLen) len = maxLen, start = 0
-        const data = updateActorCPUData(L, len, start)
+        const data = updateActorCPUData(L, len, start) // extraState
         const gravity = L._buffers.gravity
         let gravityChanged = false
-        // TODO: ...Are we getting ridiculous scores because we're now delaying the read?... ...I don't think so... Then why; what changed...
-        let DSCORE = 0 // TODO:
-        for (let I = 0; I < len; ++I) {
-            const i = (start+I) % maxLen
-            const name = L._actorNames[i], a = L.actors[name]
-            if (L._trackedLost == null || L._trackedLost) {
-                const d = (a.score || 0) - (a.score = data[I*4+1])
-                L.score -= d
-                DSCORE -= d // TODO:
-            }
+        if (data)
+            for (let I = 0; I < len; ++I) {
+                const i = (start+I) % maxLen
+                const name = L._actorNames[i], a = L.actors[name]
+                if (L._trackedLost == null || L._trackedLost)
+                    L.score -= (a.score || 0) - (a.score = data[I*4+1])
 
-            // Update target positions. (May be slow to propagate, but much better than WebGL-only "targets are impossible to implement unless we forego attributes and do everything through textures".)
-            const x1 = gravity[i*4+2], y1 = gravity[i*4+3]
-            const x2 = a._targetActor ? a._targetActor.pos[0] : .5
-            const y2 = a._targetActor ? a._targetActor.pos[1] : .5
-            if (x1 !== x2 || y1 !== y2)
-                gravityChanged = true, gravity[i*4+2] = x2, gravity[i*4+3] = y2
+                // Update target positions. (May be slow to propagate, but much better than WebGL-only "targets are impossible to implement unless we forego attributes and do everything through textures".)
+                const x1 = gravity[i*4+2], y1 = gravity[i*4+3]
+                const x2 = a._targetActor ? a._targetActor.pos[0] : .5
+                const y2 = a._targetActor ? a._targetActor.pos[1] : .5
+                if (x1 !== x2 || y1 !== y2)
+                    gravityChanged = true, gravity[i*4+2] = x2, gravity[i*4+3] = y2
 
-            const health = data[I*4+0]
-            if (a.health > 0 && health <= 0) {
-                a.health = health
-                try {
-                    if (typeof a.onLost == 'string') a.onLost = new Function('api,level,actorName', a.onLost)
-                    if (typeof a.onLost == 'function') a.onLost(api, L, name)
-                } catch (err) { console.error(err) }
-                updateActorHealth(L, a)
+                const health = data[I*4+0]
+                if (a.health > 0 && health <= 0) {
+                    a.health = health
+                    try {
+                        if (typeof a.onLost == 'string') a.onLost = new Function('api,level,actorName', a.onLost)
+                        if (typeof a.onLost == 'function') a.onLost(api, L, name)
+                    } catch (err) { console.error(err) }
+                    updateActorHealth(L, a)
+                }
+                a._health = a.health = health
             }
-            a._health = a.health = health
-        }
-        if (DSCORE) console.log('DSCORE', DSCORE, 'len', len, 'start', start) // TODO: HOW IS IT 100 PER FRAME; it makes no sense, it should be .7 at most!...
         if (gravityChanged) {
             updateActorWebGLGravity(L, start, Math.min(start+len, maxLen))
             start+len > maxLen && updateActorWebGLGravity(L, 0, start+len - maxLen)
@@ -1018,8 +1019,8 @@ void main() {
             if (mouse.keys.right) mouse.x += spd
             if (mouse.keys.up) mouse.y -= spd
             if (mouse.keys.down) mouse.y += spd
-            mouse.x = Math.max(0, Math.min(mouse.x, 1))
-            mouse.y = Math.max(0, Math.min(mouse.y, 1))
+            mouse.x > 1 && (mouse.x -= 1), mouse.x < 0 && (mouse.x += 1)
+            mouse.y > 1 && (mouse.y -= 1), mouse.y < 0 && (mouse.y += 1)
         }
         maybeResize(canvas, canvas)
         gl.clear(gl.COLOR_BUFFER_BIT)
