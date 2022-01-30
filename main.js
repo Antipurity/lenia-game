@@ -681,6 +681,9 @@ void main() {
         gravity: null, // Actor gravityX/gravityY/_/_.
         displayRadius: null, // R/G/B/_.
         behavior: null, // An object containing per-actor behavior matrices.
+        // Speeding up GPU → CPU.
+        posSpeedCopies: [],
+        extraStateCopies: [],
         // Textures.
         leniaFrames: null, // {prev, next}
         leniaKernel: null,
@@ -806,6 +809,8 @@ void main() {
         if (!L._trackedLost) L._trackedLost = null
         s.posSpeed = twice(() => initBuffer(gl, pos, 4, gl.DYNAMIC_READ))
         s.extraState = twice(() => initBuffer(gl, extra, 4, gl.DYNAMIC_READ))
+        s.posSpeedCopies = new Array(3).fill().map(() => initBuffer(gl, pos, 4, gl.DYNAMIC_READ))
+        s.extraStateCopies = new Array(3).fill().map(() => initBuffer(gl, pos, 4, gl.DYNAMIC_READ))
         s.gravity = initBuffer(gl, gravity, 4)
         s.displayRadius = initBuffer(gl, displayRadius, 4)
         s.behavior = { keys: B.keys }
@@ -888,12 +893,14 @@ void main() {
         }
     }
     function updateActorCPUData(L, len, start) { // Returns `[…, health, score, _, _, …]`, with `len*4` numbers.
-        // This sync GPU->CPU transfer may slow the game down. (But doesn't, in practice.)
         const s = glState
         const data = new Float32Array(len * 4)
         const maxLen = L._actorNames.length, firstLen = Math.min(len, maxLen - start)
         if (L._webglLost) return data
-        gl.bindBuffer(gl.ARRAY_BUFFER, s.posSpeed.prev.buf)
+        // Delay reading, by at least 3 frames, to reduce pipeline stalls.
+        copyBuf(gl, s.posSpeed.prev.buf, s.posSpeedCopies[0].buf, len*4*4)
+        s.posSpeedCopies.push(s.posSpeedCopies.shift())
+        gl.bindBuffer(gl.ARRAY_BUFFER, s.posSpeedCopies[0].buf)
         gl.getBufferSubData(gl.ARRAY_BUFFER, start*4*4, data, 0, firstLen*4)
         firstLen && gl.getBufferSubData(gl.ARRAY_BUFFER, (firstLen+start)%maxLen*4*4, data, firstLen*4)
         for (let I = start; I < start + len; ++I) {
@@ -901,10 +908,17 @@ void main() {
             const a = L.actors[L._actorNames[i]], p = a.pos, j = I-start
             p[0] = data[j*4 + 0], p[1] = data[j*4 + 1], p[2] = data[j*4 + 2], p[3] = data[j*4 + 3]
         }
-        gl.bindBuffer(gl.ARRAY_BUFFER, s.extraState.prev.buf)
+        copyBuf(gl, s.extraState.prev.buf, s.extraStateCopies[0].buf, len*4*4)
+        s.extraStateCopies.push(s.extraStateCopies.shift())
+        gl.bindBuffer(gl.ARRAY_BUFFER, s.extraStateCopies[0].buf)
         gl.getBufferSubData(gl.ARRAY_BUFFER, start*4*4, data, 0, firstLen*4)
         firstLen && gl.getBufferSubData(gl.ARRAY_BUFFER, (firstLen+start)%maxLen*4*4, data, firstLen*4)
         return data
+    }
+    function copyBuf(gl, from, to, size) {
+        gl.bindBuffer(gl.COPY_READ_BUFFER, from)
+        gl.bindBuffer(gl.COPY_WRITE_BUFFER, to)
+        gl.copyBufferSubData(gl.COPY_READ_BUFFER, gl.COPY_WRITE_BUFFER, 0, 0, size)
     }
     function updateActorHealth(L, a) {
         const wasOk = !!L._trackedLost
@@ -947,12 +961,14 @@ void main() {
             }
             a._health = a.health = health
         }
+        // if(false)//TODO: ...Why do these kill performance now? Is CPU→GPU transfer somehow expensive?…
         updateActorWebGLGravity(L, start, Math.min(start+len, maxLen))
+        // if(false)//TODO:
         start+len > maxLen && updateActorWebGLGravity(L, 0, start+len - maxLen)
         // FPS, if debugging.
         if (!L._lastFrame) L._lastFrame = performance.now(), L._fps = 0
         const fps = Math.min(1000 / (performance.now() - L._lastFrame + 1e-6) || .01, L._fps*2+1)
-        L._fps = .9*L._fps + .1*fps
+        L._fps = .99*L._fps + .01*fps // TODO:
         L._lastFrame = performance.now()
         // Update the displayed score.
         if (L.score >= L.winScore && !L._didWin) { // Won the level.
@@ -1294,7 +1310,7 @@ void main() {
         })
         s.tracked = tracked
         if (!tracked.length) return
-        const c = s.canvas = document.createElement('canvas');  c.width = L.width, c.height = L.height
+        const c = s.canvas = document.createElement('canvas');  c.width = L.width/4, c.height = L.height/4
         s.ctx = c.getContext('2d', {alpha:false, desynchronized:true})
         s.ctx.imageSmoothingEnabled = false
         for (let a of tracked) {
@@ -1304,11 +1320,12 @@ void main() {
         const ps = s.points
         s.sensors.push(
             // new sn.Sensor.Pointer({pointers:ps.length, targets:ps}), // This sounds terrible. Unclean.
-            new sn.Sensor.Video({monochrome:false, tiling:2, zoomSteps:3, zoomStepStart:1, zoomStep:4, source:c, targets:ps}),
+            new sn.Sensor.Video({monochrome:false, tiling:2, zoomSteps:2, zoomStepStart:0, zoomStep:4, source:c, targets:ps}),
         )
     }
     function updateSensors(L) {
         if (!api._sensors || !api._sensors.canvas) return
+        return // TODO:
         const s = api._sensors
 
         // Update the video canvas.
@@ -1316,15 +1333,16 @@ void main() {
         //   `.drawImage` may take very long, though, so skip it to maintain FPS.
         //   Use a 5ms counter instead of a 5/duration redraw probability to make it smooth.
         if (!updateSensors.avgDur) updateSensors.avgDur = 0, updateSensors.sumDur = 0
-        if (updateSensors.avgDur <= 5 || updateSensors.sumDur > updateSensors.avgDur) {
+        if (updateSensors.avgDur <= 3 || updateSensors.sumDur > updateSensors.avgDur) {
             const main = document.getElementById('main')
             const start = performance.now()
-            s.ctx.drawImage(main, 0, 0, L.width, L.height)
+            s.ctx.drawImage(main, 0, 0, s.canvas.width, s.canvas.height)
             const duration = performance.now() - start
             updateSensors.avgDur = .9 * updateSensors.avgDur + .1 * duration
             updateSensors.sumDur = 0
+            console.log(duration) // TODO: Why is it so slow even with src-canvas-size being 1/16th the original?!
         }
-        updateSensors.sumDur += 5
+        updateSensors.sumDur += 3
 
         // Update the points to look at.
         for (let i = 0; i < s.points.length; ++i) {
