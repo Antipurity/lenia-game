@@ -811,7 +811,7 @@ void main() {
         s.extraState = twice(() => initBuffer(gl, extra, 4, gl.DYNAMIC_READ))
         s.posSpeedCopies = new Array(3).fill().map(() => initBuffer(gl, pos, 4, gl.DYNAMIC_READ))
         s.extraStateCopies = new Array(3).fill().map(() => initBuffer(gl, pos, 4, gl.DYNAMIC_READ))
-        s.gravity = initBuffer(gl, gravity, 4)
+        s.gravity = initBuffer(gl, gravity, 4, gl.DYNAMIC_DRAW)
         s.displayRadius = initBuffer(gl, displayRadius, 4)
         s.behavior = { keys: B.keys }
         for (let k of B.keys) s.behavior[k] = initBuffer(gl, B[k], 4)
@@ -940,6 +940,7 @@ void main() {
         if (len > maxLen) len = maxLen, start = 0
         const data = updateActorCPUData(L, len, start)
         const gravity = L._buffers.gravity
+        let gravityChanged = false
         for (let I = 0; I < len; ++I) {
             const i = (start+I) % maxLen
             const name = L._actorNames[i], a = L.actors[name]
@@ -947,8 +948,11 @@ void main() {
                 L.score -= (a.score || 0) - (a.score = data[I*4+1])
 
             // Update target positions. (May be slow to propagate, but much better than WebGL-only "targets are impossible to implement unless we forego attributes and do everything through textures".)
-            gravity[i*4+2] = a._targetActor ? a._targetActor.pos[0] : .5
-            gravity[i*4+3] = a._targetActor ? a._targetActor.pos[1] : .5
+            const x1 = gravity[i*4+2], y1 = gravity[i*4+3]
+            const x2 = a._targetActor ? a._targetActor.pos[0] : .5
+            const y2 = a._targetActor ? a._targetActor.pos[1] : .5
+            if (x1 !== x2 || y1 !== y2)
+                gravityChanged = true, gravity[i*4+2] = x2, gravity[i*4+3] = y2
 
             const health = data[I*4+0]
             if (a.health > 0 && health <= 0) {
@@ -961,14 +965,14 @@ void main() {
             }
             a._health = a.health = health
         }
-        // if(false)//TODO: ...Why do these kill performance now? Is CPU→GPU transfer somehow expensive?…
-        updateActorWebGLGravity(L, start, Math.min(start+len, maxLen))
-        // if(false)//TODO:
-        start+len > maxLen && updateActorWebGLGravity(L, 0, start+len - maxLen)
+        if (gravityChanged) {
+            updateActorWebGLGravity(L, start, Math.min(start+len, maxLen))
+            start+len > maxLen && updateActorWebGLGravity(L, 0, start+len - maxLen)
+        }
         // FPS, if debugging.
         if (!L._lastFrame) L._lastFrame = performance.now(), L._fps = 0
         const fps = Math.min(1000 / (performance.now() - L._lastFrame + 1e-6) || .01, L._fps*2+1)
-        L._fps = .99*L._fps + .01*fps // TODO:
+        L._fps = .9*L._fps + .1*fps
         L._lastFrame = performance.now()
         // Update the displayed score.
         if (L.score >= L.winScore && !L._didWin) { // Won the level.
