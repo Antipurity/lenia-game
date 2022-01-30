@@ -508,7 +508,7 @@ void main() {
                             const left3 = x3, right3 = x3+width3, top3 = y3, bottom3 = y3+height3
                             if (right <= left3 || right3 <= left) return
                             if (bottom <= top3 || bottom3 <= top) return
-                            const p = .1
+                            const p = .03
                             if (right > left3 || right3 > left) {
                                 const mid = x+width/2, mid3 = x3+width3/2
                                 x = p*x + (1-p)*(mid < mid3 ? left3-width : right3)
@@ -1270,8 +1270,11 @@ void main() {
         // Converts `{ url:value }` to an object hierarchy such as `{ 'levels/directory1/directory2':{ 1:550, 2:-0.2 } }`, suitable for displaying.
         // Ex: `urlsToHierarchy({'a/b/c.json':5, 'a/b/d.json':6})` → `{'a/b':{ c:5, d:6 }}`
         const result = Object.create(null)
+        let topLevel = location.pathname
+        if (topLevel.slice(-5) === '.html') topLevel = topLevel.slice(0, topLevel.lastIndexOf('/'))
         for (let k in urls) {
-            const v = urls[k], parts = new URL(k, location).pathname.slice(1).split('/')
+            const v = urls[k], parts = new URL(k, location).pathname.replace(topLevel, '').split('/')
+            if (!parts[0]) parts.shift()
             if (parts[0] !== 'levels') parts.unshift('levels')
             parts.length && (parts[parts.length-1] = parts[parts.length-1].replace('.json', ''))
             for (let i = 0, o = result; i < parts.length; ++i)
@@ -1314,6 +1317,7 @@ void main() {
         })
         s.tracked = tracked
         if (!tracked.length) return
+        console.log('tracking', tracked.length, 'actors via sound')
         const c = s.canvas = document.createElement('canvas');  c.width = L.width/4, c.height = L.height/4
         s.ctx = c.getContext('2d', {alpha:false, desynchronized:true})
         for (let a of tracked) {
