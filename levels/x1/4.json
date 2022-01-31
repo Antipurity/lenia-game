@@ -3,9 +3,9 @@
 
     "onLoad": "new Array(10000).fill().forEach((_,i) => level.actors['target'+(i+100)] = {like:'target1', pos:[Math.random(), Math.random()]}); \n (async function() { const at=null;  await api.window(` W H A T `, at, 4);  await api.window(`I have no idea what's happening.`, at, 4);  await api.window(`Hey, can you explain? Like, anything?`, at, 4);  await api.window(`What is this?`, at, 2);  await api.window(`Is it real?`, at, 2);  await api.window(`Is any of this real?`, at, 2);  await api.window(`Is magic really real?`, at, 4);  await api.window(`Maybe this is a dream.`, at, 2);  await api.window(`But it's consistent, novel, and detailed.\nSo is it a dream, or merely alien?`, at, 4);  await api.window(`Eh, dreams are training for reality anyway.\nIt's all the same.`, at, 8);  await api.window(`I'll probably find out more if I keep living.`, at, 4) })()",
     "winScore": 200,
-    "onWon": "(async function() { const at=null;  api.levelSuggest('levels/x2/1.json');  await api.window(`Ah. You're done.`, at, 4);  await api.window(`Anyway, can you hold off on any more, spiritual ascension, in the near future?\nAssuming that I can count on ya. Can I?`, at, 12);  api.levelLoad('levels/x2/1.json') })()",
+    "onWon": "(async function() { const at=null;  api.levelSuggest('levels/x2/1.json');  await api.window(`Ah. You're done.`, at, 4);  await api.window(`What was that?\nInstability? Trouble absorbing magic? Becoming a god? Trolling me?\nAnyway, can you hold off on any more spiritual ascension in the near future?\nAssuming that I can count on ya. Can I?`, at, 24);  api.levelLoad('levels/x2/1.json') })()",
 
-    "onLost": "api.window([`(A rejected future.)`, `(Rejected.)`, `(A useless future.)`, `(No. Retry.)`, `(Unless you succeed, you cannot continue.)`, `(No. Rebirth in the past.)`, `(No, this step is necessary, trust me.)`, `(Understand the enemy to make its strength your own.)`, `(Knowledge absorption is not trivial, though not any less trivial than being determined. Be so.)`, `(You'll get it eventually.)`][Math.random()*10|0], 'pointer1');  setTimeout(api.levelLoad, 3000)",
+    "onLost": "api.window([`(A rejected future.)`, `(Rejected.)`, `(A useless future.)`, `(No. Retry.)`, `(Unless you succeed, you cannot continue.)`, `(No. Rebirth in the past.)`, `(No, this step is necessary, trust me.)`, `(Understand the enemy to make its strength your own.)`, `(Knowledge absorption is not trivial, though not any less trivial than being determined. Be so.)`, `(You'll get it eventually.)`, `(Isolate variables to learn them. Try diverse things. Forever and ever.)`][Math.random()*11|0], 'pointer1');  setTimeout(api.levelLoad, 3000)",
 
     "iColorMatrix": [
         1, 0, 0, 0,
@@ -34,8 +34,6 @@
       "pointer3": {"like":"pointer1", "pos":[0.49, 0.25], "trackLost":true},
       "pointer4": {"like":"pointer1", "pos":[0.52, 0.25], "trackLost":true},
       "pointer5": {"like":"pointer1", "pos":[0.48, 0.25], "trackLost":true},
-      "pointer6": {"like":"pointer1", "pos":[0.53, 0.25], "trackLost":true},
-      "pointer7": {"like":"pointer1", "pos":[0.47, 0.25], "trackLost":true},
       "target1": {"displayRadius":[3,0,1], "pos":[0.5, 0.77], "dscore":{"Br":0.00002, "Bg":0.005}, "dhealth":{"B1":0.043, "Br":-0.1}, "speed":{"Bmouse":0.0003, "Bspeed":0.95, "Br":0.003, "Bb":-0.07, "Bg":-0.07}, "emitRadius":2, "emit":"blue", "emittance":{"Bhealth":0.2}}
     }
 }

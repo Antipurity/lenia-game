@@ -1,9 +1,9 @@
 {
     "description": "Scaling dynamics in local-neighborhood transformers: wall of flesh.",
 
-    "onLoad": "new Array(10000).fill().forEach((_,i) => level.actors['target'+(i+100)] = {like:'target1', pos:[Math.random(), Math.random()], onLost() {console.log('LOST TODO: Why was nothing lost?!');level.score += 100/10000}}); \n (async function() { const at=null;  await api.window([`…Anyway, I'll let you deal with this one, mighty spirit.`], at, 8); })()",
+    "onLoad": "new Array(10000).fill().forEach((_,i) => level.actors['target'+(i+100)] = {like:'target1', pos:[Math.random(), Math.random()], onLost() {level.score += 100/10000}}); \n (async function() { const at=null;  await api.window([`…Anyway, I'll let you deal with this one, mighty spirit.`], at, 8); })()",
     "winScore": 200,
-    "onWon": "(async function() { const at=null;  api.levelSuggest('levels/x1/4.json');  await api.window(`Oh! You're done!`, at, 4);  await api.window(`Fairies beat demons.`, at, 4);  await api.window(`I'll admit: that bunch was the most terrifying thing I've ever seen.\nI'm only human.\nAnd a gun doesn't help even against ten o' these, let alone ten thousand.\nI thought I had no hope of getting out.`, at, 8);  await api.window(`But you… brought it back.`, at, 4);  api.levelLoad('levels/x1/4.json') })()",
+    "onWon": "(async function() { const at=null;  api.levelSuggest('levels/x1/4.json');  await api.window(`Oh! You're done!`, at, 4);  await api.window(`Fairies beat demons.`, at, 4);  await api.window(`I'll admit: that bunch was the most terrifying thing I've ever seen.\nWhat other horrors lurk within the Wintech Facilities?\nI'm only human.\nAnd a gun doesn't help even against ten o' these, let alone ten thousand.\nI thought I had no hope of getting out.`, at, 8);  await api.window(`But you… brought it back.`, at, 4);  api.levelLoad('levels/x1/4.json') })()",
 
     "onLost": "api.window([`(But nobody came.)`][0]);  setTimeout(api.levelLoad, 3000)",
 
