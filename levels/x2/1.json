@@ -1,23 +1,94 @@
 {
-  "description": "TODO: What's the description? TODO: Also, paste in the world of magical shimmering. ...I can't find it...",
+  "description": "The idyllic painter.",
 
   "dialogue": [
     [
-      ["Ohh, a chair, in these trying times. I was getting tired too.", "\n\n", [{"tag":"i", "style":"font-size:.8em"}, "(Figure out how to skip text.)"]],
-      ["Yoooo"]
+      ["Ohh, a chair, in these trying times. I was getting tired of running too."],
+      [{"tag":"i", "style":"font-size:.85em"}, "(Figure out how to skip text.)"]
     ],
-    ["I think it's time to take a break, don't ya think?"],
-    ["…Alright. Fairy. My life is in your debt.\nNow, understand what you've protected, and listen to my life story. Please."],
-    ["Please partake of my tale. It shall make your soul soar."],
-    ["In summary: I was born, lived, and survived a lot of hardships.\nI am good at drawing."],
-    ["In fact, I can even show you some of what I drew…\nHere!\nI really like this one.\nIt has this sort of idyllic fantasy look to it, right?\nDo you like it?"],
-    ["…Anyway…"],
-    ["Where do I begin…"]
+    [
+      "I think it's time to take a break, don't ya think?"
+    ],
+    [
+      "…Alright. Fairy. My life is in your debt.\nNow, understand what you've protected, and listen to my life story. Please."
+    ],
+    [
+      "Please partake of my tale. It shall make your soul soar.",
+      [{"tag":"i", "style":"font-size:.85em"}, "ooooooo"],
+      [{"tag":"i", "style":"font-size:.85em"}, "oooo"],
+      [{"tag":"i", "style":"font-size:.85em"}, "ooooooooo"],
+      [{"tag":"i", "style":"font-size:.85em"}, "oooooo"]
+    ],
+    [
+      "In summary: I was born, lived, and survived a lot of hardships.\nI am good at drawing.",
+      [{"tag":"i", "style":"font-size:.85em"}, "o"]
+    ],
+    [
+      "In fact, I can even show you some of what I drew…\nHere!\nI really like this one.\nIt has this sort of idyllic fantasy look to it, right?\nDo you like it?",
+      [{"tag":"i", "style":"font-size:.85em"}, "oooooo"],
+      [{"tag":"i", "style":"font-size:.85em"}, "oooooo"],
+      [{"tag":"i", "style":"font-size:.85em"}, "oooooo"],
+      [{"tag":"i", "style":"font-size:.85em"}, "oooooo"],
+      [{"tag":"i", "style":"font-size:.85em"}, "oooooo"]
+    ],
+    [
+      "…Anyway…",
+      [{"tag":"i", "style":"font-size:.85em"}, "ooooOOoo"],
+      [{"tag":"i", "style":"font-size:.85em"}, "OooooooO"],
+      [{"tag":"i", "style":"font-size:.85em"}, "ooOoooOo"],
+      [{"tag":"i", "style":"font-size:.85em"}, "ooooooOOOOOOOOOOOOOOOOOO"],
+      [{"tag":"i", "style":"font-size:.85em"}, "oooooo"],
+      [{"tag":"i", "style":"font-size:.85em"}, "oooOooo"],
+      [{"tag":"i", "style":"font-size:.85em"}, "oooOooo"],
+      [{"tag":"i", "style":"font-size:.85em"}, "ooooOoo"],
+      [{"tag":"i", "style":"font-size:.85em"}, "oooOooOOo"],
+      [{"tag":"i", "style":"font-size:.85em"}, "ooooooO"],
+      [{"tag":"i", "style":"font-size:.85em"}, "oooooo"],
+      [{"tag":"i", "style":"font-size:.85em"}, "oooooo"],
+      [{"tag":"i", "style":"font-size:.85em"}, "oooooo"],
+      [{"tag":"i", "style":"font-size:.85em"}, "oooOooo"],
+      [{"tag":"i", "style":"font-size:.85em"}, "oooooo"],
+      [{"tag":"i", "style":"font-size:.85em"}, "ooOoooo"],
+      [{"tag":"i", "style":"font-size:.85em"}, "oooooo"],
+      [{"tag":"i", "style":"font-size:.85em"}, "oooOooo"],
+      [{"tag":"i", "style":"font-size:.85em"}, "ooooOoo"],
+      [{"tag":"i", "style":"font-size:.85em"}, "ooOoooo"],
+      [{"tag":"i", "style":"font-size:.85em"}, "ooOoooo"]
+    ],
+    [
+      "Where do I begin…",
+      [{"tag":"i", "style":"font-size:.85em"}, "oooooo"],
+      [{"tag":"i", "style":"font-size:.85em"}, "oooooo"],
+      [{"tag":"i", "style":"font-size:.85em"}, "oooooo"],
+      [{"tag":"i", "style":"font-size:.85em"}, "oooooo"],
+      [{"tag":"i", "style":"font-size:.85em"}, "oooooo"],
+      [{"tag":"i", "style":"font-size:.85em"}, "ooooOOoo"],
+      [{"tag":"i", "style":"font-size:.85em"}, "OooooooO"],
+      [{"tag":"i", "style":"font-size:.85em"}, "ooOoooOo"],
+      [{"tag":"i", "style":"font-size:.85em"}, "ooooooOOOOOOOOOOOOOOOOOO"],
+      [{"tag":"i", "style":"font-size:.85em"}, "oooooo"],
+      [{"tag":"i", "style":"font-size:.85em"}, "oooOooo"],
+      [{"tag":"i", "style":"font-size:.85em"}, "oooOooo"],
+      [{"tag":"i", "style":"font-size:.85em"}, "ooooOoo"],
+      [{"tag":"i", "style":"font-size:.85em"}, "oooOooOOo"],
+      [{"tag":"i", "style":"font-size:.85em"}, "ooooooO"],
+      [{"tag":"i", "style":"font-size:.85em"}, "oooooo"],
+      [{"tag":"i", "style":"font-size:.85em"}, "oooooo"],
+      [{"tag":"i", "style":"font-size:.85em"}, "oooooo"],
+      [{"tag":"i", "style":"font-size:.85em"}, "oooOooo"],
+      [{"tag":"i", "style":"font-size:.85em"}, "oooooo"],
+      [{"tag":"i", "style":"font-size:.85em"}, "ooOoooo"],
+      [{"tag":"i", "style":"font-size:.85em"}, "oooooo"],
+      [{"tag":"i", "style":"font-size:.85em"}, "oooOooo"],
+      [{"tag":"i", "style":"font-size:.85em"}, "ooooOoo"],
+      [{"tag":"i", "style":"font-size:.85em"}, "ooOoooo"],
+      [{"tag":"i", "style":"font-size:.85em"}, "ooOoooo"]
+    ]
   ],
 
-  "onLoad": "(async function() { const at='human';  for (let [main, ...others] of level.dialogue) others.forEach(w => api.window(w, at, 32)), await api.window(main, at, 32, 0);  level.score=1 })()",
+  "onLoad": "(async function() { const at='human';  for (let [main, ...others] of level.dialogue) others.forEach(w => api.window(w, [Math.random(), Math.random()], 32)), await api.window(main, at, 32, 0);  level.score=1 })()",
   "winScore": 1,
-  "onWon": "(async function() { const at=null;  api.levelSuggest('levels/x2/2.json');  await api.window(`WAIT WHERE ARE YOU GOING`, at, 8);  await api.window(`OI`, at, 2);  await api.window(`COME BACK`, at, 4);  api.levelLoad('levels/x2/2.json') })()",
+  "onWon": "(async function() { const at=null;  api.levelSuggest('levels/x2/2.json');  await api.window(`WAIT WHERE ARE YOU GOING`, at, 4);  await api.window(`OI`, at, 1);  await api.window(`COME BACK`, at, 4);  api.levelLoad('levels/x2/2.json') })()",
 
   "onLost": "api.window([`(But nobody came.)`][0]);  setTimeout(api.levelLoad, 3000)",
 
