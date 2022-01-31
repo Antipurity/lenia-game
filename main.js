@@ -670,6 +670,7 @@ void main() {
         },
     }
     addEventListener('pointerdown', api._windowsAreShorterNow, {passive:true})
+    addEventListener('keydown', evt => evt.key === 'Enter' && api._windowsAreShorterNow(), {passive:true})
     // The main drawing loop.
     canvas.gl = canvas.getContext('webgl2', {alpha:false, desynchronized:true})
     const gl = canvas.gl
