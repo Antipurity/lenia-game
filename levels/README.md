@@ -223,7 +223,7 @@ For example, specifying `onLost: "setTimeout(() => api.levelLoad(level.url), 100
 
 ---
 
-`api.window(content, actorName = null, timeoutSec = 32, posMomentum = .9)`: creates a window, near an actor. For STORY.
+`api.window(content, actorName = null, timeoutSec = 32, posMomentum = .9)`: creates a window, near an actor (the name string, or just `[x,y]`). For STORY.
 - Given a string or a DOM element or an array tree, and the actor name, positions a window that follows the actor.
 - Given a string or a DOM element or an array tree, positions a free-floating window in the bottom-left corner.
 - To not fade away after `timeoutSec`, pass `timeoutSec = null`.

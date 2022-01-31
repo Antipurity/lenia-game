@@ -486,16 +486,17 @@ void main() {
                     })(content)
                 }
                 content.classList.add('window')
-                if (actorName && api._level.actors[actorName]) {
+                if (actorName && api._level.actors[actorName] || Array.isArray(actorName)) {
                     const margin = 6 // Personal space, buddy.
-                    let actor = api._level.actors[actorName], x, y
+                    let actor = !Array.isArray(actorName) && api._level.actors[actorName], x, y
                     moveWindow()
                     function moveWindow() { // Reasonable amount of code for tracking actors.
-                        if (!api._level.actors[actorName] || actor !== api._level.actors[actorName]) return
+                        if (!Array.isArray(actorName))
+                            if (!api._level.actors[actorName] || actor !== api._level.actors[actorName]) return
                         if (!content.classList.contains('removed')) requestAnimationFrame(moveWindow)
                         if (document.visibilityState === 'hidden') return
                         const p = posMomentum
-                        const [x2, y2] = actor.pos
+                        const [x2, y2] = Array.isArray(actorName) ? actorName : actor.pos
                         const w = innerWidth, h = innerHeight, m = margin
                         const width = content.offsetWidth / w, height = content.offsetHeight / h
                         if (p !== 0) { // Mosey along.
