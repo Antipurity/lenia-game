@@ -675,7 +675,7 @@ void main() {
             api._windowShorteners.forEach(f => f(bySeconds))
         },
     }
-    addEventListener('pointerdown', evt => localStorage.debug && console.log(evt.clientX / innerWidth, 1 - evt.clientY / innerHeight), passive)
+    addEventListener('pointerdown', evt => localStorage.debug && console.log((evt.clientX / innerWidth).toFixed(3) + ',' + (1 - evt.clientY / innerHeight).toFixed(3)), passive)
     addEventListener('pointerdown', api._windowsAreShorterNow, passive)
     addEventListener('keydown', evt => evt.key === 'Enter' && api._windowsAreShorterNow(), passive)
     // The main drawing loop.
