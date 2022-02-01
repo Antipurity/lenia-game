@@ -518,16 +518,19 @@ void main() {
                             if (right <= left3 || right3 <= left) return
                             if (bottom <= top3 || bottom3 <= top) return
                             const p = .03
-                            // TODO: Can we only do one of these? Because there's jumping right now.
-                            // TODO: Pre-compute both offsets, then blend toward only the nearest one.
+                            let dx = 0, dy = 0
                             if (right > left3 || right3 > left) {
                                 const mid = x+width/2, mid3 = x3+width3/2
-                                x = p*x + (1-p)*(mid < mid3 ? left3-width : right3)
+                                dx = (mid < mid3 ? left3-width : right3) - x
                             }
                             if (bottom > top3 || bottom3 > top) {
                                 const mid = y+height/2, mid3 = y3+height3/2
-                                y = p*y + (1-p)*(mid < mid3 ? top3-height : bottom3)
+                                dy = (mid < mid3 ? top3-height : bottom3) - y
                             }
+                            if (Math.abs(dx) < Math.abs(dy))
+                                x = p*x + (1-p)*(x+dx)
+                            else
+                                y = p*y + (1-p)*(y+dy)
                         })
                         x = Math.min(Math.max(0, x), 1-width)
                         y = Math.min(Math.max(0, y), 1-height)
