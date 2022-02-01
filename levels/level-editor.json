@@ -1,13 +1,22 @@
 {
     "description": "Explore the Lenia space by yourself.",
 
+    "history":[],
     "funcs":{
-      "f":"function f(s,i, a = level.iMixing, f = () => json.textContent = localStorage['level-editor '+level.url] = JSON.stringify({iMixing:level.iMixing, kernel:level.kernel, iGrowthCenter:level.iGrowthCenter, iGrowthWidth:level.iGrowthWidth})) { return [s+':', [{tag:'input', title:a[i], type:'range', min:-3, max:3, step:0.001, value:a[i], oninput() { a[i] = +this.value, this.nextSibling.textContent = this.title = this.value, f(), api.write() }}], a[i], [{tag:'br'}]] }",
-      "simulationUI":"function simulationUI() { const gc=level.iGrowthCenter, gw=level.iGrowthWidth, kc=level.kernel.center, kw=level.kernel.width;    return [[{tag:'details'}, [{tag:'summary'}, 'Pointer'], [{tag:'select', oninput() { for (let k in level.actors) if (k.slice(0,7) === 'pointer') level.actors[k].emit = this.value, api.write(k) }}, [{tag:'option', value:'green'}, 'Green'], [{tag:'option', value:'red', selected:''}, 'Red'], [{tag:'option', value:'blue'}, 'Blue']], [{tag:'br'}], f('Emittance 1', 'emittance', level.actors.pointer, x => api.write('pointer')), f('Emittance 2', 'emittance', level.actors.pointer2, x => api.write('pointer2')), f('Emittance 3', 'emittance', level.actors.pointer3, x => api.write('pointer3'))], [{tag:'details'}, [{tag:'summary'}, 'Kernel'], f('R mean', 0, kc), f('G mean', 1, kc), f('B mean', 2, kc), f('R stdev', 0, kw), f('G stdev', 1, kw), f('B stdev', 2, kw)], [{tag:'details'}, [{tag:'summary'}, 'Growth'], f('R mean', 0, gc), f('G mean', 1, gc), f('B mean', 2, gc), f('R stdev', 0, gw), f('G stdev', 1, gw), f('B stdev', 2, gw)], [{tag:'details'}, [{tag:'summary'}, 'Mixing'], f('R→R', 0), f('R→G', 3), f('R→B', 6), f('G→R', 1), f('G→G', 4), f('G→B', 7), f('B→R', 2), f('B→G', 5), f('B→B', 8)]] }",
-      "ui":"function ui() { let json = document.createElement('textarea');   json.style.resize='none', json.readOnly = true;   const saved = json.textContent = localStorage['level-editor '+level.url]; if (saved) Object.assign(level, JSON.parse(saved));    api.window([json, simulationUI()], null, null) }",
-      "main":"function main() { console.log('ZZZ'); ui() }"
+      "updateSim":"function updateSim() { return level._json.textContent = localStorage['level-editor '+level.url] = JSON.stringify({iMixing:level.iMixing, kernel:level.kernel, iGrowthCenter:level.iGrowthCenter, iGrowthWidth:level.iGrowthWidth}) }",
+      "f":"function f(s,i, a = level.iMixing, updateUI = updateSim) { return [s+':', [{tag:'input', title:a[i], type:'range', min:-3, max:3, step:0.001, value:a[i], oninput() { a[i] = +this.value, this.nextSibling.textContent = this.title = this.value, updateUI(), api.write() }}], a[i], [{tag:'br'}]] }",
+      "UIpointer":"function UIpointer() { return [{tag:'details'}, [{tag:'summary'}, 'Pointer'], [{tag:'select', oninput() { for (let k in level.actors) if (k.slice(0,7) === 'pointer') level.actors[k].emit = this.value, api.write(k) }}, [{tag:'option', value:'green'}, 'Green'], [{tag:'option', value:'red', selected:''}, 'Red'], [{tag:'option', value:'blue'}, 'Blue']], [{tag:'br'}], f('Emittance 1', 'emittance', level.actors.pointer, x => api.write('pointer')), f('Emittance 2', 'emittance', level.actors.pointer2, x => api.write('pointer2')), f('Emittance 3', 'emittance', level.actors.pointer3, x => api.write('pointer3'))] }",
+      "UIkernel":"function UIkernel() { const kc=level.kernel.center, kw=level.kernel.width;    return [{tag:'details'}, [{tag:'summary'}, 'Conv kernel'], f('R mean', 0, kc), f('G mean', 1, kc), f('B mean', 2, kc), f('R stdev', 0, kw), f('G stdev', 1, kw), f('B stdev', 2, kw)] }",
+      "UIactivation":"function UIactivation() { const gc=level.iGrowthCenter, gw=level.iGrowthWidth;    return [{tag:'details'}, [{tag:'summary'}, 'Activation/growth'], f('R mean', 0, gc), f('G mean', 1, gc), f('B mean', 2, gc), f('R stdev', 0, gw), f('G stdev', 1, gw), f('B stdev', 2, gw)] }",
+      "UImixing":"function UImixing() { return [{tag:'details'}, [{tag:'summary'}, 'Mixing'], f('R→R', 0), f('R→G', 3), f('R→B', 6), f('G→R', 1), f('G→G', 4), f('G→B', 7), f('B→R', 2), f('B→G', 5), f('B→B', 8)] }",
+      "UIevolve":"function UIevolve() { return [{tag:'details'}, [{tag:'summary'}, 'Mutate'], [{tag:'button', onclick:revert}, 'Revert'], [{tag:'button', onclick:()=>mutate(false)}, 'A bit'], [{tag:'button', onclick:()=>mutate(true)}, 'A lot']] }",
+      "simulationUI":"function simulationUI() { return [UIpointer(), UIkernel(), UIactivation(), UImixing(), UIevolve()] }",
+      "ui":"function ui() { let json = level._json = document.createElement('textarea');   json.style.resize='none', json.readOnly = true;   const saved = json.textContent = localStorage['level-editor '+level.url]; if (saved) Object.assign(level, JSON.parse(saved));    api.window([json, simulationUI()], null, null) }",
+      "revert":"function revert() { if (level.history.length) Object.assign(level, level.history.pop()), updateSim() }",
+      "mutate":"function mutate(lots=true) { const target = [level.iMixing, level.kernel.center, level.kernel.width, level.iGrowthCenter, level.iGrowthWidth][Math.random()*5|0];  const i = Math.random()*target.length|0;  const op = !lots ? x=>x+(Math.random()-.5)*.2 : [x=>Math.random()*2-1, x=>x+(Math.random()-.5), x=>x*(Math.random()*2), x=>-x][Math.random()*4|0];  level.history.push(JSON.parse(updateSim()));  target[i] = op(target[i]);  updateSim() }",
+      "main":"function main(L) { ui() }"
     },
-    "onLoad": "let s='';    for (let k in level.funcs) s += 'const '+k+'='+level.funcs[k]+'\\n';    new Function(s+'\\nreturn main()')();                             'TODO: Can we add Mutate and Revert buttons, for easier evolution?'",
+    "onLoad": "let s='';    for (let k in level.funcs) s += 'const '+k+'='+level.funcs[k]+'\\n';    new Function('L', s+'\\nreturn main()')(level)  'TODO: Also sliders for iOffset and iKernelOffset, because wind is cool.'",
     "winScore": 10000,
     "onLost": "setTimeout(api.levelLoad, 3000)",
 
@@ -19,7 +28,7 @@
     ],
 
     "width": 1024, "height": 1024,
-    "iSlowdown": 2,
+    "iSlowdown": 4,
     "iMixing": [
         0.75,   -1,  0.95,
         -1.0,  3.0,   -2,
