@@ -338,7 +338,7 @@ varying vec4 emitRadius;
 void main() {
     vec4 distances = length(gl_FragCoord.xy - center * iDisplay.xy) / (emitRadius + 1.) * 2. / iDisplay.z;
     float minD = min(distances.r, min(distances.g, distances.b));
-    if (minD < 1.) {
+    if (minD < 1. && dot(emitRadius, emitRadius) > 0.) {
         vec4 inner = sign((.6 - distances) + abs(.6 - distances));
         vec4 outer = sign((1. - distances) + abs(1. - distances));
         gl_FragColor = (emitColor * (1. - distances / .6) + (1. - inner) * outer * vec4(emitColor.rgb, 1.) * health) * iColorMatrix;
@@ -830,7 +830,7 @@ void main() {
         s.extraStateCopies = new Array(3).fill().map(() => initBuffer(gl, pos, 4, gl.DYNAMIC_READ))
         L._framesUntilUpdatable = 3
         s.gravity = initBuffer(gl, gravity, 4, gl.DYNAMIC_DRAW)
-        s.displayRadius = initBuffer(gl, displayRadius, 4)
+        s.displayRadius = initBuffer(gl, displayRadius, 4, gl.DYNAMIC_DRAW)
         s.behavior = { keys: B.keys }
         for (let k of B.keys) s.behavior[k] = initBuffer(gl, B[k], 4)
 
@@ -948,7 +948,8 @@ void main() {
         const diff = a._health<=0 && a.health>0 ? 1 : a._health>0 && a.health<=0 ? -1 : 0
         if (a.trackLost && L._trackedLost != null) L._trackedLost += diff
         if (wasOk && !L._trackedLost) { // Lost the level, possibly after winning.
-            if (L.score < L.winScore) { // Did not win.
+            if (!L._didWin) { // Did not win.
+                L._didLose = true
                 try {
                     if (typeof L.onLost == 'string') L.onLost = new Function('api,level', L.onLost)
                     if (typeof L.onLost == 'function') L.onLost(api, L)
@@ -999,25 +1000,25 @@ void main() {
         L._fps = .9*L._fps + .1*fps
         L._lastFrame = performance.now()
         // Update the displayed score.
-        if (L.score >= L.winScore && !L._didWin) { // Won the level.
+        if (L.score >= L.winScore && !L._didWin && !L._didLose) { // Won the level.
+            L._didWin = true
             try {
                 if (typeof L.onWon == 'string') L.onWon = new Function('api,level', L.onWon)
                 if (typeof L.onWon == 'function') L.onWon(api, L)
             } catch (err) { console.error(err) }
             if (!L.isMenu) api.levelSuggest(L.url, { won:L.frame, lost:L.score })
-            L._didWin = true
         }
         const score = document.getElementById('score')
         score.textContent = !L.isMenu ? L.score.toFixed(2) + '/' + L.winScore.toFixed(0) : L.score ? L.score.toFixed(2) : ''
         if (localStorage.debug) score.textContent = (L._fps|0) + ' ' + score.textContent
         if (!L.isMenu && L._lost) score.textContent += '\nbest ' + L._lost.toFixed(2)
         !L.isMenu && score.classList.toggle('win', !!L._didWin)
-        score.classList.toggle('lost', L._trackedLost != null && !L._trackedLost)
+        score.classList.toggle('lost', !!L._didLose)
         // Update the displayed time.
         const time = document.getElementById('time')
         time.textContent = !L.isMenu ? (L.frame / 60).toFixed(2) + 's' : ''
         if (!L.isMenu && L._won) time.textContent += '\nbest ' + (L._won / 60).toFixed(2) + 's'
-        if (!L._didWin && L._trackedLost !== 0) ++L.frame
+        if (!L._didWin && !L._didLose) ++L.frame
     }
     function draw() {
         requestAnimationFrame(draw)
