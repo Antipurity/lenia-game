@@ -1,0 +1,45 @@
+{
+  "description": "TODO: OH NO",
+
+  "dialogue": [
+    [
+      ["GATES OF HORROR"],
+      [{"tag":"i", "style":"font-size:.85em"}, "(Connect green to red.)"],
+      [{"tag":"i", "style":"font-size:.85em"}, "(Connect green to red.)"]
+    ]
+  ],
+
+  "onLoad": "new Array(100).fill().forEach(() => level.actors['liner'+Math.random()] = {like:'liner1', pos:[Math.random(), Math.random()]}); \n (async function() { const at='center';  for (let [main, ...others] of level.dialogue) others.forEach(w => api.window(w, [Math.random(), Math.random()], 32)), await api.window(main, at, 32, 0) })()",
+  "winScore": 200,
+  "onWon": "(async function() { api.levelSuggest('levels/x2/3.json'); \n 'kill the colors'; for (let i=0; i<9; ++i) level.iMixing[i]*=.5; level.actors.pointer1.emitRadius=1, api.write('pointer1');  await api.window(`(And now, the path is open.)`, 'pointer1', 32);  api.levelLoad('levels/x2/3.json') })()",
+
+  "onLost": "level.iMixing[3]=level.iMixing[4]=level.iMixing[5]=0;  api._x2_2 = api._x2_2+1||1;  for (let i=0; i<api._x2_2; ++i) api.window([{tag:'i', style:'font-size:.85em'}, `o`], [Math.random(), Math.random()]);  setTimeout(api.levelLoad, 3000)",
+
+  "iColorMatrix": [
+    1, 0, 0, 0,
+    0, 1, 0, 0,
+    0, 0, 1, 0,
+    0, 0, 0, 1
+  ],
+
+  "width": 512, "height": 512, "radius": 4,
+  "iSlowdown": 5,
+
+  "iMixing":[0.5,0.58,0.23,3,0.42,0.49,-0.816,0.754,0.798],"kernel":{"center":[0.5,0.5,0.5],"width":[0.1,0.1,0.1]},"iGrowthCenter":[0.5,0.5,0.5],"iGrowthWidth":[0.1,0.1,0.148],
+
+  "iOffset": [0,0], "iKernelOffset": [0,0],
+
+  "actors": {
+    "target1": {"pos":[0.09873949579831932,0.84489311163895488], "displayRadius":[32,0,0], "dhealth":{"B1":0.01, "Br":-0.1, "Bg":0.3, "Bb":0.3}, "onLost":"level.score+=100"},
+    "target2": {"like":"target1", "pos":[0.8235294117647058,0.7001594896331739], "onLost":"level.score+=100"},
+    "pointer1": {"displayRadius":[0,10,0], "pos":[0.5, 0.25], "emitRadius":9, "emit":"red", "emittance":3, "speed":{"Bmouse":0.01, "Bspeed": 0.93, "Bb":-0.01}, "dhealth":{"B1":0.001, "Bb":-1}, "trackLost":true},
+    "pointer2": {"displayRadius":[0,0,0], "pos":[0.5, 0.25], "emitRadius":8, "emit":"green", "emittance":0, "speed":{"Btarget":0.01, "Bspeed": 0.93}, "target":"pointer1"},
+    "pointer3": {"displayRadius":[0,0,0], "pos":[0.5, 0.25], "emitRadius":8, "emit":"green", "emittance":0, "speed":{"Btarget":0.01, "Bspeed": 0.93}, "target":"pointer2"},
+    "jumper1": {"pos":[0.244, 0.469], "emitRadius":8, "emit":"green", "emittance":3, "speed":{"Btarget":0.01, "Bspeed":0.93, "Bb":-0.01}, "target":"center"},
+    "liner1": {"pos":[0.244, 0.5], "emitRadius":8, "emit":"blue", "emittance":{"B1":1, "Btime":0.65, "BtimeFrequency":0.3}, "speed":{"Bspeed":0.9, "Bb":-0.001, "Bg":-0.0001, "Br":0.01}, "gravity":[0, -0.0002]},
+    "liner2": {"pos":[0.249, 0.4], "like":"liner1"},
+    "liner3": {"pos":[0.254, 0.6], "like":"liner1"},
+    "shield": {"pos":[0.5, 0.35], "emitRadius":96, "emit":"red", "emittance":{"Bhealth":1}, "dhealth":{"B1":-0.001}},
+    "center": {"pos":[0.5, 0.5]}
+  }
+}

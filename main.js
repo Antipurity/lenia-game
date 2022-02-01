@@ -518,6 +518,8 @@ void main() {
                             if (right <= left3 || right3 <= left) return
                             if (bottom <= top3 || bottom3 <= top) return
                             const p = .03
+                            // TODO: Can we only do one of these? Because there's jumping right now.
+                            // TODO: Pre-compute both offsets, then blend toward only the nearest one.
                             if (right > left3 || right3 > left) {
                                 const mid = x+width/2, mid3 = x3+width3/2
                                 x = p*x + (1-p)*(mid < mid3 ? left3-width : right3)
@@ -670,8 +672,9 @@ void main() {
             api._windowShorteners.forEach(f => f(bySeconds))
         },
     }
-    addEventListener('pointerdown', api._windowsAreShorterNow, {passive:true})
-    addEventListener('keydown', evt => evt.key === 'Enter' && api._windowsAreShorterNow(), {passive:true})
+    addEventListener('pointerdown', evt => localStorage.debug && console.log(evt.clientX / innerWidth, 1 - evt.clientY / innerHeight), passive)
+    addEventListener('pointerdown', api._windowsAreShorterNow, passive)
+    addEventListener('keydown', evt => evt.key === 'Enter' && api._windowsAreShorterNow(), passive)
     // The main drawing loop.
     canvas.gl = canvas.getContext('webgl2', {alpha:false, desynchronized:true})
     const gl = canvas.gl
@@ -741,6 +744,7 @@ void main() {
         // This might leak memory, since we don't manually dispose anything.
         if (s.leniaFrames) return
         L._webglLost = false
+        L._startedAt = performance.now()
         const [leniaSource, actorSource] = leniaSources(L.radius || 5)
         s.lenia = initShaders(gl, leniaSource.split('====='), { uniforms:[
             // Simulation parameters.
@@ -1031,11 +1035,12 @@ void main() {
         initSensors(api._level)
         const s = glState, L = api._level, p1 = s.lenia, p2 = s.actors, p3 = s.displayLenia, p4 = s.displayActors, rect = s.posBuffer
         handleLevelLoaded(s, L)
+        const start = (performance.now() - L._startedAt) / 1000
         if (p1 !== null) { // Lenia.
             const u = p1.uniform, a = p1.attrib
             gl.useProgram(p1.program)
             // Fill in the uniforms.
-            gl.uniform1f(u.iTime, performance.now() / 1000)
+            gl.uniform1f(u.iTime, start)
             gl.uniform4f(u.iResolution, L.width, L.height, 0, 0)
             gl.uniform4f(u.iMouse, mouse.x * L.width, (1 - mouse.y) * L.height, mouse.main, mouse.aux)
             gl.uniform1f(u.iSlowdown, L.iSlowdown)
@@ -1059,7 +1064,7 @@ void main() {
         if (p2 !== null) { // Make actors act.
             const u = p2.uniform, a = p2.attrib
             gl.useProgram(p2.program)
-            gl.uniform1f(u.iTime, performance.now() / 1000)
+            gl.uniform1f(u.iTime, start)
             gl.uniform4f(u.iMouse, mouse.x * L.width, (1 - mouse.y) * L.height, mouse.main, mouse.aux)
             gl.uniform4f(u.iResolution, L.width, L.height, 0, 0)
             s.leniaFrames.next.read(gl, 0, u.leniaGrid)
@@ -1093,7 +1098,7 @@ void main() {
         if (p4 !== null) { // Display actors.
             const u = p4.uniform, a = p4.attrib
             gl.useProgram(p4.program)
-            gl.uniform1f(u.iTime, performance.now() / 1000)
+            gl.uniform1f(u.iTime, start)
             gl.uniform4f(u.iDisplay, gl.drawingBufferWidth, gl.drawingBufferHeight, self.devicePixelRatio || 1, 0)
             s.leniaFrames.extra.read(gl, 0, u.leniaGrid)
             s.posSpeed.prev.read(gl, a.posSpeed)
