@@ -227,7 +227,7 @@ void main() {
     vec2 speed = posSpeed.zw;
 
     // Update position & state.
-    vec2 dPos = gravity.xy + B1.x + speed*Bspeed.x + mouseVec*Bmouse.x + targetVec*Btarget.x + health*Bhealth.x + vec2(nearDX.r, nearDY.r)*Br.x + vec2(nearDX.g, nearDY.g)*Bg.x + vec2(nearDX.b, nearDY.b)*Bb.x + sin(BtimeFrequency.x * iTime*TAU) * Btime.x;
+    vec2 dPos = (gravity.xy + B1.x + speed*Bspeed.x + mouseVec*Bmouse.x + targetVec*Btarget.x + vec2(nearDX.r, nearDY.r)*Br.x + vec2(nearDX.g, nearDY.g)*Bg.x + vec2(nearDX.b, nearDY.b)*Bb.x + sin(BtimeFrequency.x * iTime*TAU) * Btime.x) * (1. - (1.-health)*Bhealth.x);
     vec2 nextPos = mod(at + dPos, 1.);
     outPosSpeed = vec4(nextPos, dPos);
 
@@ -851,9 +851,9 @@ void main() {
         if (!L._buffers) return
         const { pos, extra, gravity, displayRadius, B } = L._buffers
         const a2 = a.like != null && L.actors[a.like] || empty, i = a.i
-        for (let c=0; c<4; ++c) pos[i*4+c] = a.pos && a.pos[c] || a2.pos && a2.pos[c] || 0
-        for (let c=0; c<2; ++c) gravity[i*4+c] = a.gravity && a.gravity[c] || a2.gravity && a2.gravity[c] || 0
-        for (let c=0; c<3; ++c) displayRadius[i*4+c] = a.displayRadius && a.displayRadius[c] || a2.displayRadius && a2.displayRadius[c] || 0
+        for (let c=0; c<4; ++c) pos[i*4+c] = a.pos ? a.pos[c] || 0 : a2.pos && a2.pos[c] || 0
+        for (let c=0; c<2; ++c) gravity[i*4+c] = a.gravity ? a.gravity[c] || 0 : a2.gravity && a2.gravity[c] || 0
+        for (let c=0; c<3; ++c) displayRadius[i*4+c] = a.displayRadius ? a.displayRadius[c] || 0 : a2.displayRadius && a2.displayRadius[c] || 0
         const targetName = a.target && a.target || a2.target && a2.target || 0
         a._targetActor = L.actors[targetName] || null
         extra[i*4+0] = a.health = a._health == null ? a2._health || 1 : a.health

@@ -1,0 +1,38 @@
+{
+  "description": "TODO: What's this?",
+
+  "dialogue": [
+    [
+      ["GATES OF HORROR"],
+      [{"tag":"i", "style":"font-size:.85em"}, "(Connect green to red.)"],
+      [{"tag":"i", "style":"font-size:.85em"}, "(Connect green to red.)"]
+    ]
+  ],
+
+  "onLoad": "new Array(30000).fill().forEach(() => level.actors['liner'+Math.random()] = {like:'liner1', pos:[.5+.01*(Math.random()*2-1), Math.random()], onLost(api, level, name) {level.score += 100/30000, level.actors[name].displayRadius=[0,0,0], api.write(name)}}); \n (async function() { 'TODO:' })()",
+  "winScore": 20000,
+  "onWon": "(async function() { api.levelSuggest('levels/x2/3.json'); \n 'kill the colors'; for (let i=0; i<9; ++i) level.iMixing[i]*=.5; level.actors.pointer1.emitRadius=1, api.write('pointer1');  await api.window(`(And now, the path is open.)`, 'pointer1', 32);  api.levelLoad('levels/x2/3.json') })()",
+
+  "onLost": "'TODO:';  setTimeout(api.levelLoad, 3000)",
+
+  "iColorMatrix": [
+    1, 0, 0, 0,
+    0, 1, 0, 0,
+    0, 0, 1, 0,
+    0, 0, 0, 1
+  ],
+
+  "width": 512, "height": 512, "radius": 4,
+  "iSlowdown": 5,
+
+  "iMixing":[1.05,-3,0.95,0.246,0.47,-2,-3,0.43,0.54],"kernel":{"center":[0.5,0.5,0.5],"width":[0.14,0.14,0.14]},"iGrowthCenter":[0.4,0.2,0.4],"iGrowthWidth":[0.08,0.142,0.1],
+  "iOffset": [0,0], "iKernelOffset": [0,0],
+
+  "actors": {
+    "pointer1": {"displayRadius":[0,0,10], "pos":[0.25, 0.25], "emitRadius":8, "emit":"blue", "emittance":3, "speed":{"Bmouse":0.01, "Bspeed": 0.93}, "dhealth":{"B1":1, "Bb":-1}, "trackLost":true},
+    "pointer2": {"displayRadius":[0,0,0], "pos":[0.5, 0.25], "emitRadius":8, "emit":"green", "emittance":0, "speed":{"Btarget":0.01, "Bspeed": 0.93}, "target":"pointer1"},
+    "pointer3": {"displayRadius":[0,0,0], "pos":[0.5, 0.25], "emitRadius":8, "emit":"green", "emittance":0, "speed":{"Btarget":0.01, "Bspeed": 0.93}, "target":"pointer2"},
+    "liner1": {"displayRadius":[2,0,0], "pos":[0.244, 0.5], "speed":{"Bspeed":0.99, "Bb":-0.01, "Bg":0.003, "Br":0.01, "Bhealth":1}, "dhealth":{"Bb":-0.1, "B1":-0.001, "Bhealth": 0.002}, "gravity":[0, -0.0002]},
+    "center": {"pos":[0.5, 0.5]}
+  }
+}
