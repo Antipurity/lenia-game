@@ -1,8 +1,18 @@
 {
-  "description": "TODO: What's the story?",
+  "description": "Look out! Flesh approaches.",
 
   "initialDialogue":[
-    ["Yoooo"]
+    ["Oi, what's this place, anyway?"],
+    ["Why is the entrance lined with arms?\nWhy are there misshapen body parts and strings and blood everywhere?\nAnd a magical fairy."],
+    ["Doesn't smell any different than before, though."],
+    ["You know, I like horror, but this is so over-the-top scary, that it looks downright goofy.\nAm I supposed to be afraid? Is this dangerous? I am unable to tell.\nI guess I won't starve, though."],
+    ["· · ·"],
+    ["So."],
+    ["Where are we goin', mm? Exit, yes?"],
+    ["· · ·"],
+    ["I'm not a fan of how the flesh is shaking."],
+    ["And assembling into creature-like things."],
+    ["Alright, fairy, protect me!"]
   ],
 
   "stages":{
@@ -14,18 +24,19 @@
   },
 
   "funcs":{
-    "initialDialogue":"async function initialDialogue() { const at='center';  for (let [main, ...others] of level.initialDialogue) others.forEach(w => api.window(w, [Math.random(), Math.random()], 32)), await api.window(main, at, 32, 0) }",
+    "dialogue":"async function dialogue([main, ...others], at) { others.forEach(w => api.window(w, [Math.random(), Math.random()], 32)), await api.window(main, at, 32, 0) }",
+    "initialDialogue":"async function initialDialogue() { const at=null;  if (!level._x2_4_enters) await dialogue(level.initialDialogue[level.initialDialogue.length-1], at);  else for (let entry of level.initialDialogue) await dialogue(entry, at) }",
     "stage":"function stage(name) { Object.assign(level, level.stages[name]), api.write() }",
-    "makeMainActorAfraid":"function makeMainActorAfraid() { Object.assign(level.actors.pointer1, {emit:'red'}), api.write('pointer1'), setTimeout(() => {if (L === level) Object.assign(level.actors.pointer1, {dhealth:{Bg:-10, Bb:-10}, dscore:{Br:.02}}), api.write('pointer1')}, 1000) }",
-    "makeItEasier":"function makeItEasier() { level.winScore -= 2 * (api._x2_4_enters = api._x2_4_enters+1||0) | 0;  level.winScore <= 100 && (level.winScore = 100, level.stages.normalWalkers = level.stages.rarerWalkers) }",
+    "makeMainActorAfraid":"function makeMainActorAfraid() { Object.assign(level.actors.pointer1, {emit:'red'}), api.write('pointer1'), setTimeout(() => {if (L === level) level.frame = 0, Object.assign(level.actors.pointer1, {dhealth:{Bg:-10, Bb:-10}, dscore:{Br:.02}}), api.write('pointer1')}, 1000) }",
+    "makeItEasier":"function makeItEasier() { level.winScore -= 2 * (api._x2_4_enters = api._x2_4_enters+1||0) | 0;  level.winScore < 100 && (level.winScore = 100, level.stages.normalWalkers = level.stages.rarerWalkers) }",
     "main":"async function main() { makeItEasier(), await initialDialogue(), makeMainActorAfraid(), stage('normalWalkers') }"
   },
 
   "onLoad": "let s='';    for (let k in level.funcs) s += 'const '+k+'=level.funcs.'+k+'='+level.funcs[k]+'\\n';    new Function('L', s+'\\nreturn main()')(level)",
   "winScore": 200,
-  "onWon": "Object.assign(level, level.stages.victory), api.write(); \n (async function() { api.levelSuggest('levels/x2/5.json'); \n await api.window(`It's not what's right.`, null, 32);  api.levelLoad('levels/x2/5.json') })()",
+  "onWon": "Object.assign(level, level.stages.victory), api.write(); \n (async function() { api.levelSuggest('levels/x2/5.json'); \n await api.window(`Thanks.`, null, 32);  await api.window(`We make a great team.`, null, 32);  api.levelLoad('levels/x2/5.json') })()",
 
-  "onLost": "Object.assign(level, level.stages[Math.random()*2|0 ? 'defeat1' : 'defeat2']), api.write();  api.window([`(LOST)`, `(This world is unforgiving.)`, `(Here is some helpful advice:\n don't get hit by the walkers.)`, `(See how they move?\n Master their movement.)`, `(Come on, you can do it.)`, `(I believe in you.)`, `(Learn.)`, `(Learning is good.\n Difficulty is learning, and learning is good.)`, `(Come on, you can do it.)`, `(I believe in you.)`, `(Learn.)`, `(Learning is good.\n Difficulty is learning, and learning is good.)`, `(You are small, but not helpless.\n Your mind is your greatest weapon.\n Stop walking into the walkers.)`, `(Okay, I'll just loop my words now.)`][(api._x2_3 = api._x2_3+1||0) % 14], 'pointer1', 32).then(() => api.levelLoad())",
+  "onLost": "Object.assign(level, level.stages[Math.random()*2|0 ? 'defeat1' : 'defeat2']), api.write();  api.window([`(LOST)`, `(This world is unforgiving.)`, `(Here is some helpful advice:\n don't get hit by the walkers.)`, `(See how they move?\n Master their movement.)`, `(Come on, you can do it.)`, `(I believe in you.)`, `(Learn.)`, `(Learning is good.\n Difficulty is learning, and learning is good.)`, `(Come on, you can do it.)`, `(I believe in you, Sebastian.)`, `(Learn.)`, `(Learning is good.\n Difficulty is learning, and learning is good.)`, `(You are small, but not helpless.\n Your mind is your greatest weapon.\n Stop walking into the walkers.)`, `(Okay, I'll just loop my words now.)`][(api._x2_3 = api._x2_3+1||0) % 14], 'pointer1', 32).then(() => api.levelLoad())",
 
   "iColorMatrix": [
     1, 0, 0, 0,
