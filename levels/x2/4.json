@@ -1,0 +1,50 @@
+{
+  "description": "TODO: What's the story?",
+
+  "initialDialogue":[
+    ["Yoooo"]
+  ],
+
+  "stages":{
+    "normalWalkers":{"iMixing":[0.5220586547100854,-2.7028805880986937,0.6037134429593446,-0.17226620558178463,0.5380102971217748,-2.0963018511359324,-2.915149687402002,1.154241094059402,0.39275787770724535],"kernel":{"center":[0.6427422176212919,0.6906378756278928,0.9418307964692445],"width":[-0.657834247046785,-0.27261758742285186,0.03221395673354842]},"iGrowthCenter":[-0.044474233248600906,0.20516352179742176,1.1166595657011038],"iGrowthWidth":[0.022188000953180555,0.17079792057625331,-0.7297485309331737],"iOffset":[0,0],"iKernelOffset":[0,0]},
+    "rarerWalkers":{"iMixing":[0.5220586547100854,-2.7028805880986937,0.6037134429593446,-0.14816645196419495,0.5380102971217748,-1.98584573034056,-2.971476579819984,1.22957429371385,0.39275787770724535],"kernel":{"center":[0.7980895706755529,0.7936670586043326,0.8858880547746488],"width":[-0.6538383238404288,-0.29228598865345284,0.00892692472411298]},"iGrowthCenter":[-0.044474233248600906,0.20516352179742176,1.1132047879781313],"iGrowthWidth":[0.022149040626354644,0.17079792057625331,-0.7297485309331737],"iOffset":[0,0],"iKernelOffset":[0,0]},
+    "victory":{"iMixing":[0.5220586547100854,-2.7028805880986937,0.6037134429593446,-0.17226620558178463,0.5380102971217748,-2.0258165614723302,-2.971476579819984,1.1452339915498089,0.39275787770724535],"kernel":{"center":[0.6442549369444689,0.852737575997428,0.8858880547746488],"width":[-0.7915608084170205,-0.355334737722542,-0.08696392449163233]},"iGrowthCenter":[-0.044474233248600906,0.20516352179742176,1.1132047879781313],"iGrowthWidth":[0.022149040626354644,0.16758086674277614,-0.7297485309331737],"iOffset":[0,0],"iKernelOffset":[0,0]},
+    "defeat1":{"iMixing":[0.5220586547100854,-2.7028805880986937,0.6037134429593446,-0.17226620558178463,0.5380102971217748,-2.0963018511359324,-2.915149687402002,1.154241094059402,0.39275787770724535],"kernel":{"center":[0.659191804488139,0.7180433879854149,0.8918052048966989],"width":[-0.7777357582913218,-0.24634885870434103,0.03221395673354842]},"iGrowthCenter":[-0.06115335600571469,0.20516352179742176,1.1166595657011038],"iGrowthWidth":[0.022188000953180555,0.17079792057625331,-0.7297485309331737],"iOffset":[0,0],"iKernelOffset":[0,0]},
+    "defeat2":{"iMixing":[0.8220586547100854,-2.7028805880986937,0.6037134429593446,-0.17226620558178463,0.5380102971217748,-2.0258165614723302,-2.971476579819984,1.1452339915498089,0.39275787770724535],"kernel":{"center":[0.6520174131336461,0.852737575997428,0.8858880547746488],"width":[0.1356147811429525,-0.355334737722542,-0.054962808801094123]},"iGrowthCenter":[-0.044474233248600906,0.20516352179742176,1.1132047879781313],"iGrowthWidth":[-0.051873736158735376,0.17079792057625331,-0.7297485309331737],"iOffset":[0,0],"iKernelOffset":[0,0]}
+  },
+
+  "funcs":{
+    "initialDialogue":"async function initialDialogue() { const at='center';  for (let [main, ...others] of level.initialDialogue) others.forEach(w => api.window(w, [Math.random(), Math.random()], 32)), await api.window(main, at, 32, 0) }",
+    "stage":"function stage(name) { Object.assign(level, level.stages[name]), api.write() }",
+    "makeMainActorAfraid":"function makeMainActorAfraid() { Object.assign(level.actors.pointer1, {emit:'red'}), api.write('pointer1'), setTimeout(() => {if (L === level) Object.assign(level.actors.pointer1, {dhealth:{Bg:-10, Bb:-10}, dscore:{Br:.02}}), api.write('pointer1')}, 1000) }",
+    "makeItEasier":"function makeItEasier() { level.winScore -= 1.5 * (api._x2_4_enters = api._x2_4_enters+1||0) | 0 }",
+    "main":"async function main() { makeItEasier(), await initialDialogue(), makeMainActorAfraid(), stage('normalWalkers') }"
+  },
+
+  "onLoad": "let s='';    for (let k in level.funcs) s += 'const '+k+'=level.funcs.'+k+'='+level.funcs[k]+'\\n';    new Function('L', s+'\\nreturn main()')(level)",
+  "winScore": 200,
+  "onWon": "Object.assign(level, level.stages.victory), api.write(); \n (async function() { api.levelSuggest('levels/x2/5.json'); \n await api.window(`It's not what's right.`, null, 32);  api.levelLoad('levels/x2/5.json') })()",
+
+  "onLost": "Object.assign(level, level.stages[Math.random()*2|0 ? 'defeat1' : 'defeat2']), api.write();  api.window([`(LOST)`, `(Here is some helpful advice:\n don't get hit by the walkers.)`, `(See how they move?\n Master their movement.)`, `(Okay, I'll just loop my words now.)`][(api._x2_3 = api._x2_3+1||0) % 4], 'pointer1', 32).then(() => api.levelLoad())",
+
+  "iColorMatrix": [
+    1, 0, 0, 0,
+    0, 1, 0, 0,
+    0, 0, 1, 0,
+    0, 0, 0, 1
+  ],
+
+  "width": 512, "height": 512, "radius": 4,
+  "iSlowdown": 5,
+
+  "iMixing":[1.05,-3,0.95,0.246,0.47,-2,-3,0.43,0.54],"kernel":{"center":[0.5,0.5,0.5],"width":[0.14,0.14,0.14]},"iGrowthCenter":[0.4,0.2,0.4],"iGrowthWidth":[0.08,0.142,0.1],
+  "iOffset": [0,0], "iKernelOffset": [0,0],
+
+  "actors": {
+    "pointer1": {"displayRadius":[0,16,0], "pos":[0.25, 0.25], "emitRadius":8, "emit":"green", "emittance":3, "speed":{"Bmouse":0.01, "Bspeed": 0.93}, "trackLost":true},
+    "pointer2": {"displayRadius":[0,0,0], "pos":[0.5, 0.25], "emitRadius":8, "emit":"green", "emittance":0, "speed":{"Btarget":0.01, "Bspeed": 0.93}, "target":"pointer1"},
+    "pointer3": {"displayRadius":[0,0,0], "pos":[0.5, 0.25], "emitRadius":8, "emit":"green", "emittance":0, "speed":{"Btarget":0.01, "Bspeed": 0.93}, "target":"pointer2"},
+    "liner1": {"displayRadius":[12,0,0], "pos":[0.01, 0.5], "emitRadius":6, "emit":"green", "emittance":{"B1":0.5, "Btime":0.5, "BtimeFrequency":1}, "target":"pointer1", "speed":{"Bspeed":0.98, "Btarget":0.0001, "Bb":-0.0001, "Bg":0.0001, "Br":0.01, "Bhealth":1}, "gravity":[0, -0.0001]},
+    "center": {"pos":[0.5, 0.5]}
+  }
+}
