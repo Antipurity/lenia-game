@@ -17,7 +17,7 @@
     "initialDialogue":"async function initialDialogue() { const at='center';  for (let [main, ...others] of level.initialDialogue) others.forEach(w => api.window(w, [Math.random(), Math.random()], 32)), await api.window(main, at, 32, 0) }",
     "stage":"function stage(name) { Object.assign(level, level.stages[name]), api.write() }",
     "makeMainActorAfraid":"function makeMainActorAfraid() { Object.assign(level.actors.pointer1, {emit:'red'}), api.write('pointer1'), setTimeout(() => {if (L === level) Object.assign(level.actors.pointer1, {dhealth:{Bg:-10, Bb:-10}, dscore:{Br:.02}}), api.write('pointer1')}, 1000) }",
-    "makeItEasier":"function makeItEasier() { level.winScore -= 1.5 * (api._x2_4_enters = api._x2_4_enters+1||0) | 0 }",
+    "makeItEasier":"function makeItEasier() { level.winScore -= 2 * (api._x2_4_enters = api._x2_4_enters+1||0) | 0;  level.winScore <= 100 && (level.winScore = 100, level.stages.normalWalkers = level.stages.rarerWalkers) }",
     "main":"async function main() { makeItEasier(), await initialDialogue(), makeMainActorAfraid(), stage('normalWalkers') }"
   },
 
