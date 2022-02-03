@@ -1,0 +1,24 @@
+{
+    "description": "Layered waves, chasing golden infection away.",
+    "isMenu": true,
+
+    "winScore": null,
+
+    "iColorMatrix": [
+        1, 0, 0, 0,
+      0.8, 1, 0, 0,
+      0.1, 0, 1, 0,
+        0, 0, 0, 1
+    ],
+
+    "width": 512, "height": 1024,
+    "iSlowdown": 5,
+    "iMixing":[0.5220586547100854,-2.7028805880986937,0.6037134429593446,-0.17226620558178463,0.5380102971217748,-2.0258165614723302,-2.971476579819984,1.1452339915498089,0.39275787770724535],"kernel":{"center":[0.6442549369444689,0.852737575997428,0.8381167653058014],"width":[-0.7915608084170205,-0.27404444134131867,-0.08696392449163233]},"iGrowthCenter":[-0.11907841632671472,0.20516352179742176,1.1132047879781313],"iGrowthWidth":[0.022149040626354644,0.17079792057625331,-0.7297485309331737],"iOffset":[0,0],"iKernelOffset":[0,0],
+
+    "actors": {
+      "title": {"pos":[0.5, 0.75], "emitRadius": 10, "emit":"green", "emittance":{"Bhealth":0.1}, "dhealth":{"Bg":-50}},
+      "pointer1": {"pos":[0.5, 0.5], "emitRadius":16, "emit":"green", "emittance":1, "speed":{"Bspeed":0.93, "Bmouse":0.01}},
+      "pointer2": {"pos":[0.5, 0.5], "emitRadius":16, "emit":"green", "emittance":0, "speed":{"Bspeed":0.93, "Btarget":0.01}, "target":"pointer1"},
+      "levels": {"pos":[0.5, 0.25, 0, 0]}
+    }
+}

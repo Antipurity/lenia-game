@@ -17,7 +17,7 @@
 
   "onLoad": "let s='';    for (let k in level.funcs) s += 'const '+k+'=level.funcs.'+k+'='+level.funcs[k]+'\\n';    new Function('L', s+'\\nreturn main()')(level)",
   "winScore": 200,
-  "onWon": "(async function() { api.levelSuggest('levels/x2/7.json'), api.levelSuggest('levels/backgrounds/2.json', {won:1}); \n level.iGrowthCenter[2]=.51, api.write();  let L=level, n=0, fiery=Math.random(), id=setInterval(() => { if (L===level && n++<100) fiery>.2 && (L.iOffset[1]-=.1), fiery<.6 && (L.iKernelOffset[1]+=fiery<.3?.24:.1), api.write(); else clearInterval(id) }, 100); \n await api.window(`(Stand by.)`, null, 32);  api.levelLoad('levels/x2/7.json') })()",
+  "onWon": "(async function() { api.levelSuggest('levels/x2/7.json'), api.levelSuggest('levels/backgrounds/2.json', {won:1}), api.levelSuggest('levels/backgrounds/3.json', {won:1}); \n level.iGrowthCenter[2]=.51, api.write();  let L=level, n=0, fiery=Math.random(), id=setInterval(() => { if (L===level && n++<100) fiery>.2 && (L.iOffset[1]-=.1), fiery<.6 && (L.iKernelOffset[1]+=fiery<.3?.24:.1), api.write(); else clearInterval(id) }, 100); \n await api.window(`(Stand by.)`, null, 32);  api.levelLoad('levels/x2/7.json') })()",
 
   "onLost": "let L=level, n=0, fiery=Math.random(), id=setInterval(() => { if (L===level && n++<100) fiery>.2 && (L.iOffset[1]-=.1), fiery<.6 && (L.iKernelOffset[1]+=fiery<.3?.24:.1), api.write(); else clearInterval(id) }, 100); \n api.window([`(LOSER)`, `(Pfffbt.)`, `(HA)`, `(HA HA HA)`, `(Look at this idiot.)`, `(How can anyone possibly lose here?)`, `(AHHH HAH HA HAAAA)`, `(Dodge, noob.)`][Math.random()*8|0], 'pointer1', 32).then(() => api.levelLoad())",
 
