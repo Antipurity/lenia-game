@@ -374,7 +374,7 @@ void main() {
                     api.levelSuggest().then(({won, lost}) => { L._won = won[url], L._lost = lost[url] })
                 }
                 exports.level = L
-            }).catch(e => (error(e), api.levelLoad(initialLevel)))
+            }).catch(e => (error(e), storeGet('menu').then(url => api.levelLoad(url || initialLevel))))
         },
         levelSuggest(url, winLose = { lost:0 }) {
             // Given `url`, remembers it, to recommend to the user later. 🌟

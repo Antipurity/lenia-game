@@ -9,7 +9,7 @@
     ],
 
     "winScore": null,
-    "onLoad": "api.window([{tag:'button', onclick:change}], null, null);  function change() { Object.assign(level, level.variants[Math.random() * level.variants.length | 0]) }",
+    "onLoad": "api.window([{tag:'button', onclick:change}], null, null);  function change() { Object.assign(level, level.variants[Math.random() * level.variants.length | 0]), api.write() }",
 
     "iColorMatrix": [
         1, 0, 0, 0,
