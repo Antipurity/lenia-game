@@ -1,0 +1,48 @@
+{
+  "description": "TODO:",
+
+  "initialDialogue":[
+    ["TODO: What's the story?"],
+    ["Good luck.", "(Try to avoid the trash.)"]
+  ],
+
+  "funcs":{
+    "dialogue":"async function dialogue([main, ...others], at) { others.forEach(w => api.window(w, [Math.random(), Math.random()], 32)), await api.window(main, at, 32, 0) }",
+    "initialDialogue":"async function initialDialogue() { const at=null;  for (let entry of level.initialDialogue) await dialogue(entry, at) }",
+    "makeItEasier":"function makeItEasier() { 'no' }",
+    "main":"async function main() { makeItEasier(), await initialDialogue() }"
+  },
+
+  "onLoad": "let s='';    for (let k in level.funcs) s += 'const '+k+'=level.funcs.'+k+'='+level.funcs[k]+'\\n';    new Function('L', s+'\\nreturn main()')(level)",
+  "winScore": 200,
+  "onWon": "(async function() { api.levelSuggest('levels/x2/6.json'), api.levelSuggest('levels/backgrounds/initial.json', {won:1}), api.levelSuggest('levels/backgrounds/1.json', {won:1}); \n await api.window(`Thanks again.`, null, 32);  await api.window(`Not even the billowing waves of whipping flesh can match your ancient power.`, null, 32);  api.levelLoad('levels/x2/6.json') })()",
+
+  "onLost": "api.window([`(LOSER)`, `TODO:`, `(Now time to loop the words.)`][(api._x2_6 = api._x2_6+1||0) % 3], 'pointer1', 32).then(() => api.levelLoad())",
+
+  "iColorMatrix": [
+    1, 0, 0, 0,
+    0, 1, 0, 0,
+    0, 0, 1, 0,
+    0, 0, 0, 1
+  ],
+
+  "width": 512, "height": 512, "radius": 5,
+  "iSlowdown": 2,
+
+  "iMixing": [
+    0.756, -0.575, -0.774,
+     0.12, -0.376,  0.615,
+     0.16, -0.762,  0.968
+  ],
+  "kernel":{"center":[0.502,0.5,0.5],"width":[0.09,0.1,0.1]},
+  "iGrowthCenter":[0.5,0.5,0.5],
+  "iGrowthWidth":[0.303,0.2,0.2],
+  "iOffset": [0,0], "iKernelOffset": [0,0],
+
+  "actors": {
+    "pointer1": {"displayRadius":[0,16,0], "pos":[0.5, 0.25], "emitRadius":16, "emit":"green", "emittance":0.2, "speed":{"Bmouse":0.01, "Bg":-0.007, "Bb":-0.007, "Bspeed": 0.93}, "dhealth":{"B1":0.003, "Bg":-0.09}, "dscore":{"B1":0.025}, "trackLost":true},
+    "emitter1": {"pos":[0.25, 0.45, 0, 0.004], "emitRadius":50, "emit":"blue", "emittance":1, "target":"emitter2", "speed":{"Btarget":0.0001, "Bspeed":1}},
+    "emitter2": {"pos":[0.35, 0.45, 0, -0.004], "emitRadius":50, "emit":"red", "emittance":0, "target":"emitter1", "speed":{"Btarget":0.0001, "Bspeed":1}},
+    "center": {"pos":[0.5, 0.5]}
+  }
+}
