@@ -1,5 +1,5 @@
 {
-  "description": "Kill me or release me, parasite.\nBut do not waste my time with talk!\nTODO: What's the background for this? ...Maybe that special cutscene background will do...",
+  "description": "Kill me or release me, parasite.\nBut do not waste my time with talk!",
 
   "initialDialogue":[
     {
@@ -54,7 +54,8 @@
       "js":"for (let i=0; i < 63; ++i) level.funcs.dialogue(['(YES)'])"
     },
     {
-      "warning":"Fairies and magical girls.\n What kind of place do you think this is?\n Give me something to work with:\n        What are your first impressions?"
+      "warning":"Fairies and magical girls.\n What kind of place do you think this is?\n Give me something to work with:\n        What are your first impressions?",
+      "0":"(Identifying targets…)"
     },
     {
       "center":"· · ·"
@@ -66,11 +67,68 @@
     {
       "center":"Wintech Facilities are cracked.",
       "0":"(Warning: meme levels are up to 45%.)",
-      "1":"(Danger confirmed.)",
-      "js":"level.actors.warning.speed.Bg=.002, api.write('warning')"
+      "1":"(Danger confirmed.)\n (Neutralizing…)",
+      "js":"level.actors.warning.speed.Bg=-.002, api.write('warning')"
     },
     {
-      "warning":"TODO:"
+      "warning":"Ah, Danger must have put a joke sign again near the entrance.\n Please disregard our supervisor's meme-producing tendencies.",
+      "0":"(Searching for mislabelings…)"
+    },
+    {
+      "center":"Strange name for a fairy queen.",
+      "0":"(Searching for mislabelings…)",
+      "1":"(Warning: meme levels are up to 50%.)"
+    },
+    {
+      "warning":"Ah, Danger must have used patternful releases to attract you to this place that is three hundred kilometers from the nearest settlement, yes?",
+      "0":"(Searching for mislabelings…)",
+      "1":"(Destination. Arrival. Content…)"
+    },
+    {
+      "center":"I did follow fairies to this place beyond the veils of reality… So maybe?",
+      "0":"(Searching for mislabelings…)",
+      "path6":"(Meme-like semantic noise.)",
+      "2":"(Content…)",
+      "3":"(Alternate world detected.)"
+    },
+    {
+      "warning":"This is just a detached research, training, and preservation facility for local-neighborhood matter transformers: Nano-Systems.\n  No fairies.\n    No magic.\n      No spatially-separated worlds.\n        No health risks to humans, unless ingested or injected.",
+      "0":"(Searching for mislabelings…)",
+      "1":"(Content.)"
+    },
+    {
+      "center":"Oh.\nNanotech.\nSure looks like magic to me.\nI guess sufficiently advanced technology is indistinguishable from magic?",
+      "0":"(Exterminating mislabelings…)",
+      "1":"(Human.)",
+      "2":"(Given up on understanding.)",
+      "3":"(Reality stained by memes.)",
+      "js":"level.actors.warning.speed.Bg=0, level.actors.warning.speed.Br=-.01, api.write('warning')"
+    },
+    {
+      "warning":"Inaccurate.\n  Magic is just there, for human-centric reasons.\n    With technology, the rabbit hole goes as far as you're willing to go.\n\n\n We can always escort you to the exit.\n But would you like a small tour of this facility first?\n Do you have anywhere urgent to be?",
+      "0":"(Exterminating mislabelings…)",
+      "path6":"(Essential parts of the introduction are thus complete.)",
+      "js":"level.actors.warning.target='path5', api.write('warning')"
+    },
+    {
+      "center":"Hmmmmmmmmm…\nHMMMMMMMMM…\nMMM… Ah—\nmghmmmmm…",
+      "js":"level.iMixing[4] += .1, api.write(); \n level.score = 1"
+    },
+    {
+      "center":"WAIT BUT WHY WERE THERE BODY PARTS",
+      "warning":"Perfectly justified.",
+      "js":"level.actors.warning.emitRadius = 20, api.write('warning')"
+    },
+    {
+      "warning":"We are standing in the middle of a path from base Nano-Systems to a human-like body such as this one.\n  Learning is not immediately perfect.\n    So disregard the bodyparts.",
+      "js":"level.actors.warning.emitRadius = 24, api.write('warning')"
+    },
+    {
+      "warning":"Exit or tour?",
+      "js":"const a = level.actors.warning, a2 = level.actors.warning2;  delete a2.displayRadius, delete a2.emittance;  api.read('warning'), a2.pos = a.pos.slice(), a2.target = 'pointer1', api.write('warning2'), a.target = 'warning2', api.write('warning')"
+    },
+    {
+      "center":"STOP MITOSIS"
     }
   ],
 
@@ -78,12 +136,11 @@
     "dialogue":"async function dialogue(words, at, momentum=undefined) { await Promise.all(words.map(w => api.window(w, at || [.05 + .9*Math.random(), .05 + .9*Math.random()], 32, momentum))) }",
     "initialDialogue":"async function initialDialogue() { const at=null;  for (let obj of level.initialDialogue) await Promise.all(Object.keys(obj).map(k => k !== 'js' ? dialogue([obj[k]], level.actors[k] ? k : null, level.actors[k] ? level.actors[k].momentum : undefined) : new Function(obj[k])())) }",
     "makeItEasier":"function makeItEasier() { 'no' }",
-    "main":"async function main() { makeItEasier(), await initialDialogue(), api.levelLoad() }"
+    "main":"async function main() { api.levelSuggest('levels/x3/1.json'); \n makeItEasier(), await initialDialogue();  api.levelLoad('levels/x3/1.json') }"
   },
 
   "onLoad": "let s='';    for (let k in level.funcs) s += 'const '+k+'=level.funcs.'+k+'='+level.funcs[k]+'\\n';    new Function('L', s+'\\nreturn main()')(level)",
   "winScore": 1,
-  "onWon": "(async function() { api.levelSuggest('levels/x3/1.json'); \n await api.window(`TODO:`, null, 32);  api.levelLoad('levels/x3/1.json') })()",
 
   "onLost": "api.window(`(But nobody came.)`, 'pointer1', 32).then(() => api.levelLoad())",
 
@@ -100,13 +157,16 @@
   "iMixing":[1.0286883274572263,-3,0.9572799434247027,0.21542875200847933,0.47,-2,-3,0.43,0.48048990888803544],"kernel":{"center":[0.42497646738882644,0.5,0.40641742893798094],"width":[0.1971142273834557,0.07936257666457595,0.26070569811040545]},"iGrowthCenter":[0.4,0.21028884173343823,0.38151636351432666],"iGrowthWidth":[0.03426440591415447,0.142,0.12425556835234453],"iOffset":[0,0],"iKernelOffset":[0,0],
 
   "actors": {
-    "pointer1": {"displayRadius":[0,16,0], "pos":[0.5, 0.25], "emitRadius":32, "emit":"green", "emittance":3, "speed":{"Bmouse":0.01, "Bspeed": 0.93}, "trackLost":true},
-    "warning": {"pos":[0.01, 0.99], "displayRadius":[8,0,0], "emitRadius":16, "emit":"red", "emittance":3, "speed":{"Bspeed":0.98, "Btarget":0.001}, "target":"path0"},
+    "pointer1": {"displayRadius":[0,16,0], "pos":[0.5, 0.25], "emitRadius":32, "emit":"blue", "emittance":3, "speed":{"Bmouse":0.01, "Bspeed": 0.93}, "trackLost":true},
+    "warning": {"pos":[0.01, 0.99], "displayRadius":[8,0,0], "emitRadius":16, "emit":"red", "emittance":3, "speed":{"Bspeed":0.98, "Btarget":0.001}, "target":"path0", "momentum":0.95},
+    "warning2": {"like":"warning", "pos":[0,0], "displayRadius":[], "emittance":{}, "target":"center"},
     "path0": {"pos":[0.01, 0.99]},
     "path1": {"pos":[0.02, 0.98]},
     "path2": {"pos":[0.268,0.885]},
     "path3": {"pos":[0.291,0.721]},
     "path4": {"pos":[0.500,0.648]},
+    "path5": {"pos":[0.488,0.271]},
+    "path6": {"pos":[0.488,0.271], "speed":{"Bspeed":0.999, "Br":-0.01, "Bg":-0.01, "Bb":-0.01}},
     "center": {"pos":[0.5, 0.5], "momentum":0}
   }
 }
