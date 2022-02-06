@@ -1,0 +1,112 @@
+{
+  "description": "Kill me or release me, parasite.\nBut do not waste my time with talk!\nTODO: What's the background for this? ...Maybe that special cutscene background will do...",
+
+  "initialDialogue":[
+    {
+      "center":"—irrelevant specks to greater beings."
+    },
+    {
+      "center":"Even if we could experience their world,\nwe would only get lost and die,\npowerless and meaningless.",
+      "js":"level.actors.warning.target='path1', api.write('warning')"
+    },
+    {
+      "center":"OI",
+      "js":"level.actors.warning.target='path2', api.write('warning')"
+    },
+    {
+      "center":"FAIRY, YOU DID…\nsomething!\nWay to go!",
+      "js":"level.actors.warning.target='path3', api.write('warning')"
+    },
+    {
+      "center":"OHHHHH",
+      "js":"level.actors.warning.target='path4', api.write('warning')",
+      "0":"o"
+    },
+    {
+      "center":"Is that… a friendly face? A human, here?"
+    },
+    {
+      "center":"Fairy, your magic is amazing. You've purified… that. To reveal the human face beneath!",
+      "js":"level.actors.warning.speed.Bg=.001, api.write('warning')",
+      "0":"(o)",
+      "1":"(O)"
+    },
+    {
+      "center":"Or maybe this is a magical girl of justice, here to deliver us from eldritch evil.",
+      "0":"(o)",
+      "1":"(O)",
+      "2":"(0)",
+      "3":"(o)"
+    },
+    {
+      "center":"NO ONE TELLS ME ANYTHING\n\nSO WHO KNOWS"
+    },
+    {
+      "warning":"I do.\n Are you looking for information?",
+      "js":"level.actors.warning.speed.Bg=0, api.write('warning')",
+      "0":"(So confused.)",
+      "1":"(Did it really call this body a magical girl?)",
+      "2":"(Warning: meme levels are up to 30%.)",
+      "3":"(Danger suspected.)"
+    },
+    {
+      "center":"YES",
+      "js":"for (let i=0; i < 63; ++i) level.funcs.dialogue(['(YES)'])"
+    },
+    {
+      "warning":"Fairies and magical girls.\n What kind of place do you think this is?\n Give me something to work with:\n        What are your first impressions?"
+    },
+    {
+      "center":"· · ·"
+    },
+    {
+      "center":"Shit's fucked.",
+      "0":"(Warning: meme levels are up to 35%.)"
+    },
+    {
+      "center":"Wintech Facilities are cracked.",
+      "0":"(Warning: meme levels are up to 45%.)",
+      "1":"(Danger confirmed.)",
+      "js":"level.actors.warning.speed.Bg=.002, api.write('warning')"
+    },
+    {
+      "warning":"TODO:"
+    }
+  ],
+
+  "funcs":{
+    "dialogue":"async function dialogue(words, at, momentum=undefined) { await Promise.all(words.map(w => api.window(w, at || [.05 + .9*Math.random(), .05 + .9*Math.random()], 32, momentum))) }",
+    "initialDialogue":"async function initialDialogue() { const at=null;  for (let obj of level.initialDialogue) await Promise.all(Object.keys(obj).map(k => k !== 'js' ? dialogue([obj[k]], level.actors[k] ? k : null, level.actors[k] ? level.actors[k].momentum : undefined) : new Function(obj[k])())) }",
+    "makeItEasier":"function makeItEasier() { 'no' }",
+    "main":"async function main() { makeItEasier(), await initialDialogue(), api.levelLoad() }"
+  },
+
+  "onLoad": "let s='';    for (let k in level.funcs) s += 'const '+k+'=level.funcs.'+k+'='+level.funcs[k]+'\\n';    new Function('L', s+'\\nreturn main()')(level)",
+  "winScore": 1,
+  "onWon": "(async function() { api.levelSuggest('levels/x3/1.json'); \n await api.window(`TODO:`, null, 32);  api.levelLoad('levels/x3/1.json') })()",
+
+  "onLost": "api.window(`(But nobody came.)`, 'pointer1', 32).then(() => api.levelLoad())",
+
+  "iColorMatrix": [
+    1, 0, 0, 0,
+    0, 1, 0, 0,
+    0, 0, 1, 0,
+    0, 0, 0, 1
+  ],
+
+  "width": 1024, "height": 1024, "radius": 4,
+  "iSlowdown": 3,
+
+  "iMixing":[1.0286883274572263,-3,0.9572799434247027,0.21542875200847933,0.47,-2,-3,0.43,0.48048990888803544],"kernel":{"center":[0.42497646738882644,0.5,0.40641742893798094],"width":[0.1971142273834557,0.07936257666457595,0.26070569811040545]},"iGrowthCenter":[0.4,0.21028884173343823,0.38151636351432666],"iGrowthWidth":[0.03426440591415447,0.142,0.12425556835234453],"iOffset":[0,0],"iKernelOffset":[0,0],
+
+  "actors": {
+    "pointer1": {"displayRadius":[0,16,0], "pos":[0.5, 0.25], "emitRadius":32, "emit":"green", "emittance":3, "speed":{"Bmouse":0.01, "Bspeed": 0.93}, "trackLost":true},
+    "warning": {"pos":[0.01, 0.99], "displayRadius":[8,0,0], "emitRadius":16, "emit":"red", "emittance":3, "speed":{"Bspeed":0.98, "Btarget":0.001}, "target":"path0"},
+    "path0": {"pos":[0.01, 0.99]},
+    "path1": {"pos":[0.02, 0.98]},
+    "path2": {"pos":[0.268,0.885]},
+    "path3": {"pos":[0.291,0.721]},
+    "path4": {"pos":[0.500,0.648]},
+    "center": {"pos":[0.5, 0.5], "momentum":0}
+  }
+}
