@@ -111,11 +111,11 @@
       "js":"level.actors.warning.target='path5', api.write('warning')"
     },
     {
-      "center":"Hmmmmmmmmm…\nHMMMMMMMMM…\nMMM… Ah—\nmghmmmmm…",
+      "center":"Hmmmmmmmmm…\nHMMMMMMMMM…\nYou're saying this place doesn't care about humans…\nMMM… Ah—\nmghmmmmm…",
       "js":"level.iMixing[4] += .1, api.write(); \n level.score = 1"
     },
     {
-      "center":"WAIT BUT WHY WERE THERE BODY PARTS",
+      "center":"WAIT WHY WERE THERE BODY PARTS",
       "warning":"Perfectly justified.",
       "js":"level.actors.warning.emitRadius = 20, api.write('warning')"
     },
