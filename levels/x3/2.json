@@ -1,0 +1,45 @@
+{
+  "description": "Making waves.",
+
+  "initialDialogue":[
+  ],
+
+  "funcs":{
+    "dialogue":"async function dialogue(words, at) { await Promise.all(words.map(w => api.window(w, [.05 + .9*Math.random(), .05 + .9*Math.random()], 32))) }",
+    "initialDialogue":"async function initialDialogue() { const at=null;  for (let entry of level.initialDialogue) await dialogue(entry, at) }",
+    "makeItEasier":"function makeItEasier() { 'no' }",
+    "measuringGrid":"function measuringGrid(d=64) { for (let x=0; x<d; ++x) for (let y=0; y<d; ++y) if (Math.abs(x-d/2)>1 || Math.abs(y-d/2)>1) level.actors['measurer.'+x+'.'+y] = Object.assign(Object.assign({}, level.actors.measurer), {pos:[x/d, y/d], onLost(api, level, name) { level.actors[name].health=.5, api.write(name);  level.score-=1 }});  delete level.actors.measurer }",
+    "phaseChange":"function phaseChange(phases) { let L=level;  check();  function check() { if (L!==level || !phases.length) return;  requestAnimationFrame(check);  if (typeof phases[0] == 'function' ? phases[0](level.score) : level.score >= phases[0]) phases.shift(), phases.shift()(); } }",
+    "lose":"function lose() { level.actors.pointer1.health=0, api.write('pointer1') }",
+    "edgePoint":"function edgePoint() { const a = [.05 + .9*Math.random(), .05 + .9*Math.random()], p = Math.random();  p<.25 ? (a[0]=.01) : p<.5 ? (a[0]=.99) : p<.75 ? (a[1]=.01) : (a[1]=.99);  return a }",
+    "createAttackers":"function createAttackers(n=1000) { for (let i=0; i<n; ++i) level.actors['attacker.'+i] = Object.assign(Object.assign({}, level.actors.attacker), {pos:[0,0], onLost(api, level, name) { const a = level.actors[name];  a.displayRadius=[], a.dhealth=0, api.write(name);  level.score+=.04 }});  delete level.actors.attacker }",
+    "launchAttackers":"function launchAttackers(n=1000) { api.read('pointer1');  const to = level.actors.pointer1.pos, div=10000, displayRadius=[8,0,0], dhealth={B1:.05, Bg:-1, Bb:-1}, keys = Object.keys(level.actors).filter(k => k.slice(0,8)==='attacker');  for (let i=0; i<n; ++i) { const k = keys[Math.random()*keys.length | 0], a = level.actors[k];  api.read(k);  a.health = 1, a.dhealth=dhealth, a.displayRadius=displayRadius;  a.speed.Br=-.0004*Math.random();  a.pos = edgePoint();  a.gravity = [(to[0] - a.pos[0]) / div, (to[1] - a.pos[1]) / div];  api.write(k);  requestAnimationFrame(() => {a.health=1, api.write(k)}) } }",
+    "beLaunchingAttackers":"function beLaunchingAttackers(period=10) { const L=level, id = setInterval(() => { if (L===level) launchAttackers(8); else clearInterval(id) }, period*1000) }",
+    "main":"function main() { makeItEasier(), measuringGrid(16), createAttackers(500), beLaunchingAttackers(.2), phaseChange([score => score<-64, lose]), initialDialogue() }"
+  },
+
+  "onLoad": "let s='';    for (let k in level.funcs) s += 'const '+k+'=level.funcs.'+k+'='+level.funcs[k]+'\\n';    new Function('L', s+'\\nreturn main()')(level)",
+  "winScore": 100,
+  "onWon": "(async function() { api.levelSuggest('levels/x3/3.json'); \n level.iGrowthCenter[2]+=.1, api.write();  await api.window(`(Done.)`, null, 32);  api.levelLoad('levels/x3/3.json') })()",
+
+  "onLost": "let L=level, n=0, fiery=Math.random(), id=setInterval(() => { if (L===level && n++<100) fiery>.2 && (L.iOffset[1]-=.1), fiery<.6 && (L.iKernelOffset[1]+=fiery<.3?.24:.1), api.write(); else clearInterval(id) }, 100); \n api.window([`(Signal lost.)`], 'pointer1', 32).then(() => api.levelLoad())",
+
+  "iColorMatrix": [
+    1, 0, 0, 0,
+    0, 1, 0, 0,
+    0, 0, 1, 0,
+    0, 0, 0, 1
+  ],
+
+  "width": 512, "height": 512, "radius": 5,
+  "iSlowdown": 4,
+
+  "iMixing":[0.6253184943360147,3.7028805880986937,0.5978661639970052,-0.08984698879441384,0.6258059473738853,-2.1680964332616632,-2.848677575280755,1.129668816651721,0.39275787770724535],"kernel":{"center":[0.43783163345752835,0.7168107854896044,0.9326737055141392],"width":[0.657834247046785,-0.3162939364646042,0.09528107587126725]},"iGrowthCenter":[0.17019626114044817,0.20516352179742176,1.1379135123169009],"iGrowthWidth":[0.017256709807784825,0.17079792057625331,-0.5861018471891731],"iOffset":[0,0],"iKernelOffset":[0,0],
+
+  "actors": {
+    "pointer1": {"displayRadius":[16,0,0], "pos":[0.5, 0.25], "emitRadius":16, "emit":"green", "emittance":{"B1":1, "Br":-10}, "speed":{"Bmouse":1, "Bg":-0.000, "Bb":-0.000, "Bspeed": 0.0}, "dhealth":{"B1":0.05, "Br":-10}, "trackLost":true},
+    "measurer": {"pos":[0.5,0.5], "displayRadius":[7,0,0], "dhealth":{"B1":0.001, "Bb":-0.03}, "emitRadius":4, "emit":"red", "emittance":{"B1":1, "Bhealth":-1}},
+    "attacker": {"pos":[0,0], "displayRadius":[], "emitRadius":8, "emit":"red", "emittance":{"Bhealth":0.9}, "speed":{"Bspeed":0.96}},
+    "center": {"pos":[0.5, 0.5]}
+  }
+}
