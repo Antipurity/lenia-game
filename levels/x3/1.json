@@ -1,0 +1,41 @@
+{
+  "description": "Chased construction.",
+
+  "initialDialogue":[
+  ],
+
+  "funcs":{
+    "dialogue":"async function dialogue(words, at) { await Promise.all(words.map(w => api.window(w, [.05 + .9*Math.random(), .05 + .9*Math.random()], 32))) }",
+    "initialDialogue":"async function initialDialogue() { const at=null;  for (let entry of level.initialDialogue) await dialogue(entry, at) }",
+    "makeItEasier":"function makeItEasier() { 'no' }",
+    "measuringGrid":"function measuringGrid(d=64) { for (let x=0; x<d; ++x) for (let y=0; y<d; ++y) level.actors['measurer.'+x+'.'+y] = Object.assign(Object.assign({}, level.actors.measurer), {pos:[x/(d-1), y/(d-1)]});  delete level.actors.measurer }",
+    "phaseChange":"function phaseChange(phases) { let L=level;  check();  function check() { if (L!==level || !phases.length) return;  requestAnimationFrame(check);  if (level.score >= phases[0]) phases.shift(), phases.shift()(); } }",
+    "phase2":"function phase2() { api.window('2', 'pointer1', 32, .95);  api.read('pointer1'), api.read('chaser1');  const a = level.actors.pointer1, b = level.actors.chaser1;  a.emit='green', a.dhealth.Bg=0, a.dhealth.Br=.2, b.emit='red';  [a.displayRadius, b.displayRadius] = [b.displayRadius, a.displayRadius];  api.write('pointer1'), api.write('chaser1') }",
+    "main":"async function main() { makeItEasier(), measuringGrid(), phaseChange([100, phase2]), await initialDialogue() }"
+  },
+
+  "onLoad": "let s='';    for (let k in level.funcs) s += 'const '+k+'=level.funcs.'+k+'='+level.funcs[k]+'\\n';    new Function('L', s+'\\nreturn main()')(level)",
+  "winScore": 200,
+  "onWon": "(async function() { api.levelSuggest('levels/x3/2.json'); \n level.iGrowthCenter[2]=.51, api.write();  let L=level, n=0, fiery=Math.random(), id=setInterval(() => { if (L===level && n++<100) fiery>.2 && (L.iOffset[1]-=.1), fiery<.6 && (L.iKernelOffset[1]+=fiery<.3?.24:.1), api.write(); else clearInterval(id) }, 100); \n await api.window(`(Done.)`, null, 32);  api.levelLoad('levels/x3/2.json') })()",
+
+  "onLost": "let L=level, n=0, fiery=Math.random(), id=setInterval(() => { if (L===level && n++<100) fiery>.2 && (L.iOffset[1]-=.1), fiery<.6 && (L.iKernelOffset[1]+=fiery<.3?.24:.1), api.write(); else clearInterval(id) }, 100); \n api.window([`(Signal lost.)`], 'pointer1', 32).then(() => api.levelLoad())",
+
+  "iColorMatrix": [
+    1, 0, 1, 0,
+    0, 1, 0, 0,
+    0, 0, 0, 0,
+    0, 0, 0, 1
+  ],
+
+  "width": 512, "height": 512, "radius": 5,
+  "iSlowdown": 4,
+
+  "iMixing":[0.723504967929248,-2.8860110392951626,0.8605802586696364,0.017108790603643124,0.3795450784761102,-2.0159609555768965,-3.12726404216436,0.7351985140080946,0.37312610788014233],"kernel":{"center":[0.6944846174799577,0.13837542565165895,0.3620058359831343],"width":[0.43454727675194355,-0.5269081115847845,0.29303972804713907]},"iGrowthCenter":[0.40337547397101037,0.20772323188722538,0.3398194919110109],"iGrowthWidth":[-0.16839091447410132,0.14252822278321564,-0.044049322935480986],"iOffset":[0,0],"iKernelOffset":[0,0],
+
+  "actors": {
+    "pointer1": {"displayRadius":[16,0,0], "pos":[0.5, 0.25], "emitRadius":16, "emit":"red", "emittance":1, "speed":{"Bmouse":0.01, "Bg":-0.000, "Bb":-0.000, "Bspeed": 0.93}, "dhealth":{"B1":0.01, "Bg":-0.2}, "trackLost":true},
+    "chaser1": {"displayRadius":[0,16,0], "pos":[0.5, 0.75], "emitRadius":16, "emit":"green", "emittance":1, "speed":{"Btarget":0.001, "Bspeed": 0.95}, "target":"pointer1"},
+    "measurer": {"pos":[0.5,0.5], "displayRadius":[1,0,0], "dscore":{"Br":0.0001, "Bb":0.0001}},
+    "center": {"pos":[0.5, 0.5]}
+  }
+}
