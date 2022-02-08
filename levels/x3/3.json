@@ -1,5 +1,5 @@
 {
-  "description": "TODO: ...Getting projectiles inside is good and all, but how would they actually hurt anything? TODO: The control actually doesn't look terrible; but what's the actual level? Why can't projectiles hit us... I don't think we can resolve this with our current tech... Should we allow collisions with displayed particles?...",
+  "description": "Water the three bonsai trees.",
 
   "initialDialogue":[
   ],
@@ -8,19 +8,14 @@
     "dialogue":"async function dialogue(words, at) { await Promise.all(words.map(w => api.window(w, [.05 + .9*Math.random(), .05 + .9*Math.random()], 32))) }",
     "initialDialogue":"async function initialDialogue() { const at=null;  for (let entry of level.initialDialogue) await dialogue(entry, at) }",
     "makeItEasier":"function makeItEasier() { 'no' }",
-    "measuringGrid":"function measuringGrid(d=64) { for (let x=0; x<d; ++x) for (let y=0; y<d; ++y) if (Math.abs(x-d/2)>1 || Math.abs(y-d/2)>1) level.actors['measurer.'+x+'.'+y] = Object.assign(Object.assign({}, level.actors.measurer), {pos:[x/d, y/d], onLost(api, level, name) { level.actors[name].health=.5, api.write(name);  level.score-=1 }});  delete level.actors.measurer }",
     "phaseChange":"function phaseChange(phases) { let L=level;  check();  function check() { if (L!==level || !phases.length) return;  requestAnimationFrame(check);  if (typeof phases[0] == 'function' ? phases[0](level.score) : level.score >= phases[0]) phases.shift(), phases.shift()(); } }",
-    "lose":"function lose() { level.actors.pointer1.health=0, api.write('pointer1') }",
-    "edgePoint":"function edgePoint() { const a = [.05 + .9*Math.random(), .05 + .9*Math.random()], p = Math.random();  p<.25 ? (a[0]=.01) : p<.5 ? (a[0]=.99) : p<.75 ? (a[1]=.01) : (a[1]=.99);  return a }",
-    "createAttackers":"function createAttackers(n=1000) { for (let i=0; i<n; ++i) level.actors['attacker.'+i] = Object.assign(Object.assign({}, level.actors.attacker), {pos:[0,0], onLost(api, level, name) { const a = level.actors[name];  a.displayRadius=[], a.dhealth=0, api.write(name);  level.score+=.04 }});  delete level.actors.attacker }",
-    "launchAttackers":"function launchAttackers(n=1000) { api.read('pointer1');  const to = level.actors.pointer1.pos, div=10000, displayRadius=[8,0,0], dhealth={B1:.05, Bg:-1, Bb:-1}, keys = Object.keys(level.actors).filter(k => k.slice(0,8)==='attacker');  for (let i=0; i<n; ++i) { const k = keys[Math.random()*keys.length | 0], a = level.actors[k];  api.read(k);  a.health = 1, a.dhealth=dhealth, a.displayRadius=displayRadius;  a.speed.Br=-.0004*Math.random();  a.pos = edgePoint();  a.gravity = [(to[0] - a.pos[0]) / div, (to[1] - a.pos[1]) / div];  api.write(k);  requestAnimationFrame(() => {a.health=1, api.write(k)}) } }",
-    "beLaunchingAttackers":"function beLaunchingAttackers(period=10) { const L=level, id = setInterval(() => { if (L===level) launchAttackers(8); else clearInterval(id) }, period*1000) }",
-    "main":"function main() { makeItEasier(), 0&&measuringGrid(16), 0&&createAttackers(500), 0&&beLaunchingAttackers(.2), phaseChange([score => score<-64, lose]), initialDialogue() }"
+    "bouncies":"function bouncies(n=20000) { const to = level.actors.bouncy.pos, acts = {};  for (let i=0; i<n; ++i) { acts['bouncy.'+i] = { like:'bouncy', pos:[to[0] + .0001*(Math.random()*2-1), to[1] + .0001*(Math.random()*2-1)] } };  level.actors = Object.assign(acts, level.actors) }",
+    "main":"function main() { makeItEasier(), bouncies(), phaseChange([score => score<-64, lose]), initialDialogue() }"
   },
 
   "onLoad": "let s='';    for (let k in level.funcs) s += 'const '+k+'=level.funcs.'+k+'='+level.funcs[k]+'\\n';    new Function('L', s+'\\nreturn main()')(level)",
-  "winScore": 10000000,
-  "onWon": "(async function() { api.levelSuggest('levels/x3/3.json'); \n level.iGrowthCenter[2]+=.1, api.write();  await api.window(`(Done.)`, null, 32);  api.levelLoad('levels/x3/3.json') })()",
+  "winScore": 100,
+  "onWon": "(async function() { api.levelSuggest('levels/x3/4.json'); \n level.iGrowthCenter[2]+=.1, api.write();  await api.window(`(Done.)`, null, 32);  api.levelLoad('levels/x3/4.json') })()",
 
   "onLost": "let L=level, n=0, fiery=Math.random(), id=setInterval(() => { if (L===level && n++<100) fiery>.2 && (L.iOffset[1]-=.1), fiery<.6 && (L.iKernelOffset[1]+=fiery<.3?.24:.1), api.write(); else clearInterval(id) }, 100); \n api.window([`(Signal lost.)`], 'pointer1', 32).then(() => api.levelLoad())",
 
@@ -34,12 +29,15 @@
   "width": 512, "height": 512, "radius": 4,
   "iSlowdown": 4,
 
-  "iMixing":[0.5818229887313493,-2.7028805880986937,0.5324909256965203,0.503936535045058,0.5380102971217748,-1.93201657690383,-2.971476579819984,1.22957429371385,0.4228016566310547],"kernel":{"center":[0.7736577658884869,0.796539338281215,1.0014798755298293],"width":[-0.56253967189834,-0.1813619519624179,-0.01720420271815147]},"iGrowthCenter":[-0.14977441317942114,0.28370332163940176,1.1132047879781313],"iGrowthWidth":[0.06818685175259666,0.17055511763976566,-0.630442896031661],"iOffset":[0,0],"iKernelOffset":[0,0],
+  "iMixing":[-2.513,1.083,-0.05,1.974,0.176,-0.05,-0.05,-0.05,0.556],"kernel":{"center":[0.5,0.5,0.5],"width":[0.1,0.1,0.1]},"iGrowthCenter":[0.5,0.5,0.5],"iGrowthWidth":[0.176,0.1,0.15],"iOffset":[0,0],"iKernelOffset":[0,0],
 
   "actors": {
     "pointer1": {"displayRadius":[0,16,0], "pos":[0.5, 0.25], "emitRadius":16, "emit":"green", "emittance":1, "speed":{"Bmouse":0.01, "Bg":-0.000, "Bb":-0.000, "Bspeed": 0.93}, "dhealth":{"B1":0.05, "Bb":-0.05}, "trackLost":true},
-    "attacker1": {"pos":[0,0], "displayRadius":[0,0,8], "emitRadius":8, "emit":"blue", "emittance":0.3, "speed":{"Bspeed":0.96, "Br":-0.1, "Bg":0.01, "Bb":0.01, "Btarget":0.01}, "target":"pointer1", "gravity":[0,-0.001]},
-    "attacker2": {"pos":[0.5,0], "displayRadius":[0,0,8], "emitRadius":8, "emit":"blue", "emittance":0.0, "speed":{"Bspeed":0.96, "Br":-0.1, "Bg":0.01, "Bb":0.01}, "gravity":[0,-0.0001]},
+    "bouncy": {"pos":[0.5,0], "displayRadius":[0,0,6], "emitRadius":8, "emit":"blue", "emittance":0.00, "speed":{"Bspeed":0.99, "Br":-0.01, "Bg":-0.01, "Bb":0.001}, "gravity":[0,-0.0001]},
+    "firstTarget": {"displayRadius":[0,32,0], "pos":[0.206,0.785], "dhealth":{"B1":0.001, "Br":-0.05}, "onLost":"level.score += 1;  let i = 0, L=level;  for (let k of Object.keys(level.actors)) if (k.slice(0,6)==='bouncy') setTimeout(() => { if (L!==level) return;  const a = level.actors[k];  a.emittance = .03;  api.write(k) }, ++i)"},
+    "target1": {"displayRadius":[0,0,32], "pos":[0.771,0.699], "dhealth":{"B1":0.001, "Bb":-0.01}, "onLost":"level.score += 33"},
+    "target2": {"displayRadius":[0,0,32], "pos":[0.537,0.292], "dhealth":{"B1":0.001, "Bb":-0.01}, "onLost":"level.score += 33"},
+    "target3": {"displayRadius":[0,0,32], "pos":[0.159,0.225], "dhealth":{"B1":0.001, "Bb":-0.01}, "onLost":"level.score += 33"},
     "center": {"pos":[0.5, 0.5]}
   }
 }
