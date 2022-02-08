@@ -1,7 +1,7 @@
 {
     "description": "Oi, fairy, sprinkle some o' yo' dust here.",
 
-    "onLoad": "(async function() { const at=null;  await api.window([`Oi oi oi.`], at, 4);  await api.window([`What's this, a fairy? What?`], at, 6);  await api.window([`Is it gonna sprinkle some dust on 'em?`], at, 6);  await api.window([`OI. Spirit. Great and powerful. And esteemed.`], at, 6);  await api.window([`Anyway. Can you kill those abominations? Payment negotiable.`], at, 6);  await api.window([`Look how ugly they are, anyway! Anyone would want them dead, right?`], at, 6);  for (let k in level.actors) if (k.slice(0,6) === 'target') api.window(`UGLY`, k, 1) })()",
+    "onLoad": "(async function() { const at=null;  await api.window([`Oi oi oi.`], at, 4);  await api.window([`What's this orb of light? A fairy? What?`], at, 6);  await api.window([`Is it gonna sprinkle some dust on 'em?`], at, 6);  await api.window([`OI. Spirit. Great and powerful. And esteemed.`], at, 6);  await api.window([`Anyway. Can you kill those abominations? Payment negotiable.`], at, 6);  await api.window([`Look how ugly they are, anyway! Anyone would want them dead, right?`], at, 6);  for (let k in level.actors) if (k.slice(0,6) === 'target') api.window(`UGLY`, k, 1) })()",
     "winScore": 100,
     "onWon": "(async function() { const at=null;  api.levelSuggest('levels/x1/2.json');  await api.window(`OOOUUUUHH what a strong fairy you are. Spirit, I mean.`, at, 4);  await api.window([`Alright. You did the deed. I owe you. Now let's talk about `, [{tag:'i'}, `what`], ` I can do for ya.`], at, 4);  api.levelLoad('levels/x1/2.json') })()",
 
