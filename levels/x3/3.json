@@ -10,7 +10,7 @@
     "makeItEasier":"function makeItEasier() { 'no' }",
     "phaseChange":"function phaseChange(phases) { let L=level;  check();  function check() { if (L!==level || !phases.length) return;  requestAnimationFrame(check);  if (typeof phases[0] == 'function' ? phases[0](level.score) : level.score >= phases[0]) phases.shift(), phases.shift()(); } }",
     "bouncies":"function bouncies(n=20000) { const to = level.actors.bouncy.pos, acts = {};  for (let i=0; i<n; ++i) { acts['bouncy.'+i] = { like:'bouncy', pos:[to[0] + .0001*(Math.random()*2-1), to[1] + .0001*(Math.random()*2-1)] } };  level.actors = Object.assign(acts, level.actors) }",
-    "main":"function main() { makeItEasier(), bouncies(), phaseChange([score => score<-64, lose]), initialDialogue() }"
+    "main":"function main() { makeItEasier(), bouncies(), initialDialogue() }"
   },
 
   "onLoad": "let s='';    for (let k in level.funcs) s += 'const '+k+'=level.funcs.'+k+'='+level.funcs[k]+'\\n';    new Function('L', s+'\\nreturn main()')(level)",
