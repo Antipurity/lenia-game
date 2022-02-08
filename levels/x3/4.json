@@ -1,0 +1,77 @@
+{
+  "description": "TODO: …But what would we use all these colors for… Deflecting waves of colored enemies?… But we can't collision-detect those enemies… …Maybe we should just have a picture that we're supposed to paint, with the required colors… Yeah, I think that's our only option for a 'level'. …What's the image?",
+
+  "image":[
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+  ],
+
+  "initialDialogue":[
+  ],
+
+  "funcs":{
+    "dialogue":"async function dialogue(words, at) { await Promise.all(words.map(w => api.window(w, [.05 + .9*Math.random(), .05 + .9*Math.random()], 32))) }",
+    "initialDialogue":"async function initialDialogue() { const at=null;  for (let entry of level.initialDialogue) await dialogue(entry, at) }",
+    "makeItEasier":"function makeItEasier() { 'no' }",
+    "phaseChange":"function phaseChange(phases) { let L=level;  check();  function check() { if (L!==level || !phases.length) return;  requestAnimationFrame(check);  if (typeof phases[0] == 'function' ? phases[0](level.score) : level.score >= phases[0]) phases.shift(), phases.shift()(); } }",
+    "bouncies":"function bouncies(n=2) { const to = level.actors.bouncy.pos, acts = {};  for (let i=0; i<n; ++i) { acts['bouncy.'+i] = { like:'bouncy', pos:[to[0] + .0001*(Math.random()*2-1), to[1] + .0001*(Math.random()*2-1)] } };  level.actors = Object.assign(acts, level.actors);  'TODO: No, no bouncies please.' }",
+    "main":"function main() { makeItEasier(), bouncies(), initialDialogue(), 'TODO: Put the image in.' }"
+  },
+
+  "onLoad": "let s='';    for (let k in level.funcs) s += 'const '+k+'=level.funcs.'+k+'='+level.funcs[k]+'\\n';    new Function('L', s+'\\nreturn main()')(level)",
+  "winScore": 10000000,
+  "onWon": "(async function() { api.levelSuggest('levels/x3/4.json'); \n level.iGrowthCenter[2]+=.1, api.write();  await api.window(`(Done.)`, null, 32);  api.levelLoad('levels/x3/4.json') })()",
+
+  "onLost": "let L=level, n=0, fiery=Math.random(), id=setInterval(() => { if (L===level && n++<100) fiery>.2 && (L.iOffset[1]-=.1), fiery<.6 && (L.iKernelOffset[1]+=fiery<.3?.24:.1), api.write(); else clearInterval(id) }, 100); \n api.window([`(Signal lost.)`], 'pointer1', 32).then(() => api.levelLoad())",
+
+  "iColorMatrix": [
+    1, 0, 0, 0,
+    0, 1, 0, 0,
+    0, 0, 1, 0,
+    0, 0, 0, 1
+  ],
+
+  "width": 512, "height": 512, "radius": 5,
+  "iSlowdown": 4,
+
+  "iMixing":[1.183,-1.701,0.416,0.275,0.685,-0.745,-0.433,1.079,2.087],"kernel":{"center":[0.5,0.5,0.5],"width":[0.1,0.1,0.1]},"iGrowthCenter":[0.757,0.701,3],"iGrowthWidth":[0.176,0.332,1.572],"iOffset":[0,0],"iKernelOffset":[0,0],
+
+  "actors": {
+    "pointer1": {"displayRadius":[0,16,0], "pos":[0.5, 0.25], "emitRadius":16, "emit":"green", "emittance":1, "speed":{"Bmouse":0.01, "Bg":-0.000, "Bb":-0.000, "Bspeed": 0.93}, "trackLost":true},
+    "bouncy": {"pos":[0.5,0], "displayRadius":[0,0,6], "emitRadius":8, "emit":"blue", "emittance":0.00, "speed":{"Bspeed":0.9999, "Br":-0.01, "Bg":-0.003, "Bb":-0.003}, "dhealth":{"Bb":-0.01}},
+    "target1": {"displayRadius":[32,0,0], "pos":[0.6,0.2], "dhealth":{"B1":0.01, "Bg":-0.1}, "onLost":"requestAnimationFrame(() => { const as = level.actors, a = as.pointer1, b = as.target1;  api.read('pointer1'), api.read('target1');  a.emit='red', a.displayRadius=[16,0,0], b.health=1, api.write('pointer1'), api.write('target1') })", "emitRadius":32, "emit":"blue", "emittance":{"B1":10, "Bhealth":-10}},
+    "target2": {"displayRadius":[0,32,0], "pos":[0.5,0.2], "dhealth":{"B1":0.01, "Bb":-0.1}, "onLost":"requestAnimationFrame(() => { const as = level.actors, a = as.pointer1, b = as.target2;  api.read('pointer1'), api.read('target2');  a.emit='green', a.displayRadius=[0,16,0], b.health=1, api.write('pointer1'), api.write('target2') })", "emitRadius":32, "emit":"red", "emittance":{"B1":10, "Bhealth":-10}},
+    "target3": {"displayRadius":[0,0,32], "pos":[0.4,0.2], "dhealth":{"B1":0.01, "Br":-0.1}, "onLost":"requestAnimationFrame(() => { const as = level.actors, a = as.pointer1, b = as.target3;  api.read('pointer1'), api.read('target3');  a.emit='blue', a.displayRadius=[0,0,16], b.health=1, api.write('pointer1'), api.write('target3') })", "emitRadius":32, "emit":"green", "emittance":{"B1":10, "Bhealth":-10}},
+    "center": {"pos":[0.5, 0.5]}
+  }
+}
