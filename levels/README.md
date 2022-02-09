@@ -96,6 +96,10 @@ For example:
 
 ---
 
+`visualizeKernel: bool`: if `true`, we display the Lenia kernel instead of the Lenia state. For debugging.
+
+---
+
 ## Actors
 
 Actors. Agents. Entities. Particles. Thingies.

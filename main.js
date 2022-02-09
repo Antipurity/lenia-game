@@ -850,9 +850,7 @@ void main() {
     }
     function updateLevelWebGLData(L) {
         const s = glState
-        if (L.kernel.center)
-            s.leniaKernel = leniaKernel(gl, L, L.kernel.center, L.kernel.width, L.iKernelOffset)
-        else {
+        if (L.kernel.r || L.kernel.g || L.kernel.b) {
             // Collage .r/.g/.b into one array.
             const R = L.radius || 5
             const sz = 2*R+1, pixels = new Float32Array(4 * sz * sz)
@@ -866,7 +864,8 @@ void main() {
                         totals[c] = Math.max(totals[c], rgb[c][index] || 0)
                 }
             s.leniaKernel = leniaKernel(gl, L, null, null, null, pixels, totals)
-        }
+        } else
+            s.leniaKernel = leniaKernel(gl, L, L.kernel.center, L.kernel.width, L.iKernelOffset)
     }
     function updateActorCPUData(L, len, start) { // Returns `[…, health, score, _, _, …]`, with `len*4` numbers, or `null`.
         const s = glState
@@ -1052,7 +1051,10 @@ void main() {
             gl.useProgram(p3.program)
             gl.uniform4f(u.iResolution, L.width, L.height, 0, 0)
             gl.uniform4f(u.iDisplay, gl.drawingBufferWidth, gl.drawingBufferHeight, 0, 0)
-            s.leniaFrames.extra.read(gl, 0, u.leniaGrid)
+            if (!level.visualizeKernel)
+                s.leniaFrames.extra.read(gl, 0, u.leniaGrid)
+            else
+                s.leniaKernel.read(gl, 0, u.leniaKernel)
             s.leniaKernel.read(gl, 1, u.leniaKernel)
             gl.uniformMatrix4fv(u.iColorMatrix, false, L.iColorMatrix)
             rect.draw(gl, a.vertexPos)
