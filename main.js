@@ -4,13 +4,9 @@
 
 // TODO: Cutscenes:
 // Blue strings with a cybernetic texture when in blobs: {"iMixing":[0.5,0.58,0,-3,0.42,0.49,0,0.568,0.86],"kernel":{"center":[0.5,0.5,0.5],"width":[0.1,0.1,0.1]},"iGrowthCenter":[0.5,0.5,0.5],"iGrowthWidth":[0.1,0.1,0.1]}
-// A red-cloaked traveler (emits green with a blue trail) ("radius":4, "iSlowdown":4), with occasional short walker bursts: {"iMixing":[0.5818229887313493,-2.7028805880986937,0.5324909256965203,0.503936535045058,0.5380102971217748,-1.93201657690383,-2.971476579819984,1.22957429371385,0.4228016566310547],"kernel":{"center":[0.7736577658884869,0.796539338281215,1.0014798755298293],"width":[-0.56253967189834,-0.1813619519624179,-0.01720420271815147]},"iGrowthCenter":[-0.14977441317942114,0.28370332163940176,1.1132047879781313],"iGrowthWidth":[0.06818685175259666,0.17055511763976566,-0.630442896031661],"iOffset":[0,0],"iKernelOffset":[0,0]}
-// Red tracks on magenta snow: {"iMixing":[-1.0393180752308884,0.022222059471059277,0.9249328624101979,-0.7687134915429297,0.139762208913994,0.518436745595025,0.9220571944679165,0.9848356884175302,-0.2787870029694062],"kernel":{"center":[-0.21732522025994705,0.744938338951729,0.34174063327868154],"width":[-1.098830501141642,1.3558861524392787,-0.5151566622938901]},"iGrowthCenter":[0.022824214850622217,-1.3643949443456351,0.48443633398857494],"iGrowthWidth":[0.536666397682794,0.19343281195035228,0.2029488047022777],"iOffset":[0,0],"iKernelOffset":[0,0]}
-// Dark-blue background, and a bright non-red pointer leaves a red trail, which when moved slowly, leaves tracks which slowly ignite the world with red cells when left for long enough: {"iMixing":[0.2039143534732648,-2.131583129469096,1.69605335566842,0.6740989979968668,0.9949209415455598,0.1868051488971942,0.007869715555366405,0.0050607218977919005,-0.3727414465591553],"kernel":{"center":[1.3331015800141945,0.3580357919154616,0.333],"width":[1.0295576316931894,0.289,0.805228474201893]},"iGrowthCenter":[0.163,1.3189550338745488,0.587],"iGrowthWidth":[0.6806820578852195,0.056442612548712676,0.686],"iOffset":[0,0],"iKernelOffset":[0,0]}
+// TODO: ...We have no backgrounds to reward x3's completion with... ...Or maybe make the level editor default to this...
 
 // TODO: Only a few parting words remain.
-
-// (Guess Lenia is more boring than I thought. ...Or I guess, it reflects the seeker, and is exactly as boring as I am.)
 
 // TODO: Have a README.md.
     // TODO: Make note of browser compatibility, according to the APIs that we use: WebGL2, Object.values, object destructuring, element.append(…), pointer events.
