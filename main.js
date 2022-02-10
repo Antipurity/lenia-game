@@ -1,7 +1,3 @@
-// Do `localStorage.debug=true` in JS console to be able to reload levels that you are changing.
-//   (And display an FPS counter.)
-//   TODO: Document this properly.
-
 // TODO: Only a few parting words remain.
 
 // TODO: Make the level-editor direct toward how to make a fully-fledged level (on GitHub).

@@ -1,3 +1,15 @@
+`api.levelLoad('levels/level-editor.json')` allows tinkering with a lot of a level's simulation properties. However, that is not enough to make a full-fledged level.
+
+For examples to work off of, [see](https://developer.mozilla.org/en-US/docs/Tools/Web_Console) the default levels:
+
+```js
+fetch('levels/x1/1.json').then(r=>r.json()).then(console.log)
+fetch('levels/x2/6.json').then(r=>r.json()).then(console.log)
+fetch('levels/level-editor.json').then(r=>r.json()).then(console.log)
+```
+
+# The JSON level format
+
 Each level specifies, in JSON, all metadata and all simulation parameters and all actors.
 
 Making a new level is best done by copying a pre-existing level and changing its simulation parameters.
@@ -247,3 +259,11 @@ If `posMomentum` is `0`, the window is centered on the element, instead of daint
 `api.levelSelection(true)`: returns how many novel (non-won, but in storage) levels we are currently aware of.
 
 ---
+
+## Extra features
+
+When debugging, do not use cache for levels (to be able to reload levels as you are changing them), and display FPS:
+
+```js
+localStorage.debug = true
+```
