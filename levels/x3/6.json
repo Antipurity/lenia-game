@@ -2,8 +2,17 @@
     "description": "Emergent bullet hell: shifting war fronts. Vegetables hurt.",
     "isMenu": false,
 
+    "initialDialogue":[
+    ],
+    "funcs":{
+      "dialogue":"async function dialogue(words, at, momentum=undefined) { await Promise.all(words.map(w => api.window(w, at || [.05 + .9*Math.random(), .05 + .9*Math.random()], 32, momentum))) }",
+      "initialDialogue":"async function initialDialogue() { const at=null;  for (let obj of level.initialDialogue) await Promise.all(Object.keys(obj).map(k => k !== 'js' ? dialogue([obj[k]], level.actors[k] ? k : null, level.actors[k] ? level.actors[k].momentum : undefined) : new Function(obj[k])())) }",
+        "main":"function main() { initialDialogue() }"
+    },
+    "onLoad": "let s='';    for (let k in level.funcs) s += 'const '+k+'=level.funcs.'+k+'='+level.funcs[k]+'\\n';    new Function('L', s+'\\nreturn main()')(level)",
+
     "winScore": 200,
-    "onWon": "(async function() { api.levelSuggest('levels/level-editor.json'); \n const L=level;  slower();  await api.window(`(Done.)`, null, 32);  api.levelLoad('levels/level-editor.json');  function slower() { if (L===level) level.iSlowdown+=.01, requestAnimationFrame(slower) } })()",
+    "onWon": "(async function() { api.levelSuggest('levels/x3/7.json'); \n const L=level;  slower();  await api.window(`(Done.)`, null, 32);  api.levelLoad('levels/x3/7.json');  function slower() { if (L===level) level.iSlowdown+=.01, requestAnimationFrame(slower) } })()",
   
     "onLost": "let L=level, n=0, fiery=Math.random(), id=setInterval(() => { if (L===level && n++<100) fiery>.2 && (L.iOffset[1]-=.1), fiery<.6 && (L.iKernelOffset[1]+=fiery<.3?.24:.1), api.write(); else clearInterval(id) }, 100); \n api.window([`(Signal lost.)`], 'pointer1', 32).then(() => api.levelLoad())",
 

@@ -1,0 +1,37 @@
+{
+    "description": "TODO: Describe. And unlock this somewhere.",
+    "isMenu": true,
+
+    "winScore": null,
+
+    "iColorMatrix": [
+        1, 0, 0, 0,
+      0.8, 1, 0, 0,
+      0.1, 0, 1, 0,
+        0, 0, 0, 1
+    ],
+
+    "width": 512, "height": 1024, "radius": 5,
+    "iSlowdown": 5,
+    "iMixing":[1.524,-1.711,0.632,1.135,0.266,-3,-1.734,1.23,0.049],"kernel":{"center":[0.7736577658884869,0.796539338281215,1.0014798755298293],"width":[-0.56253967189834,-0.1813619519624179,-0.01720420271815147]},"iGrowthCenter":[-0.14977441317942114,0.28370332163940176,1.1132047879781313],"iGrowthWidth":[0.06818685175259666,0.17055511763976566,-0.630442896031661],"iOffset":[0,0],"iKernelOffset":[0,0],
+
+    "actors": {
+      "title": {"pos":[0.5, 0.75], "emitRadius": 10, "emit":"green", "emittance":{"Bhealth":0.1}, "dhealth":{"Bg":-50}},
+      "pointer1": {"displayRadius":[0,16,0], "pos":[0.5, 0.5], "emitRadius":16, "emit":"green", "emittance":0.2, "speed":{"Bspeed":0.93, "Bmouse":0.01}},
+      "pointer2": {"displayRadius":[5,3,8], "pos":[0.5, 0.5], "emitRadius":16, "emit":"red", "emittance":0, "speed":{"Bspeed":0.8, "Btarget":0.04, "Bg":0.01, "Bb":-0.01}, "target":"pointer1"},
+      "pointer3": {"like":"pointer2", "pos":[0.5, 0.5], "target":"pointer2"},
+      "pointer4": {"like":"pointer2", "pos":[0.5, 0.5], "target":"pointer3"},
+      "pointer5": {"like":"pointer2", "pos":[0.5, 0.5], "target":"pointer4"},
+      "pointer6": {"like":"pointer2", "pos":[0.5, 0.5], "target":"pointer5"},
+      "pointer7": {"like":"pointer2", "pos":[0.5, 0.5], "target":"pointer6"},
+      "pointer8": {"like":"pointer2", "pos":[0.5, 0.5], "target":"pointer7"},
+      "pointer9": {"like":"pointer2", "pos":[0.5, 0.5], "target":"pointer8"},
+      "pointer10": {"like":"pointer2", "pos":[0.5, 0.5], "target":"pointer9"},
+      "pointer11": {"like":"pointer2", "pos":[0.5, 0.5], "target":"pointer10"},
+      "pointer12": {"like":"pointer2", "pos":[0.5, 0.5], "target":"pointer11"},
+      "pointer13": {"like":"pointer2", "pos":[0.5, 0.5], "target":"pointer12"},
+      "pointer14": {"like":"pointer2", "pos":[0.5, 0.5], "target":"pointer13"},
+      "pointer15": {"like":"pointer2", "pos":[0.5, 0.5], "target":"pointer14"},
+      "levels": {"pos":[0.5, 0.25, 0, 0]}
+    }
+}

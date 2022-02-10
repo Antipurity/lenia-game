@@ -5,8 +5,8 @@
   ],
 
   "funcs":{
-    "dialogue":"async function dialogue(words, at) { await Promise.all(words.map(w => api.window(w, [.05 + .9*Math.random(), .05 + .9*Math.random()], 32))) }",
-    "initialDialogue":"async function initialDialogue() { const at=null;  for (let entry of level.initialDialogue) await dialogue(entry, at) }",
+    "dialogue":"async function dialogue(words, at, momentum=undefined) { await Promise.all(words.map(w => api.window(w, at || [.05 + .9*Math.random(), .05 + .9*Math.random()], 32, momentum))) }",
+    "initialDialogue":"async function initialDialogue() { const at=null;  for (let obj of level.initialDialogue) await Promise.all(Object.keys(obj).map(k => k !== 'js' ? dialogue([obj[k]], level.actors[k] ? k : null, level.actors[k] ? level.actors[k].momentum : undefined) : new Function(obj[k])())) }",
     "makeItEasier":"function makeItEasier() { 'no' }",
     "phaseChange":"function phaseChange(phases) { let L=level;  check();  function check() { if (L!==level || !phases.length) return;  requestAnimationFrame(check);  if (typeof phases[0] == 'function' ? phases[0](level.score) : level.score >= phases[0]) phases.shift(), phases.shift()(); } }",
     "bouncies":"function bouncies(n=20000) { const to = level.actors.bouncy.pos, acts = {};  for (let i=0; i<n; ++i) { acts['bouncy.'+i] = { like:'bouncy', pos:[to[0] + .0001*(Math.random()*2-1), to[1] + .0001*(Math.random()*2-1)] } };  level.actors = Object.assign(acts, level.actors) }",

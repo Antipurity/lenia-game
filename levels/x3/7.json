@@ -1,0 +1,43 @@
+{
+  "description": "An ending.\nWarning: gives John Sebastian.",
+
+  "initialDialogue":[
+    {"center":"Oi 1"},
+    {"center":"Oi 2"},
+    {"center":"Oi 3"},
+    {"center":"Oi 4"}
+  ],
+
+  "funcs":{
+    "dialogue":"async function dialogue(words, at, momentum=undefined) { await Promise.all(words.map(w => api.window(w, at || [.05 + .9*Math.random(), .05 + .9*Math.random()], 32, momentum))) }",
+    "initialDialogue":"async function initialDialogue() { const at=null;  for (let obj of level.initialDialogue) await Promise.all(Object.keys(obj).map(k => k !== 'js' ? dialogue([obj[k]], level.actors[k] ? k : null, level.actors[k] ? level.actors[k].momentum : undefined) : new Function(obj[k])())) }",
+    "makeItEasier":"function makeItEasier() { 'no' }",
+    "phaseChange":"function phaseChange(phases) { let L=level;  check();  function check() { if (L!==level || !phases.length) return;  requestAnimationFrame(check);  if (typeof phases[0] == 'function' ? phases[0](level.score) : level.score >= phases[0]) phases.shift(), phases.shift()(); } }",
+    "main":"function main() { api.levelSuggest('levels/level-editor.json'); \n makeItEasier(), initialDialogue().then(() => level.score+=1) }"
+  },
+
+  "onLoad": "let s='';    for (let k in level.funcs) s += 'const '+k+'=level.funcs.'+k+'='+level.funcs[k]+'\\n';    new Function('L', s+'\\nreturn main()')(level)",
+  "winScore": 1,
+  "onWon": "(async function() { api.levelSuggest('levels/backgrounds/4.json', {won:0});  \n  level.iGrowthCenter[2]+=.05, api.write();  await api.window(`(Done.)`, null, 32);  api.levelLoad('levels/level-editor.json') })()",
+
+  "onLost": "api.window([`(But nobody came.)`], 'pointer1', 32).then(() => api.levelLoad())",
+
+  "iColorMatrix": [
+    1, 0, 0, 0,
+    0, 1, 0, 0,
+    0, 0, 1, 0,
+    0, 0, 0, 1
+  ],
+
+  "width": 512, "height": 512, "radius": 5,
+  "iSlowdown": 4,
+
+  "iMixing":[0.5,0.58,0,-3,0.42,0.49,0,0.568,0.86],"kernel":{"center":[0.5,0.5,0.5],"width":[0.1,0.1,0.1]},"iGrowthCenter":[0.5,0.5,0.5],"iGrowthWidth":[0.1,0.1,0.1],"iOffset":[0,0],"iKernelOffset":[0,0],
+
+  "actors": {
+    "pointer1": {"displayRadius":[0,16,0], "pos":[0.5, 0.25], "emitRadius":16, "emit":"green", "emittance":3, "speed":{"Bmouse":0.01, "Bg":-0.000, "Bb":-0.000, "Bspeed": 0.93}, "trackLost":true},
+    "emitter1": {"pos":[0.25, 0.45, 0, 0.004], "emitRadius":16, "emit":"green", "emittance":1, "target":"emitter2", "speed":{"Btarget":0.0002, "Bspeed":1}},
+    "emitter2": {"pos":[0.35, 0.45, 0, -0.004], "emitRadius":16, "emit":"green", "emittance":1, "target":"emitter1", "speed":{"Btarget":0.0002, "Bspeed":1}},
+    "center": {"pos":[0.5, 0.5]}
+  }
+}

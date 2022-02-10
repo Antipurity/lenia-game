@@ -2,11 +2,9 @@
 //   (And display an FPS counter.)
 //   TODO: Document this properly.
 
-// TODO: Cutscenes:
-// Blue strings with a cybernetic texture when in blobs: {"iMixing":[0.5,0.58,0,-3,0.42,0.49,0,0.568,0.86],"kernel":{"center":[0.5,0.5,0.5],"width":[0.1,0.1,0.1]},"iGrowthCenter":[0.5,0.5,0.5],"iGrowthWidth":[0.1,0.1,0.1]}
-// TODO: ...We have no backgrounds to reward x3's completion with... ...Or maybe make the level editor default to this...
-
 // TODO: Only a few parting words remain.
+
+// TODO: Make the level-editor direct toward how to make a fully-fledged level (on GitHub).
 
 // TODO: Have a README.md.
     // TODO: Make note of browser compatibility, according to the APIs that we use: WebGL2, Object.values, object destructuring, element.append(…), pointer events.
@@ -402,8 +400,11 @@ void main() {
                 if (actorName && api._level.actors[actorName] || Array.isArray(actorName)) {
                     const margin = 6 // Personal space, buddy.
                     let actor = !Array.isArray(actorName) && api._level.actors[actorName], x, y
+                    document.body.append(content)
+                    api._windows.set(content, [0,0,0,0])
                     moveWindow()
                     function moveWindow() { // Reasonable amount of code for tracking actors.
+                        if (!content.isConnected) return
                         if (!Array.isArray(actorName))
                             if (!api._level.actors[actorName] || actor !== api._level.actors[actorName]) return
                         if (!content.classList.contains('removed')) requestAnimationFrame(moveWindow)
@@ -455,13 +456,11 @@ void main() {
                     }
                 } else // Bottom-left when no actor or a non-existent actor is given.
                     content.style.left = content.style.bottom = 0
-                document.body.append(content)
-                api._windows.set(content, [0,0,0,0])
                 return new Promise((resolve, reject) => {
                     if (timeoutSec != null) {
                         const start = performance.now()
                         let duration = timeoutSec*1000, timeout = setTimeout(disappear, duration)
-                        api._windowShorteners.add(content._windowShortener = sec => { // On click, take 2 seconds less to disappear.
+                        api._windowShorteners.add(content._windowShortener = sec => { // On click, take 32 seconds less to disappear.
                             clearTimeout(timeout)
                             duration -= sec*1000
                             timeout = setTimeout(disappear, duration - (performance.now() - start))

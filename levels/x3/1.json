@@ -5,8 +5,8 @@
   ],
 
   "funcs":{
-    "dialogue":"async function dialogue(words, at) { await Promise.all(words.map(w => api.window(w, [.05 + .9*Math.random(), .05 + .9*Math.random()], 32))) }",
-    "initialDialogue":"async function initialDialogue() { const at=null;  for (let entry of level.initialDialogue) await dialogue(entry, at) }",
+    "dialogue":"async function dialogue(words, at, momentum=undefined) { await Promise.all(words.map(w => api.window(w, at || [.05 + .9*Math.random(), .05 + .9*Math.random()], 32, momentum))) }",
+    "initialDialogue":"async function initialDialogue() { const at=null;  for (let obj of level.initialDialogue) await Promise.all(Object.keys(obj).map(k => k !== 'js' ? dialogue([obj[k]], level.actors[k] ? k : null, level.actors[k] ? level.actors[k].momentum : undefined) : new Function(obj[k])())) }",
     "makeItEasier":"function makeItEasier() { 'no' }",
     "measuringGrid":"function measuringGrid(d=64) { for (let x=0; x<d; ++x) for (let y=0; y<d; ++y) level.actors['measurer.'+x+'.'+y] = Object.assign(Object.assign({}, level.actors.measurer), {pos:[x/(d-1), y/(d-1)]});  delete level.actors.measurer }",
     "phaseChange":"function phaseChange(phases) { let L=level;  check();  function check() { if (L!==level || !phases.length) return;  requestAnimationFrame(check);  if (level.score >= phases[0]) phases.shift(), phases.shift()(); } }",
