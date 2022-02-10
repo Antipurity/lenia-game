@@ -532,21 +532,21 @@ void main() {
                 }
                 // Create a hierarchy containing `[url, wonFrame, lostScore]`.
                 const data = Object.create(null)
-                for (let k in lost) data[k] = [k, 0, lost[k]]
+                for (let k in lost) data[k] = [k, null, lost[k]]
                 for (let k in won) data[k] = [k, won[k], data[k] ? data[k][2] : 0]
                 const tree = urlsToHierarchy(data)
                 return toUI(computeChildSummaries(tree))
                 function computeChildSummaries(x) {
                     // With this, parents display are-there-lost-children and sum-of-best-times and sum-of-best-scores.
                     if (Array.isArray(x)) return x
-                    let novel = 0, wonSum = 0, lostSum = 0
+                    let novel = false, wonSum = 0, lostSum = 0
                     for (let k in x) {
                         let v = computeChildSummaries(x[k])
                         if (!Array.isArray(v)) {
                             v = v.__summary
                             v[0] && (novel = true), wonSum += v[1], lostSum += v[2]
                         } else
-                            v[1] === 0 && (novel = true), wonSum += v[1], lostSum += v[2]
+                            v[1] === null && (novel = true), wonSum += v[1], lostSum += v[2]
                     }
                     x.__summary = [novel, wonSum, lostSum]
                     return x
@@ -554,8 +554,9 @@ void main() {
                 function toUI(x, depth=0) {
                     if (Array.isArray(x)) { // A concrete level. Show description and an invitation.
                         const [url, wonFrame, lostScore] = x
+                        const novel = wonFrame === null
                         return [{tag:'div'},
-                            wonFrame !== 0 ? { style:'height:0px' } : null, // Only uncollapse novel levels.
+                            !novel ? { style:'height:0px' } : null, // Only uncollapse novel levels.
                             { class:'hidable' },
                             [{tag:'div'},
                                 { style:'float:right; clear:right; display:inline-block; text-align:right; font-size:.9em' },
@@ -575,7 +576,7 @@ void main() {
                             return a.replace(/[0-9]+/g, s => String.fromCodePoint(+s)).localeCompare(b.replace(/[0-9]+/g, s => String.fromCodePoint(+s)))
                         })
                         for (let k of keys) {
-                            const [novel, wonFrame, lostScore] = Array.isArray(x[k]) ? [x[k][1] === 0, x[k][1], x[k][2]] : x[k].__summary
+                            const [novel, wonFrame, lostScore] = Array.isArray(x[k]) ? [x[k][1] === null, x[k][1], x[k][2]] : x[k].__summary
                             children.push([{tag:'div'},
                                 { class: 'level-container' },
                                 [{tag:'div'},
@@ -607,7 +608,7 @@ void main() {
                                     [{tag:'div'},
                                         { style:'float:right; clear:right; display:inline-block; text-align:left; font-size:.75em; margin-left:1.2em; line-height:1.1em' },
                                         [{tag:'div'}, 'Score  ', [{ class:'numeric-information' }, lostScore !== 0 ? lostScore.toFixed(2) : '—']],
-                                        [{tag:'div'}, 'Time   ', [{ class:'numeric-information' }, wonFrame !== 0 ? (wonFrame/60).toFixed(2) + 's' : '—']],
+                                        [{tag:'div'}, 'Time   ', [{ class:'numeric-information' }, wonFrame !== null ? (wonFrame/60).toFixed(2) + 's' : '—']],
                                     ],
                                     [{ tag:'div', style:'clear:both' }],
                                 ],
@@ -754,15 +755,16 @@ void main() {
         }
         updateLevelWebGLData(L)
 
+        const actors = L.actors
+        L.score = L.score || 0, L.winScore = typeof L.winScore == 'number' ? L.winScore : 1, L.frame = 0, L._trackedLost = 0
+        L._actorNames = actors ? Object.keys(actors) : []
+
         try {
             if (typeof L.onLoad == 'string') L.onLoad = new Function('api,level', L.onLoad)
             if (typeof L.onLoad == 'function') L.onLoad(api, L)
         } catch (err) { console.error(err) }
 
         // Load actors.
-        const actors = L.actors
-        L.score = L.score || 0, L.winScore = typeof L.winScore == 'number' ? L.winScore : 1, L.frame = 0, L._trackedLost = 0
-        L._actorNames = actors ? Object.keys(actors) : []
         const pos = b() // x/y/dx/dy
         const extra = b() // health/score/emitRadius/emitColor
         const gravity = b()
@@ -957,7 +959,7 @@ void main() {
         L._fps = .9*L._fps + .1*fps
         L._lastFrame = performance.now()
         // Update the displayed score.
-        if (L.score >= L.winScore && !L._didWin && !L._didLose) { // Won the level.
+        if (L.score+1e-3 >= L.winScore && !L._didWin && !L._didLose) { // Won the level.
             L._didWin = true
             try {
                 if (typeof L.onWon == 'string') L.onWon = new Function('api,level', L.onWon)

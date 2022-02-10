@@ -15,7 +15,7 @@
 
   "onLoad": "let s='';    for (let k in level.funcs) s += 'const '+k+'=level.funcs.'+k+'='+level.funcs[k]+'\\n';    new Function('L', s+'\\nreturn main()')(level)",
   "winScore": 200,
-  "onWon": "(async function() { api.levelSuggest('levels/x2/6.json'), api.levelSuggest('levels/backgrounds/initial.json', {won:1}), api.levelSuggest('levels/backgrounds/1.json', {won:1}); \n await api.window(`Thanks again.`, null, 32);  await api.window(`Not even the billowing waves of whipping flesh can match your ancient power.`, null, 32);  api.levelLoad('levels/x2/6.json') })()",
+  "onWon": "(async function() { api.levelSuggest('levels/x2/6.json'), api.levelSuggest('levels/backgrounds/initial.json', {won:0}), api.levelSuggest('levels/backgrounds/1.json', {won:0}); \n await api.window(`Thanks again.`, null, 32);  await api.window(`Not even the billowing waves of whipping flesh can match your ancient power.`, null, 32);  api.levelLoad('levels/x2/6.json') })()",
 
   "onLost": "api.window([`(LOSER)`, `(2)`, `(3)`, `(4)`, `(5)`, `(6)`, `(7)`, `(8)`, `(9)`, `(Getting cornered and dying when your luck runs out?)`, `(Want my advice?)`, `(Minimize reaction time to unexpected events.)`, `(See those wave corners?\n They decide what happens, and the wave follows.\n Follow the eye of the storm, but be flexible, and switch eyes when they break.\n That's how you stay alive in this world.)`, `(14)`, `(15)`, `(16)`, `(17)`, `(18)`, `(19)`, `(20)`, `(21)`, `(22)`, `(23)`, `(24)`, `(25)`, `(26)`, `(27)`, `(28)`, `(29)`, `(Now time to loop the words.)`][(api._x2_5 = api._x2_5+1||0) % 30], 'pointer1', 32).then(() => api.levelLoad())",
 

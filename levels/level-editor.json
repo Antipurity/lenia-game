@@ -21,7 +21,7 @@
       "main":"function main(L) { symmetrizingLoop(), ui() }"
     },
     "onLoad": "let s='';    for (let k in level.funcs) s += 'const '+k+'=level.funcs.'+k+'='+level.funcs[k]+'\\n';    new Function('L', s+'\\nreturn main()')(level)",
-    "winScore": 10000,
+    "winScore": 0,
     "onLost": "setTimeout(api.levelLoad, 3000)",
 
     "iColorMatrix": [

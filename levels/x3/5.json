@@ -19,7 +19,7 @@
 
   "onLoad": "let s='';    for (let k in level.funcs) s += 'const '+k+'=level.funcs.'+k+'='+level.funcs[k]+'\\n';    new Function('L', s+'\\nreturn main()')(level)",
   "winScore": 100,
-  "onWon": "(async function() { api.levelSuggest('levels/x3/5.json'); \n level.iGrowthCenter[2]+=.1, api.write();  await api.window(`(Done.)`, null, 32);  api.levelLoad('levels/x3/5.json') })()",
+  "onWon": "(async function() { api.levelSuggest('levels/x3/6.json'); \n level.iGrowthCenter[2]+=.1, api.write();  await api.window(`(Done.)`, null, 32);  api.levelLoad('levels/x3/6.json') })()",
 
   "onLost": "let L=level, n=0, fiery=Math.random(), id=setInterval(() => { if (L===level && n++<100) fiery>.2 && (L.iOffset[1]-=.1), fiery<.6 && (L.iKernelOffset[1]+=fiery<.3?.24:.1), api.write(); else clearInterval(id) }, 100); \n api.window([`(Signal lost.)`], 'pointer1', 32).then(() => api.levelLoad())",
 
