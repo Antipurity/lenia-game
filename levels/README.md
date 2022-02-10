@@ -162,7 +162,7 @@ Actor behavior is determined by the behavior matrix, which inputs are multiplied
 
 Outputs, in the actor object:
 - `speed` (computed separately for x and y, but with the same weights in the behavior matrix)
-- `emittance`
+- `emittance` (to stop emittance, set to `{}` in JS, not `0`)
 - `dhealth`
 - `dscore`
 
