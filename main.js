@@ -1,9 +1,8 @@
 // TODO: Only a few parting words remain.
 
-// TODO: Make the level-editor direct toward how to make a fully-fledged level (on GitHub).
-
 // TODO: Have a README.md.
     // TODO: Make note of browser compatibility, according to the APIs that we use: WebGL2, Object.values, object destructuring, element.append(…), pointer events.
+    // https://Antipurity.github.io/lenia-game
 // TODO: A license notice in this file.
 
 
@@ -393,11 +392,11 @@ void main() {
                     })(content)
                 }
                 content.classList.add('window')
+                document.body.append(content)
+                api._windows.set(content, [0,0,0,0])
                 if (actorName && api._level.actors[actorName] || Array.isArray(actorName)) {
                     const margin = 6 // Personal space, buddy.
                     let actor = !Array.isArray(actorName) && api._level.actors[actorName], x, y
-                    document.body.append(content)
-                    api._windows.set(content, [0,0,0,0])
                     moveWindow()
                     function moveWindow() { // Reasonable amount of code for tracking actors.
                         if (!content.isConnected) return
