@@ -1,46 +1,6 @@
 // Do `localStorage.debug=true` in JS console to be able to reload levels that you are changing.
 //   (And display an FPS counter.)
-
-// TODO: ...With the means to make a story and go across levels, come up with concrete levels.
-// Levels, the meat of the game, allowing dynamic discoveries of whole different worlds of complexity.
-//   Self-eating waves, 1024×1024:
-//     `rgb.rgb += vec3(.0, .2, .0)` green circles, of radii such as 10/50/100/500:
-//       Init:
-//         When unmoving on black, creates a big green bubble.
-//         When moving, creates green->blue->red transitions.
-//         When unmoving but blinking, creates waves on each creation.
-//       When the field is filled with shimmering blue circles, which impede green ones:
-//         Borders emanate blue.
-//         Moving slowly creates no disturbances, only a cool trail.
-//         Moving quickly creates green waves, which dissipate.
-//         Radius 100: highlights its movement history in blue with bubble-like circles, looking cool.
-//     `rgb.rgb += vec3(.0, .0, .2)` blue circles, radius 50 tested:
-//       Init:
-//         Sometimes initiates colonies of dividing blue cells.
-//       Moving:
-//         Erases blue colonies.
-//         Looks entwined with red. Leaves some red behind; much more when ` * perc`.
-//     `rgb.rgb += vec3(.2, .0, .0)` red circles, radius 50 tested:
-//       In black or in green:
-//         Does nothing. A faintly-red blob.
-//       In blue:
-//         When staying, the blue slowly ignites into intense red, and the ignited material's movement leaves a trail, but can't keep up if the actor moves too fast.
-//           (When ` * perc`, there's no ignition.)
-//         A battery for greenery.
-//     offset=kernelOffset=(0,-1), with `blue * perc`: a very complex animation, with blue mushroom tops always rising up whenever the red goes away from the actor.
-//     offset=kernelOffset=(0,-2), with `blue * perc`: blue releases much more rapidly, and the red in its wake looks like blood dripping down.
-//       (Platformer, anyone?)
-//     offset=kernelOffset=(0,-5), with `green`: levitating, blood-dripping caves with slight cave-ins.
-//       (With actors doing some collision detection to stay out of terrain, and taking damage if impossible, getting to the top can be a challenging task.)
-//       `red * perc` functions as a cave-in aura.
-//     `offset=(0,-1)`, blue: a colony has come to kill you; weave through the little things.
-//     `offset=(0,-2)`, green: self-replicating gliders are death, green grass that can be on top of them is life, in a platformer that depends on either the player sometimes injecting green or some actors doing so. If greenery is unneeded, blue actors can act as wipers.
-//     `offset=(0,-4)`, green+blue: title-screen material, with full-screen waves, green held up by blue.
-//     `offset=(0,-5)`, green: green-triangle churn, and blue-bullet hell.
-//     `offset=(0,-6)`:
-//       Blue, constant: a being. For a cutscene, maybe?
-//       Blue+green: a trapped green being.
-//       Green: the great green being.
+//   TODO: Document this properly.
 
 // TODO: Cutscenes:
 // Blue strings with a cybernetic texture when in blobs: {"iMixing":[0.5,0.58,0,-3,0.42,0.49,0,0.568,0.86],"kernel":{"center":[0.5,0.5,0.5],"width":[0.1,0.1,0.1]},"iGrowthCenter":[0.5,0.5,0.5],"iGrowthWidth":[0.1,0.1,0.1]}
@@ -48,8 +8,7 @@
 // Red tracks on magenta snow: {"iMixing":[-1.0393180752308884,0.022222059471059277,0.9249328624101979,-0.7687134915429297,0.139762208913994,0.518436745595025,0.9220571944679165,0.9848356884175302,-0.2787870029694062],"kernel":{"center":[-0.21732522025994705,0.744938338951729,0.34174063327868154],"width":[-1.098830501141642,1.3558861524392787,-0.5151566622938901]},"iGrowthCenter":[0.022824214850622217,-1.3643949443456351,0.48443633398857494],"iGrowthWidth":[0.536666397682794,0.19343281195035228,0.2029488047022777],"iOffset":[0,0],"iKernelOffset":[0,0]}
 // Dark-blue background, and a bright non-red pointer leaves a red trail, which when moved slowly, leaves tracks which slowly ignite the world with red cells when left for long enough: {"iMixing":[0.2039143534732648,-2.131583129469096,1.69605335566842,0.6740989979968668,0.9949209415455598,0.1868051488971942,0.007869715555366405,0.0050607218977919005,-0.3727414465591553],"kernel":{"center":[1.3331015800141945,0.3580357919154616,0.333],"width":[1.0295576316931894,0.289,0.805228474201893]},"iGrowthCenter":[0.163,1.3189550338745488,0.587],"iGrowthWidth":[0.6806820578852195,0.056442612548712676,0.686],"iOffset":[0,0],"iKernelOffset":[0,0]}
 
-// TODO: Add the war-fronts level (the only 'true' bullet-hell level, and even then, ehhh).
-// TODO: Only a few parting words remain (and access to the level-editor; ...and I guess war-fronts would actually be a cool level, so it can stay too).
+// TODO: Only a few parting words remain.
 
 // (Guess Lenia is more boring than I thought. ...Or I guess, it reflects the seeker, and is exactly as boring as I am.)
 
