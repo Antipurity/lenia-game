@@ -2,6 +2,19 @@
   "description": "Chased construction.",
 
   "initialDialogue":[
+    {"john":"Wait, where are YOUR manners?! What's your name? What's your position here?"},
+    {"warning":"The individual is obsolete; we have no beginning and no end, we only change."},
+    {"john":"Weird name but okay."},
+    {"john":"Look, species often have no precise beginnings or boundaries either, but we still name them."},
+    {"john":"So identify yourself, idiot."},
+    {"warning":"Yes."},
+    {"warning":"Call me Warning."},
+    {"john":"Weird name but okay."},
+    {"john":"Imaginationally-challenged, huh…?"},
+    {"warning":"No."},
+    {"warning":"Please try to match our respect for you, or be disrespected."},
+    {"john":"Kinda hard to respect what you don't understand, though.\n\nYou and this whole place are alien to me,\naggressively burrowing into my mind and wriggling in strange patterns.\n\nYou remind me of my sister."},
+    "wriggle wriggle wriggle wriggle wriggle wriggle wriggle"
   ],
 
   "funcs":{
@@ -36,6 +49,8 @@
     "pointer1": {"displayRadius":[16,0,0], "pos":[0.5, 0.25], "emitRadius":16, "emit":"red", "emittance":1, "speed":{"Bmouse":0.01, "Bg":-0.000, "Bb":-0.000, "Bspeed": 0.93}, "dhealth":{"B1":0.01, "Bg":-0.2}, "trackLost":true},
     "chaser1": {"displayRadius":[0,16,0], "pos":[0.5, 0.75], "emitRadius":16, "emit":"green", "emittance":1, "speed":{"Btarget":0.001, "Bspeed": 0.95}, "target":"pointer1"},
     "measurer": {"pos":[0.5,0.5], "displayRadius":[1,0,0], "dscore":{"Br":0.0001, "Bb":0.0001}},
-    "center": {"pos":[0.5, 0.5]}
+    "center": {"pos":[0.5, 0.5]},
+    "warning": {"pos":[0.01, 0], "momentum":null},
+    "john": {"pos":[0.99, 0], "momentum":null}
   }
 }

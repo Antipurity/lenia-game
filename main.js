@@ -704,9 +704,7 @@ void main() {
         }
         updateLevelWebGLData(L)
 
-        const actors = L.actors
         L.score = L.score || 0, L.winScore = typeof L.winScore == 'number' ? L.winScore : 1, L.frame = 0, L._trackedLost = 0
-        L._actorNames = actors ? Object.keys(actors) : []
 
         try {
             if (typeof L.onLoad == 'string') L.onLoad = new Function('api,level', L.onLoad)
@@ -714,6 +712,8 @@ void main() {
         } catch (err) { console.error(err) }
 
         // Load actors.
+        const actors = L.actors
+        L._actorNames = actors ? Object.keys(actors) : []
         const pos = b() // x/y/dx/dy
         const extra = b() // health/score/emitRadius/emitColor
         const gravity = b()
