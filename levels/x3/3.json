@@ -2,20 +2,35 @@
   "description": "Water the three bonsai trees.",
 
   "initialDialogue":[
+    {"john":"You know, this reminds me of my time in Alaskan wilderness."},
+    {"john":"I would spend hours in the evenings with a fire light, watching the flames dance across the snow, gazing at the stars, and drawing pictures of it all."},
+    {"john":"In the morning, we'd wake up and see the morning light reflecting on the snow."},
+    {"john":"It was magical.\nThe world seemed so large, beautiful, and mysterious."},
+    {"warning":"I see."},
+    {"john":"Then a Jura mutant retriever ate my uncle and the kind people from the village."},
+    {"john":"We were all so frightened, so afraid. My sister and I, I mean."},
+    {"john":"We packed up."},
+    {"john":"We drove home."},
+    {"john":"We cried."},
+    {"john":"I remember the smell of smoke, the sound of shattering glass, and running and screaming through the snow, cursing the world's mysteries."},
+    {"john":"That retriever…\n\nevanescent patterns danced across its skin and everything it touched.\n\nSo similar to this place…\n\nand to you."},
+    {"warning":"Yes, this technology is far from new. I'm sorry for your loss."},
+    {"warning":"No lingering trauma, I assume?"},
+    {"john":"I'm good. Neural therapy is effective."}
   ],
 
   "funcs":{
     "dialogue":"async function dialogue(words, at, momentum=undefined) { await Promise.all(words.map(w => api.window(w, at || [.05 + .9*Math.random(), .05 + .9*Math.random()], 32, momentum))) }",
-    "initialDialogue":"async function initialDialogue() { const at=null;  for (let obj of level.initialDialogue) await Promise.all(Object.keys(obj).map(k => k !== 'js' ? dialogue([obj[k]], level.actors[k] ? k : null, level.actors[k] ? level.actors[k].momentum : undefined) : new Function(obj[k])())) }",
+    "initialDialogue":"async function initialDialogue() { for (let obj of level.initialDialogue) await Promise.all(Object.keys(obj).map(k => k !== 'js' ? dialogue([obj[k]], level.actors[k] ? k : null, level.actors[k] ? level.actors[k].momentum : undefined) : new Function(obj[k])())) }",
     "makeItEasier":"function makeItEasier() { 'no' }",
     "phaseChange":"function phaseChange(phases) { let L=level;  check();  function check() { if (L!==level || !phases.length) return;  requestAnimationFrame(check);  if (typeof phases[0] == 'function' ? phases[0](level.score) : level.score >= phases[0]) phases.shift(), phases.shift()(); } }",
     "bouncies":"function bouncies(n=20000) { const to = level.actors.bouncy.pos, acts = {};  for (let i=0; i<n; ++i) { acts['bouncy.'+i] = { like:'bouncy', pos:[to[0] + .0001*(Math.random()*2-1), to[1] + .0001*(Math.random()*2-1)] } };  level.actors = Object.assign(acts, level.actors) }",
-    "main":"function main() { makeItEasier(), bouncies(), initialDialogue() }"
+    "main":"function main() { makeItEasier(), bouncies() }"
   },
 
   "onLoad": "let s='';    for (let k in level.funcs) s += 'const '+k+'=level.funcs.'+k+'='+level.funcs[k]+'\\n';    new Function('L', s+'\\nreturn main()')(level)",
   "winScore": 100,
-  "onWon": "(async function() { api.levelSuggest('levels/x3/4.json'); \n level.iGrowthCenter[2]+=.1, api.write();  await api.window(`(Done.)`, null, 32);  api.levelLoad('levels/x3/4.json') })()",
+  "onWon": "(async function() { api.levelSuggest('levels/x3/4.json'); \n level.iGrowthCenter[2]+=.1, api.write();  await level.funcs.initialDialogue();  api.levelLoad('levels/x3/4.json') })()",
 
   "onLost": "let L=level, n=0, fiery=Math.random(), id=setInterval(() => { if (L===level && n++<100) fiery>.2 && (L.iOffset[1]-=.1), fiery<.6 && (L.iKernelOffset[1]+=fiery<.3?.24:.1), api.write(); else clearInterval(id) }, 100); \n api.window([`(Signal lost.)`], 'pointer1', 32).then(() => api.levelLoad())",
 
@@ -38,6 +53,8 @@
     "target1": {"displayRadius":[0,0,32], "pos":[0.771,0.699], "dhealth":{"B1":0.001, "Bb":-0.01}, "onLost":"level.score += 33"},
     "target2": {"displayRadius":[0,0,32], "pos":[0.537,0.292], "dhealth":{"B1":0.001, "Bb":-0.01}, "onLost":"level.score += 33"},
     "target3": {"displayRadius":[0,0,32], "pos":[0.159,0.225], "dhealth":{"B1":0.001, "Bb":-0.01}, "onLost":"level.score += 33"},
-    "center": {"pos":[0.5, 0.5]}
+    "center": {"pos":[0.5, 0.5]},
+    "warning": {"pos":[0.01, 0], "momentum":null},
+    "john": {"pos":[0.99, 0], "momentum":null}
   }
 }

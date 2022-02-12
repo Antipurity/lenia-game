@@ -12,7 +12,7 @@
     {"warning":"That's all."},
     {"john":"Oh. I see."},
     {"john":"Oi, did you say it's using Grey Goo events as basic building blocks?"},
-    {"warning":"More or less.\n Humans can safely stand in the middle of a self-replication wave, though.\n Nano-Systems are bacteria for robots."},
+    {"warning":"More or less.\n Humans can safely stand in the middle of a self-replication wave though, just don't lick it.\n Nano-Systems are bacteria for robots."},
     {"warning":"In fact, the level that you're exploring right now is situated entirely on the left index finger of my body, the one closest to you. You microbe."},
     {"john":"Pff."},
     {"john":"Watch out, I am about to commit mitosis and infect your lungs with my offspring."},
@@ -21,7 +21,7 @@
 
   "funcs":{
     "dialogue":"async function dialogue(words, at, momentum=undefined) { await Promise.all(words.map(w => api.window(w, at || [.05 + .9*Math.random(), .05 + .9*Math.random()], 32, momentum))) }",
-    "initialDialogue":"async function initialDialogue() { const at=null;  for (let obj of level.initialDialogue) await Promise.all(Object.keys(obj).map(k => k !== 'js' ? dialogue([obj[k]], level.actors[k] ? k : null, level.actors[k] ? level.actors[k].momentum : undefined) : new Function(obj[k])())) }",
+    "initialDialogue":"async function initialDialogue() { for (let obj of level.initialDialogue) await Promise.all(Object.keys(obj).map(k => k !== 'js' ? dialogue([obj[k]], level.actors[k] ? k : null, level.actors[k] ? level.actors[k].momentum : undefined) : new Function(obj[k])())) }",
     "makeItEasier":"function makeItEasier() { 'no' }",
     "measuringGrid":"function measuringGrid(d=64) { for (let x=0; x<d; ++x) for (let y=0; y<d; ++y) if (Math.abs(x-d/2)>1 || Math.abs(y-d/2)>1) level.actors['measurer.'+x+'.'+y] = Object.assign(Object.assign({}, level.actors.measurer), {pos:[x/d, y/d], onLost(api, level, name) { level.actors[name].health=.5, api.write(name);  level.score-=1 }});  delete level.actors.measurer }",
     "phaseChange":"function phaseChange(phases) { let L=level;  check();  function check() { if (L!==level || !phases.length) return;  requestAnimationFrame(check);  if (typeof phases[0] == 'function' ? phases[0](level.score) : level.score >= phases[0]) phases.shift(), phases.shift()(); } }",
