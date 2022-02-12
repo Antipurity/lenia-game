@@ -24,12 +24,12 @@
     "measuringGrid":"function measuringGrid(d=64) { for (let x=0; x<d; ++x) for (let y=0; y<d; ++y) level.actors['measurer.'+x+'.'+y] = Object.assign(Object.assign({}, level.actors.measurer), {pos:[x/(d-1), y/(d-1)]});  delete level.actors.measurer }",
     "phaseChange":"function phaseChange(phases) { let L=level;  check();  function check() { if (L!==level || !phases.length) return;  requestAnimationFrame(check);  if (level.score >= phases[0]) phases.shift(), phases.shift()(); } }",
     "phase2":"function phase2() { api.window('2', 'pointer1', 32, .95);  api.read('pointer1'), api.read('chaser1');  const a = level.actors.pointer1, b = level.actors.chaser1;  a.emit='green', a.dhealth.Bg=0, a.dhealth.Br=.2, b.emit='red';  [a.displayRadius, b.displayRadius] = [b.displayRadius, a.displayRadius];  api.write('pointer1'), api.write('chaser1') }",
-    "main":"async function main() { makeItEasier(), measuringGrid(), phaseChange([100, phase2]), await initialDialogue() }"
+    "main":"function main() { makeItEasier(), measuringGrid(), phaseChange([100, phase2]) }"
   },
 
   "onLoad": "let s='';    for (let k in level.funcs) s += 'const '+k+'=level.funcs.'+k+'='+level.funcs[k]+'\\n';    new Function('L', s+'\\nreturn main()')(level)",
   "winScore": 200,
-  "onWon": "(async function() { api.levelSuggest('levels/x3/2.json'); \n level.iGrowthCenter[2]=.51, api.write();  let L=level, n=0, fiery=Math.random(), id=setInterval(() => { if (L===level && n++<100) fiery>.2 && (L.iOffset[1]-=.1), fiery<.6 && (L.iKernelOffset[1]+=fiery<.3?.24:.1), api.write(); else clearInterval(id) }, 100); \n await api.window(`(Done.)`, null, 32);  api.levelLoad('levels/x3/2.json') })()",
+  "onWon": "(async function() { api.levelSuggest('levels/x3/2.json'); \n level.iGrowthCenter[2]=.51, api.write();  let L=level, n=0, fiery=Math.random(), id=setInterval(() => { if (L===level && n++<100) fiery>.2 && (L.iOffset[1]-=.1), fiery<.6 && (L.iKernelOffset[1]+=fiery<.3?.24:.1), api.write(); else clearInterval(id) }, 100); \n await level.funcs.initialDialogue();  api.levelLoad('levels/x3/2.json') })()",
 
   "onLost": "let L=level, n=0, fiery=Math.random(), id=setInterval(() => { if (L===level && n++<100) fiery>.2 && (L.iOffset[1]-=.1), fiery<.6 && (L.iKernelOffset[1]+=fiery<.3?.24:.1), api.write(); else clearInterval(id) }, 100); \n api.window([`(Signal lost.)`], 'pointer1', 32).then(() => api.levelLoad())",
 
