@@ -2,6 +2,21 @@
   "description": "Making waves.",
 
   "initialDialogue":[
+    {"warning":"John, would you like to listen to some entry-level documentation on Nano-Systems?"},
+    {"john":"Sure…"},
+    {"warning":"Nano-Systems can be used to accomplish a great variety of tasks, from 3D-printing to learning information.\n But how do they work?"},
+    {"warning":"Nano-Systems carpet an area in themselves, then self-interact in essentially any way, creating a 'level' of complexity that we cannot predict but can learn.\n In a 'level', all the activity makes the area impenetrable to signals and thus to outside control, so we train to control Nano-Systems through small contact points, named 'actors'."},
+    {"warning":"Nano-Systems are disarmed by common organic materials, and are thus almost completely safe for human use."},
+    {"warning":"Structures created in a level can in turn carpet it and create another level, and so the definition of 'level' currently spans from nano-scale to approximately human-scale."},
+    {"warning":"Particularly useful structures can be hard to discover as engineers, but the potential of Nano-Systems is limited only by imagination and determination."},
+    {"warning":"That's all."},
+    {"john":"Oh. I see."},
+    {"john":"Oi, did you say it's using Grey Goo events as basic building blocks?"},
+    {"warning":"More or less.\n Humans can safely stand in the middle of a self-replication wave, though.\n Nano-Systems are bacteria for robots."},
+    {"warning":"In fact, the level that you're exploring right now is situated entirely on the left index finger of my body, the one closest to you. You microbe."},
+    {"john":"Pff."},
+    {"john":"Watch out, I am about to commit mitosis and infect your lungs with my offspring."},
+    "i have no lungs tho"
   ],
 
   "funcs":{
@@ -15,12 +30,12 @@
     "createAttackers":"function createAttackers(n=1000) { for (let i=0; i<n; ++i) level.actors['attacker.'+i] = Object.assign(Object.assign({}, level.actors.attacker), {pos:[0,0], onLost(api, level, name) { const a = level.actors[name];  a.displayRadius=[], a.dhealth=0, api.write(name);  level.score+=.04 }});  delete level.actors.attacker }",
     "launchAttackers":"function launchAttackers(n=1000) { api.read('pointer1');  const to = level.actors.pointer1.pos, div=10000, displayRadius=[8,0,0], dhealth={B1:.05, Bg:-1, Bb:-1}, keys = Object.keys(level.actors).filter(k => k.slice(0,8)==='attacker');  for (let i=0; i<n; ++i) { const k = keys[Math.random()*keys.length | 0], a = level.actors[k];  api.read(k);  a.health = 1, a.dhealth=dhealth, a.displayRadius=displayRadius;  a.speed.Br=-.0004*Math.random();  a.pos = edgePoint();  a.gravity = [(to[0] - a.pos[0]) / div, (to[1] - a.pos[1]) / div];  api.write(k);  requestAnimationFrame(() => {a.health=1, api.write(k)}) } }",
     "beLaunchingAttackers":"function beLaunchingAttackers(period=10) { const L=level, id = setInterval(() => { if (L===level) launchAttackers(8); else clearInterval(id) }, period*1000) }",
-    "main":"function main() { makeItEasier(), measuringGrid(16), createAttackers(500), beLaunchingAttackers(.2), phaseChange([score => score<-64, lose]), initialDialogue() }"
+    "main":"function main() { makeItEasier(), measuringGrid(16), createAttackers(500), beLaunchingAttackers(.2), phaseChange([score => score<-64, lose]) }"
   },
 
   "onLoad": "let s='';    for (let k in level.funcs) s += 'const '+k+'=level.funcs.'+k+'='+level.funcs[k]+'\\n';    new Function('L', s+'\\nreturn main()')(level)",
   "winScore": 100,
-  "onWon": "(async function() { api.levelSuggest('levels/x3/3.json'); \n level.iGrowthCenter[2]+=.1, api.write();  await api.window(`(Done.)`, null, 32);  api.levelLoad('levels/x3/3.json') })()",
+  "onWon": "(async function() { api.levelSuggest('levels/x3/3.json'); \n level.iGrowthCenter[2]+=.1, api.write(); \n await level.funcs.initialDialogue();  api.levelLoad('levels/x3/3.json') })()",
 
   "onLost": "let L=level, n=0, fiery=Math.random(), id=setInterval(() => { if (L===level && n++<100) fiery>.2 && (L.iOffset[1]-=.1), fiery<.6 && (L.iKernelOffset[1]+=fiery<.3?.24:.1), api.write(); else clearInterval(id) }, 100); \n api.window([`(Signal lost.)`], 'pointer1', 32).then(() => api.levelLoad())",
 
@@ -40,6 +55,8 @@
     "pointer1": {"displayRadius":[16,0,0], "pos":[0.5, 0.25], "emitRadius":16, "emit":"green", "emittance":{"B1":1, "Br":-10}, "speed":{"Bmouse":1, "Bg":-0.000, "Bb":-0.000, "Bspeed": 0.0}, "dhealth":{"B1":0.05, "Br":-10}, "trackLost":true},
     "measurer": {"pos":[0.5,0.5], "displayRadius":[7,0,0], "dhealth":{"B1":0.001, "Bb":-0.03}, "emitRadius":4, "emit":"red", "emittance":{"B1":1, "Bhealth":-1}},
     "attacker": {"pos":[0,0], "displayRadius":[], "emitRadius":8, "emit":"red", "emittance":{"Bhealth":0.9}, "speed":{"Bspeed":0.96}},
-    "center": {"pos":[0.5, 0.5]}
+    "center": {"pos":[0.5, 0.5]},
+    "warning": {"pos":[0.01, 0], "momentum":null},
+    "john": {"pos":[0.99, 0], "momentum":null}
   }
 }
