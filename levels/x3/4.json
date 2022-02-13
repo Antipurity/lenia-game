@@ -36,21 +36,29 @@
     0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,1,1,0,0,1,1,1,1,1,1,1,1,1,1,1,0
   ],
 
-  "initialDialogue":[
+  "loadDialogue":[
+    {"john":"Paint?"},
+    {"warning":"Nano-Systems are multipurpose."},
+    {"warning":"Paint the painting in the specified colors."}
+  ],
+  "wonDialogue":[
+    {"john":"Oi… do you accept work applications for Nano-Systems?"},
+    {"warning":"Depends.\n You have to understand: every endeavor that's worth anything ends up optimizing for different goals than human bodies.\n So humans end up unfocused and overworked, unless they sign mind-control permits.\n Usually not worth the effort.\n These facilities are detached for a reason."},
+    {"john":"Not to be taken lightly, then."},
+    {"warning":"In poetic terms, the overflowing power of a heart blazing its way through the unknown is what it takes, nothing more, nothing less. And we have enough."}
   ],
 
   "funcs":{
-    "dialogue":"async function dialogue(words, at, momentum=undefined) { await Promise.all(words.map(w => api.window(w, at || [.05 + .9*Math.random(), .05 + .9*Math.random()], 32, momentum))) }",
-    "initialDialogue":"async function initialDialogue() { const at=null;  for (let obj of level.initialDialogue) await Promise.all(Object.keys(obj).map(k => k !== 'js' ? dialogue([obj[k]], level.actors[k] ? k : null, level.actors[k] ? level.actors[k].momentum : undefined) : new Function(obj[k])())) }",
+    "dialogue":"async function dialogue(d) { for (let obj of d) await Promise.all(Object.keys(obj).map(k => k !== 'js' ? dial([obj[k]], level.actors[k] ? k : null, level.actors[k] ? level.actors[k].momentum : undefined) : new Function(obj[k])()));  async function dial(words, at, momentum=undefined) { await Promise.all(words.map(w => api.window(w, at || [.05 + .9*Math.random(), .05 + .9*Math.random()], 32, momentum))) }  }",
     "makeItEasier":"function makeItEasier() { 'no' }",
     "phaseChange":"function phaseChange(phases) { let L=level;  check();  function check() { if (L!==level || !phases.length) return;  requestAnimationFrame(check);  if (typeof phases[0] == 'function' ? phases[0](level.score) : level.score >= phases[0]) phases.shift(), phases.shift()(); } }",
     "measuringGrid":"function measuringGrid(N, img) { for (let x=0; x<N; ++x) for (let y=0; y<N; ++y) {  const v = img[y*N+x];  if (v) level.actors['measurer.'+x+'.'+y] = Object.assign(Object.assign({}, level.actors.measurer), {pos:[x/N, .9999-y/N], displayRadius: v===1?[12,0,4]:v===2?[4,12,0]:[0,4,12], emit: v===1?'blue':v===2?'red':'green', dhealth:{B1:.01, Br: v===1?-.03:.3, Bg: v===2?-.03:.3, Bb: v===3?-.03:.3}, onLost(api, level, name) { level.actors[name].displayRadius=[], api.write(name);  level.score+=.4 }})  };  delete level.actors.measurer }",
-    "main":"function main() { makeItEasier(), measuringGrid(32, level.image), initialDialogue() }"
+    "main":"function main() { makeItEasier(), measuringGrid(32, level.image), dialogue(level.loadDialogue) }"
   },
 
   "onLoad": "let s='';    for (let k in level.funcs) s += 'const '+k+'=level.funcs.'+k+'='+level.funcs[k]+'\\n';    new Function('L', s+'\\nreturn main()')(level)",
   "winScore": 100,
-  "onWon": "(async function() { api.levelSuggest('levels/x3/5.json'); \n level.iGrowthCenter[2]+=.1, api.write();  await api.window(`(Done.)`, null, 32);  api.levelLoad('levels/x3/5.json') })()",
+  "onWon": "(async function() { api.levelSuggest('levels/x3/5.json'); \n level.iGrowthCenter[2]+=.1, api.write();  await level.funcs.dialogue(level.wonDialogue);  api.levelLoad('levels/x3/5.json') })()",
 
   "onLost": "let L=level, n=0, fiery=Math.random(), id=setInterval(() => { if (L===level && n++<100) fiery>.2 && (L.iOffset[1]-=.1), fiery<.6 && (L.iKernelOffset[1]+=fiery<.3?.24:.1), api.write(); else clearInterval(id) }, 100); \n api.window([`(Signal lost.)`], 'pointer1', 32).then(() => api.levelLoad())",
 
@@ -72,6 +80,8 @@
     "target2": {"displayRadius":[0,32,8], "pos":[0.5,0.2], "dhealth":{"B1":0.01, "Bb":-0.05}, "onLost":"requestAnimationFrame(() => { const as = level.actors, a = as.pointer1, b = as.target2;  api.read('pointer1'), api.read('target2');  a.emit='green', a.displayRadius=[0,16,0], b.health=1, api.write('pointer1'), api.write('target2') })", "emitRadius":32, "emit":"red", "emittance":{"B1":10, "Bhealth":-10}},
     "target3": {"displayRadius":[8,0,32], "pos":[0.4,0.2], "dhealth":{"B1":0.01, "Br":-0.1}, "onLost":"requestAnimationFrame(() => { const as = level.actors, a = as.pointer1, b = as.target3;  api.read('pointer1'), api.read('target3');  a.emit='blue', a.displayRadius=[0,0,16], b.health=1, api.write('pointer1'), api.write('target3') })", "emitRadius":32, "emit":"green", "emittance":{"B1":10, "Bhealth":-10}},
     "measurer": {"pos":[0.5,0.5], "emitRadius":12, "emittance":{"Bhealth":0.1}},
-    "center": {"pos":[0.5, 0.5]}
+    "center": {"pos":[0.5, 0.5]},
+    "warning": {"pos":[0.01, 0], "momentum":null},
+    "john": {"pos":[0.99, 0], "momentum":null}
   }
 }
