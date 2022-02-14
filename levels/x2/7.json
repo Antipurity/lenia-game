@@ -111,7 +111,7 @@
       "js":"level.actors.warning.target='path5', api.write('warning')"
     },
     {
-      "center":"Hmmmmmmmmm…\nHMMMMMMMMM…\nYou're saying this place doesn't care about humans…\nMMM… Ah—\nmghmmmmm…",
+      "center":"Hmm…\nHMMM…\nYou're saying this place has a greater purpose than satisfying humans…\nMMM… Ah—\nmghmm…",
       "js":"level.iMixing[4] += .1, api.write(); \n level.score = 1"
     },
     {
@@ -120,15 +120,18 @@
       "js":"level.actors.warning.emitRadius = 20, api.write('warning')"
     },
     {
-      "warning":"We are standing in the middle of a path from base Nano-Systems to a human-like body such as this one.\n  Learning is not immediately perfect.\n    So disregard the bodyparts.",
+      "warning":"We are standing in the middle of a path from base Nano-Systems to a human-like body such as this one.\n  Learning is never immediately perfect.\n    So disregard the bodyparts.",
+      "0":"(Creation and destruction.)",
+      "1":"(Prototypes.)",
       "js":"level.actors.warning.emitRadius = 24, api.write('warning')"
     },
     {
       "warning":"Exit or tour?",
+      "0":"(So.)",
       "js":"const a = level.actors.warning, a2 = level.actors.warning2;  delete a2.displayRadius, delete a2.emittance;  api.read('warning'), a2.pos = a.pos.slice(), a2.target = 'pointer1', api.write('warning2'), a.target = 'warning2', api.write('warning')"
     },
     {
-      "center":"STOP MITOSIS"
+      "center":"STOP YOUR MITOSIS"
     }
   ],
 

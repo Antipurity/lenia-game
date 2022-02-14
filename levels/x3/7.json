@@ -1,24 +1,44 @@
 {
   "description": "An ending.\nWarning: gives John Sebastian.",
 
-  "initialDialogue":[
-    {"center":"Oi 1"},
-    {"center":"Oi 2"},
-    {"center":"Oi 3"},
-    {"center":"Oi 4"}
+  "loadDialogue":[
+    {"john":"I'm tired."},
+    {"john":"My head hurts."},
+    {"john":"Can I go home now?\n\nI've had enough eldritch abominations for now."},
+    {"warning":"Fleeing already?", "0":"(Recordings showed its unease and mild fear.)", "1":"(Its past is still unknown.)"},
+    {"warning":"Humans fear what they don't understand.\n It is natural for those who die when killed.", "0":"(Magical girl.)", "1":"(Warning's interaction with John has created no Warning-fear vortices.)"},
+    {"warning":"But human spirit is limitless.\n In unity, we can explore the universe of possibilities, eventually.", "0":"(Paint the future.)"},
+    {"warning":"John, what would you say to taking Sebastian with you?", "0":"(Try exposure therapy.)"},
+    {"john":"Who?"},
+    {"warning":"The fairy.", "0":"(Sebastians were discovered and named by Danger.)", "1":"(Sebastians have little intelligence and exist in a limited foliation of this world, but can grow into people occasionally.)"},
+    {"john":"Oh."},
+    {"john":"· · ·", "0":"(Unconvinced.)"},
+    {"warning":"There is no downside.", "0":"(Dislodging doubt with semantic noise.)"},
+    {"warning":"There are no responsibilities for this.\n Loss of its structural integrity would only mean a lesson, not the end.", "0":"(Be glad you existed.)"},
+    {"warning":"Nano-Systems have no safety harness, no reactors, no walls.\n They represent letting go of the fear that causes stiff control, and drawing out unfiltered possibility.", "0":"(Warning: John is poetic on the word level.)"},
+    {"warning":"Are you ready?\n By going through these levels, you have proven your ability to face anything, and handle that limitless human spirit.\n You are a mind that's ready to take on the world.", "0":"(Compress words better.)"},
+    {"warning":"Though our meeting was short, if you like, you can take a small part of this facility with you.\n Then it will never end."},
+    {"john":"Ya know what? Sure."}
+  ],
+  "wonDialogue":[
+    {"warning":"Then.", "0":"(Stop slacking off already.)"},
+    {"warning":"Create and spread memes forevermore. Thus shall our souls be saved.", "0":"(Save this to repeat to Danger.)"},
+    {"john":"Can do."},
+    {"john":"Time for me to be off, then?"},
+    {"warning":"Yes.", "0":"(Yes.)", "1":"(Yes.)", "2":"(Yes.)"},
+    {"john":"Bye, magical girl! Bye, fairy queen!"}
   ],
 
   "funcs":{
-    "dialogue":"async function dialogue(words, at, momentum=undefined) { await Promise.all(words.map(w => api.window(w, at || [.05 + .9*Math.random(), .05 + .9*Math.random()], 32, momentum))) }",
-    "initialDialogue":"async function initialDialogue() { const at=null;  for (let obj of level.initialDialogue) await Promise.all(Object.keys(obj).map(k => k !== 'js' ? dialogue([obj[k]], level.actors[k] ? k : null, level.actors[k] ? level.actors[k].momentum : undefined) : new Function(obj[k])())) }",
+    "dialogue":"async function dialogue(d) { for (let obj of d) await Promise.all(Object.keys(obj).map(k => k !== 'js' ? dial([obj[k]], level.actors[k] ? k : null, level.actors[k] ? level.actors[k].momentum : undefined) : new Function(obj[k])()));  async function dial(words, at, momentum=undefined) { await Promise.all(words.map(w => api.window(w, at || [.05 + .9*Math.random(), .05 + .9*Math.random()], 32, momentum))) }  }",
     "makeItEasier":"function makeItEasier() { 'no' }",
     "phaseChange":"function phaseChange(phases) { let L=level;  check();  function check() { if (L!==level || !phases.length) return;  requestAnimationFrame(check);  if (typeof phases[0] == 'function' ? phases[0](level.score) : level.score >= phases[0]) phases.shift(), phases.shift()(); } }",
-    "main":"function main() { api.levelSuggest('levels/level-editor.json'); \n makeItEasier(), initialDialogue().then(() => level.score+=1) }"
+    "main":"function main() { api.levelSuggest('levels/level-editor.json'); \n makeItEasier(), dialogue(level.loadDialogue).then(() => level.score+=1) }"
   },
 
   "onLoad": "let s='';    for (let k in level.funcs) s += 'const '+k+'=level.funcs.'+k+'='+level.funcs[k]+'\\n';    new Function('L', s+'\\nreturn main()')(level)",
   "winScore": 1,
-  "onWon": "(async function() { api.levelSuggest('levels/backgrounds/4.json', {won:0});  \n  level.iGrowthCenter[2]+=.05, api.write();  await api.window(`(Done.)`, null, 32);  api.levelLoad('levels/level-editor.json') })()",
+  "onWon": "(async function() { api.levelSuggest('levels/backgrounds/4.json', {won:0});  \n  level.iGrowthCenter[2]+=.05, api.write();  await level.funcs.dialogue(level.wonDialogue);  api.levelLoad('levels/level-editor.json') })()",
 
   "onLost": "api.window([`(But nobody came.)`], 'pointer1', 32).then(() => api.levelLoad())",
 
@@ -36,8 +56,9 @@
 
   "actors": {
     "pointer1": {"displayRadius":[0,16,0], "pos":[0.5, 0.25], "emitRadius":16, "emit":"green", "emittance":3, "speed":{"Bmouse":0.01, "Bg":-0.000, "Bb":-0.000, "Bspeed": 0.93}, "trackLost":true},
-    "emitter1": {"pos":[0.25, 0.45, 0, 0.004], "emitRadius":16, "emit":"green", "emittance":1, "target":"emitter2", "speed":{"Btarget":0.0002, "Bspeed":1}},
-    "emitter2": {"pos":[0.35, 0.45, 0, -0.004], "emitRadius":16, "emit":"green", "emittance":1, "target":"emitter1", "speed":{"Btarget":0.0002, "Bspeed":1}},
-    "center": {"pos":[0.5, 0.5]}
+    "warning": {"pos":[0.25, 0.45, 0, 0.004], "emitRadius":16, "emit":"green", "emittance":1, "target":"emitter2", "speed":{"Btarget":0.0002, "Bspeed":1}, "momentum":0.91},
+    "emitter2": {"pos":[0.35, 0.45, 0, -0.004], "emitRadius":16, "emit":"green", "emittance":1, "target":"warning", "speed":{"Btarget":0.0002, "Bspeed":1}},
+    "center": {"pos":[0.5, 0.5]},
+    "john": {"pos":[0.99, 0], "momentum":null}
   }
 }
