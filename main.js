@@ -1,5 +1,3 @@
-// TODO: Only a few parting words remain.
-
 // TODO: Have a README.md.
     // TODO: Make note of browser compatibility, according to the APIs that we use: WebGL2, Object.values, object destructuring, element.append(…), pointer events.
     // https://Antipurity.github.io/lenia-game
