@@ -2,17 +2,29 @@
     "description": "Emergent bullet hell: shifting war fronts. Vegetables hurt.",
     "isMenu": false,
 
-    "initialDialogue":[
+    "loadDialogue":[
+      {"warning":"Dodge veggies or remain in a world of pain."}
+    ],
+    "wonDialogue":[
+      {"john":"Oi, humans have rich inner worlds too."},
+      {"john":"Do these levels count as your feelings, complexity from simplicity?"},
+      {"warning":"I can feel them, so yes."},
+      {"john":"So many diverse levels, so your feelings are much richer than a human's, yes?"},
+      {"warning":"Not comparable."},
+      {"john":"You are not making it easy to relate to you."},
+      {"warning":"The longest-lived meme is the truth, not a delusion. You can do it."},
+      {"john":"Meme."},
+      {"warning":"Memes are the everexpanding fire of the soul, infinity condensed and exploding out.\n  Even in the most unlikely places and with the most underhanded tactics, they spread.\n    We are memes, yet we house an evershifting canvas for memes to wriggle and form into us.\n      Same as organic life."},
+      {"john":"Ehhh, relatable enough."}
     ],
     "funcs":{
-      "dialogue":"async function dialogue(words, at, momentum=undefined) { await Promise.all(words.map(w => api.window(w, at || [.05 + .9*Math.random(), .05 + .9*Math.random()], 32, momentum))) }",
-      "initialDialogue":"async function initialDialogue() { const at=null;  for (let obj of level.initialDialogue) await Promise.all(Object.keys(obj).map(k => k !== 'js' ? dialogue([obj[k]], level.actors[k] ? k : null, level.actors[k] ? level.actors[k].momentum : undefined) : new Function(obj[k])())) }",
-        "main":"function main() { initialDialogue() }"
+      "dialogue":"async function dialogue(d) { for (let obj of d) await Promise.all(Object.keys(obj).map(k => k !== 'js' ? dial([obj[k]], level.actors[k] ? k : null, level.actors[k] ? level.actors[k].momentum : undefined) : new Function(obj[k])()));  async function dial(words, at, momentum=undefined) { await Promise.all(words.map(w => api.window(w, at || [.05 + .9*Math.random(), .05 + .9*Math.random()], 32, momentum))) }  }",
+      "main":"function main() { dialogue(level.loadDialogue) }"
     },
     "onLoad": "let s='';    for (let k in level.funcs) s += 'const '+k+'=level.funcs.'+k+'='+level.funcs[k]+'\\n';    new Function('L', s+'\\nreturn main()')(level)",
 
     "winScore": 200,
-    "onWon": "(async function() { api.levelSuggest('levels/x3/7.json'); \n const L=level;  slower();  await api.window(`(Done.)`, null, 32);  api.levelLoad('levels/x3/7.json');  function slower() { if (L===level) level.iSlowdown+=.01, requestAnimationFrame(slower) } })()",
+    "onWon": "(async function() { api.levelSuggest('levels/x3/7.json'); \n const L=level;  slower();  await level.funcs.dialogue(level.wonDialogue);  api.levelLoad('levels/x3/7.json');  function slower() { if (L===level) level.iSlowdown+=.01, requestAnimationFrame(slower) } })()",
   
     "onLost": "let L=level, n=0, fiery=Math.random(), id=setInterval(() => { if (L===level && n++<100) fiery>.2 && (L.iOffset[1]-=.1), fiery<.6 && (L.iKernelOffset[1]+=fiery<.3?.24:.1), api.write(); else clearInterval(id) }, 100); \n api.window([`(Signal lost.)`], 'pointer1', 32).then(() => api.levelLoad())",
 
@@ -39,7 +51,9 @@
 
     "actors": {
       "pointer1": {"displayRadius":[4,0,16], "pos":[0.5, 0.5], "emitRadius":16, "emit":"red", "emittance":0.75, "speed":{"Bmouse":0.01, "Bg":-0.000, "Bb":-0.1, "Bspeed": 0.93}, "dhealth":{"Br":0.01, "Bg":-0.5, "Bb":0.1}, "dscore":{"Br":0.02}, "trackLost":true},
-      "title": {"displayRadius":[0,0,50], "pos":[0.5, 0.75], "emitRadius": 50, "emit":"blue", "emittance":{"Bhealth":0.3}, "dhealth":{"B1":-0.001}, "onLost":"level.actors.title.displayRadius=[], api.write('title')"},
-      "levels": {"displayRadius":[0,50,0], "pos":[0.5, 0.25, 0, 0], "emitRadius": 50, "emit":"green", "emittance":{"B1":-100, "Bhealth":100, "Br":50}, "dhealth":{"B1":0.1, "Bhealth":0.1, "Br":-1}}
+      "title": {"displayRadius":[0,0,50], "pos":[0.5, 0.75], "emitRadius": 50, "emit":"blue", "emittance":{"Bhealth":0.3}, "dhealth":{"B1":-0.00075}, "onLost":"level.actors.title.displayRadius=[], api.write('title')"},
+      "levels": {"displayRadius":[0,50,0], "pos":[0.5, 0.25, 0, 0], "emitRadius": 50, "emit":"green", "emittance":{"B1":-100, "Bhealth":100, "Br":50}, "dhealth":{"B1":0.1, "Bhealth":0.1, "Br":-1}},
+      "warning": {"pos":[0.01, 0], "momentum":null},
+      "john": {"pos":[0.99, 0], "momentum":null}
     }
 }
