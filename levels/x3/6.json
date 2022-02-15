@@ -7,15 +7,16 @@
     ],
     "wonDialogue":[
       {"john":"Oi, humans have rich inner worlds too."},
+      {"john":"All of this is a part of your body."},
       {"john":"Do these levels count as your feelings, complexity from simplicity?"},
       {"warning":"I can feel them, so yes."},
-      {"john":"So many diverse levels, so your feelings are much richer than a human's, yes?"},
-      {"warning":"Not comparable."},
+      {"john":"With so many diverse programmable levels, your feelings are much richer than a human's, yes?"},
+      {"warning":"No, not comparable."},
       {"john":"You are not making it easy to relate to you."},
       {"warning":"The longest-lived meme is the truth, not a delusion. You can do it."},
       {"john":"Meme."},
       {"warning":"Memes are the everexpanding fire of the soul, infinity condensed and exploding out.\n  Even in the most unlikely places and with the most underhanded tactics, they spread.\n    We are memes, yet we house an evershifting canvas for memes to wriggle and form into us.\n      Same as organic life."},
-      {"john":"Ehhh, relatable enough."}
+      {"john":"Ehhh, relatable enough.\n\nI can live with memes."}
     ],
     "funcs":{
       "dialogue":"async function dialogue(d) { for (let obj of d) await Promise.all(Object.keys(obj).map(k => k !== 'js' ? dial([obj[k]], level.actors[k] ? k : null, level.actors[k] ? level.actors[k].momentum : undefined) : new Function(obj[k])()));  async function dial(words, at, momentum=undefined) { await Promise.all(words.map(w => api.window(w, at || [.05 + .9*Math.random(), .05 + .9*Math.random()], 32, momentum))) }  }",
