@@ -5,7 +5,7 @@
     {"john":"I'm tired."},
     {"john":"My head hurts."},
     {"john":"Can I go home now?\n\nI've had enough eldritch abominations for now."},
-    {"warning":"Fleeing already?", "0":"(Recordings showed its unease and mild fear.)", "1":"(Its past is still unknown.)"},
+    {"warning":"Fleeing already?", "0":"(Recordings showed its unease and mild fear.)", "1":"(Its past is still unknown.)", "2":"(Model changed too quickly.)"},
     {"warning":"Humans fear what they don't understand.\n It is natural for those who die when killed.", "0":"(Magical girl.)", "1":"(Warning's interaction with John has created no Warning-fear vortices.)"},
     {"warning":"But human spirit is limitless.\n In unity, we can explore the universe of possibilities, eventually.", "0":"(Paint the future.)"},
     {"warning":"John, what would you say to taking Sebastian with you?", "0":"(Try exposure therapy.)"},
